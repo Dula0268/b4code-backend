@@ -1,0 +1,84 @@
+eureka:
+  instance:
+    preferIpAddress: true
+    hostname: ${spring.application.name}
+    metadata-map:
+      management.context-path: ${server.servlet.context-path}/actuator
+  client:
+    registerWithEureka: false
+    fetchRegistry: false
+    serviceUrl:
+      defaultZone: http://eureka-0.eureka:8761/eureka
+
+spring:
+  datasource:
+    type: com.zaxxer.hikari.HikariDataSource
+    url: jdbc:postgresql://edcs-dev-v2.c5so0wko8p98.ap-southeast-1.rds.amazonaws.com:5432/die-dev5?currentSchema=training_and_development
+    username: postgres
+    password: postgres
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      poolName: Hikari
+      auto-commit: false
+      data-source-properties:
+        cachePrepStmts: true
+        prepStmtCacheSize: 250
+        prepStmtCacheSqlLimit: 2048
+        useServerPrepStmts: true
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    hibernate:
+      naming:
+        physical-strategy: org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl
+    show-sql: true
+#  cache:
+#    type: redis
+#  redis:
+#    Host: 192.168.90.65 # redis server address
+#    Database: 0 # redis database index (default is 0)
+#    Port: 6379 #redis server connection port
+#    Password: # redis server connection password (empty by default)
+#    Timeout: 1000ms # connection timeout
+
+keycloak:
+  cors: true
+  auth-server-url: http://dev-edcs-v6-1531592723.ap-southeast-1.elb.amazonaws.com
+  realm: DIE
+  resource: die-hrms-client
+  ssl-required: none
+  public-client: true
+  credentials:
+    secret:
+  security-constraints[0]:
+    authRoles[0]: default-roles-die
+    securityCollections[0]:
+      patterns[0]: /group/*
+      patterns[1]: /user/*
+      patterns[2]: /user-management/*
+      patterns[3]: /api-log/*
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+  endpoint:
+    health:
+      show-detail: ALWAYS
+
+swagger:
+  server-url: http://localhost:8081
+
+logging:
+  file:
+    name: ${spring.application.name}.log
+
+info:
+  userDefaultPassword: Info@123
+  passwordResetURL: http://localhost
+  keycloak:
+    curl-client: curl
+
+faste:
+  rest:
+    enabled: false
