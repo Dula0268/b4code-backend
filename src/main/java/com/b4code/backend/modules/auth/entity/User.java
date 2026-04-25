@@ -26,9 +26,12 @@ public class User {
 
     @Column(nullable = false)
     private String firstName;
-    
+
     @Column(nullable = false)
     private String lastName;
+
+    @Column
+    private String phone;
 
     // We can define roles using an Enum for simplicity right now
     @Enumerated(EnumType.STRING)
