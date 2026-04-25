@@ -26,8 +26,17 @@ public class AuthService {
         User user = new User();
         user.setEmail(request.getEmail().toLowerCase());
         user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
-        user.setFirstName(request.getFirstName());
-        user.setLastName(request.getLastName());
+        // Handle fullName split if firstName is not provided
+        if (request.getFirstName() != null) {
+            user.setFirstName(request.getFirstName());
+            user.setLastName(request.getLastName() != null ? request.getLastName() : "");
+        } else if (request.getPhone() != null) {
+            // fullName came as one string — split it
+            String[] parts = request.getPhone().split(" ", 2);
+            user.setFirstName(parts[0]);
+            user.setLastName(parts.length > 1 ? parts[1] : "");
+        }
+        user.setPhone(request.getPhone());
 
         // Default to GUEST if no role specified
         User.Role role;
