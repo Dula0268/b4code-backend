@@ -1,7 +1,5 @@
 package com.b4code.backend.modules.admin.dto;
 
-// Phase 3 — Finance: KPI summary for finance overview tab
-
 import lombok.*;
 import java.math.BigDecimal;
 

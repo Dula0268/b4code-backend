@@ -33,7 +33,6 @@ public class DashboardServiceImpl implements DashboardService {
         BigDecimal totalRevenue = transactionRepository.sumTotalRevenue();
         long activeBookings    = transactionRepository.count();
 
-        // Format revenue as "LKR 1,200,000" — matches frontend TotalRevenueCard value prop
         String revenueFormatted = "LKR " + String.format("%,.0f", totalRevenue);
         String bookingsFormatted = String.format("%,d", activeBookings);
 

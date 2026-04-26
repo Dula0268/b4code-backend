@@ -1,7 +1,5 @@
 package com.b4code.backend.modules.admin.dto;
 
-// Phase 3 — Finance: Refund DTO
-
 import com.b4code.backend.modules.admin.enums.RefundStatus;
 import com.b4code.backend.modules.admin.models.Refund;
 import lombok.*;

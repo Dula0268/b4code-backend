@@ -1,7 +1,5 @@
 package com.b4code.backend.modules.admin.models;
 
-// Phase 3 — Finance: Transaction
-
 import com.b4code.backend.modules.admin.enums.TransactionType;
 import jakarta.persistence.*;
 import lombok.Getter;
@@ -22,8 +20,7 @@ public class Transaction {
     private Long id;
 
     @Column(nullable = false, unique = true)
-    private String referenceNumber;    // e.g. TXN-20241024-001
-
+    private String referenceNumber;   
     @Column(nullable = false, precision = 12, scale = 2)
     private BigDecimal amount;
 
@@ -35,10 +32,10 @@ public class Transaction {
     private TransactionType type;
 
     private Long propertyId;
-    private String propertyName;       // denormalized
+    private String propertyName;       
 
     private Long userId;
-    private String userName;           // denormalized
+    private String userName;           
 
     private String description;
 

@@ -1,7 +1,5 @@
 package com.b4code.backend.modules.admin.dto;
 
-// Phase 3 — Finance: Transaction DTO
-
 import com.b4code.backend.modules.admin.enums.TransactionType;
 import com.b4code.backend.modules.admin.models.Transaction;
 import lombok.*;

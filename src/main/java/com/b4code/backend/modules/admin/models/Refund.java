@@ -1,7 +1,5 @@
 package com.b4code.backend.modules.admin.models;
 
-// Phase 3 — Finance: Refund
-
 import com.b4code.backend.modules.admin.enums.RefundStatus;
 import jakarta.persistence.*;
 import lombok.Getter;
@@ -23,11 +21,11 @@ public class Refund {
     private Long id;
 
     @Column(nullable = false)
-    private Long transactionId;        // FK → transactions.id
+    private Long transactionId;        
 
     @Column(nullable = false)
     private Long userId;
-    private String userName;           // denormalized
+    private String userName;           
 
     @Column(nullable = false, precision = 12, scale = 2)
     private BigDecimal amount;

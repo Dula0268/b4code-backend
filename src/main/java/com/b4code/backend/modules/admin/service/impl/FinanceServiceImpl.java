@@ -48,7 +48,6 @@ public class FinanceServiceImpl implements FinanceService {
     }
 
     // ── Revenue trend chart (monthly)
-    // Uses .revenue() — matches frontend RevenueTrendChart dataKey="revenue"
     @Override
     @Transactional(readOnly = true)
     public List<RevenueTrendPointDto> getRevenueTrend() {

@@ -27,7 +27,7 @@ public class PropertyServiceImpl implements PropertyService {
 
     private final PropertyRepository propertyRepository;
 
-    // ── GET ALL (paginated + filtered)
+    // ── GET ALL 
     @Override
     @Transactional(readOnly = true)
     public PropertyPageDto getAllProperties(String search, PropertyStatus status, int page, int size) {

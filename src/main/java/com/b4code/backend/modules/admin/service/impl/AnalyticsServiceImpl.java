@@ -56,7 +56,7 @@ public class AnalyticsServiceImpl implements AnalyticsService {
                 .build();
     }
 
-    // ── Stat cards (rows 3+4, cached 15 min)
+    // ── Stat cards 
     @Override
     @Transactional(readOnly = true)
     @Cacheable(value = "analytics", key = "'summary'")
