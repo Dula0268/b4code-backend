@@ -28,9 +28,9 @@ import java.util.List;
 public class UserServiceImpl implements UserService {
 
     private final AdminUserRepository userRepository;
-    private final PasswordEncoder passwordEncoder;   // BCryptPasswordEncoder from SecurityConfig
+    private final PasswordEncoder passwordEncoder;   
 
-    // ── GET ALL USERS (paginated + filtered) ──────────────────────────────────
+    // ── GET ALL USERS  ──────────────────────────────────
 
     @Override
     @Transactional(readOnly = true)
@@ -122,7 +122,7 @@ public class UserServiceImpl implements UserService {
         return UserDto.fromEntity(updated);
     }
 
-    // ── UPDATE STATUS (Active ↔ Suspended) ───────────────────────────────────
+    // ── UPDATE STATUS  ───────────────────────────────────
 
     @Override
     @Transactional
