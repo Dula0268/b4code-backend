@@ -1,0 +1,34 @@
+package com.b4code.backend.modules.admin.dao;
+
+import com.b4code.backend.modules.admin.enums.ModerationAction;
+import com.b4code.backend.modules.admin.models.ModerationHistory;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+import org.springframework.stereotype.Repository;
+
+import java.time.LocalDateTime;
+
+@Repository
+public interface ModerationHistoryRepository extends JpaRepository<ModerationHistory, Long> {
+
+    @Query("""
+        SELECT h FROM ModerationHistory h
+        WHERE (:action IS NULL OR h.actionTaken = :action)
+          AND (:from IS NULL OR h.resolvedAt >= :from)
+          AND (:to IS NULL OR h.resolvedAt <= :to)
+          AND (:search IS NULL OR
+               LOWER(h.caseId) LIKE LOWER(CONCAT('%',:search,'%')) OR
+               LOWER(h.adminName) LIKE LOWER(CONCAT('%',:search,'%')) OR
+               LOWER(h.outcome) LIKE LOWER(CONCAT('%',:search,'%')))
+        ORDER BY h.resolvedAt DESC
+        """)
+    Page<ModerationHistory> findAllWithFilters(
+            @Param("action") ModerationAction action,
+            @Param("search") String search,
+            @Param("from") LocalDateTime from,
+            @Param("to") LocalDateTime to,
+            Pageable pageable);
+}
