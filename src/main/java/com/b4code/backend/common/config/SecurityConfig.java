@@ -52,6 +52,8 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(authz -> authz
                         .requestMatchers("/api/auth/**", "/api/test/**").permitAll()
+                        .requestMatchers("/api/qr/**").permitAll()
+                        .requestMatchers("/api/orders/**", "/api/menu-items/**", "/api/staff/**").permitAll()
                         .requestMatchers("/actuator/health/**").permitAll()
                         .anyRequest().authenticated())
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
@@ -62,6 +64,7 @@ public class SecurityConfig {
     @Bean
     public org.springframework.web.cors.CorsConfigurationSource corsConfigurationSource() {
         org.springframework.web.cors.CorsConfiguration configuration = new org.springframework.web.cors.CorsConfiguration();
+        // Allow the local frontend running on Vite/React/Next.js to connect
         configuration.setAllowedOrigins(java.util.List.of(
                 "http://localhost:5173",
                 "http://localhost:3000",
