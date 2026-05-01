@@ -5,6 +5,7 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
+import com.b4code.backend.modules.staff.qr.entity.QRCode;
 
 import java.time.LocalDateTime;
 
@@ -34,6 +35,10 @@ public class Order {
 
     @Column(nullable = false)
     private String status; // NEW, PREPARING, DELIVERED, CANCELLED
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "qr_code_id")
+    private QRCode qrCode; // QR code scanned to create this order
 
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
