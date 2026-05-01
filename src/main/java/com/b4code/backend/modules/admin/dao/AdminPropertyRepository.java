@@ -12,7 +12,7 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 
 @Repository
-public interface PropertyRepository extends JpaRepository<Property, Long> {
+public interface AdminPropertyRepository extends JpaRepository<Property, Long> {
 
     @Query("""
             SELECT p FROM Property p

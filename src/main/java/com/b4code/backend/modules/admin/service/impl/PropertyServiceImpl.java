@@ -1,6 +1,6 @@
 package com.b4code.backend.modules.admin.service.impl;
 
-import com.b4code.backend.modules.admin.dao.PropertyRepository;
+import com.b4code.backend.modules.admin.dao.AdminPropertyRepository;
 import com.b4code.backend.modules.admin.dto.PropertyDto;
 import com.b4code.backend.modules.admin.dto.PropertyPageDto;
 import com.b4code.backend.modules.admin.dto.PropertyRejectionDto;
@@ -25,7 +25,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class PropertyServiceImpl implements PropertyService {
 
-    private final PropertyRepository propertyRepository;
+    private final AdminPropertyRepository propertyRepository;
 
     // ── GET ALL 
     @Override

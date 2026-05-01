@@ -1,6 +1,6 @@
 package com.b4code.backend.modules.admin.service.impl;
 
-import com.b4code.backend.modules.admin.dao.PropertyRepository;
+import com.b4code.backend.modules.admin.dao.AdminPropertyRepository;
 import com.b4code.backend.modules.admin.dao.TransactionRepository;
 import com.b4code.backend.modules.admin.dto.*;
 import com.b4code.backend.modules.admin.enums.PropertyStatus;
@@ -21,7 +21,7 @@ import java.util.List;
 public class DashboardServiceImpl implements DashboardService {
 
     private final TransactionRepository transactionRepository;
-    private final PropertyRepository propertyRepository;
+    private final AdminPropertyRepository propertyRepository;
 
     // ── KPI cards
     @Override

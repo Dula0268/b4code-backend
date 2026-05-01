@@ -1,7 +1,7 @@
 package com.b4code.backend.modules.admin.service.impl;
 
 import com.b4code.backend.modules.admin.dao.AdminUserRepository;
-import com.b4code.backend.modules.admin.dao.PropertyRepository;
+import com.b4code.backend.modules.admin.dao.AdminPropertyRepository;
 import com.b4code.backend.modules.admin.dao.TransactionRepository;
 import com.b4code.backend.modules.admin.dto.*;
 import com.b4code.backend.modules.admin.service.AnalyticsService;
@@ -21,7 +21,7 @@ import java.util.List;
 public class AnalyticsServiceImpl implements AnalyticsService {
 
     private final TransactionRepository transactionRepository;
-    private final PropertyRepository    propertyRepository;
+    private final AdminPropertyRepository    propertyRepository;
     private final AdminUserRepository   userRepository;
 
     private static final int COMMISSION_RATE = 20;  
