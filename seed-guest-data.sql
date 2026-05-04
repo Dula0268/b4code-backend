@@ -51,4 +51,24 @@ VALUES
   (3, 4, 101, '2026-07-01', '2026-07-05', 15000, 'PENDING', NOW())
 ON CONFLICT DO NOTHING;
 
+-- Conditionally insert rooms if a `rooms` table exists in this database.
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'rooms') THEN
+        -- Insert two sample rooms for property 1
+        INSERT INTO rooms (id, property_id, name, max_guests, bed_type, sqft, price_per_night, original_price, tag, image_url, created_at)
+        VALUES
+          ('1-r1', 1, 'Master Suite', 4, 'King Bed', 450, 8000.0, 10000.0, 'Popular', 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=500', NOW()),
+          ('1-r2', 1, 'Family Room', 6, '2 x Queen', 600, 12000.0, 15000.0, 'Refundable', 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=500', NOW())
+        ON CONFLICT DO NOTHING;
+
+        -- Insert two sample rooms for property 2
+        INSERT INTO rooms (id, property_id, name, max_guests, bed_type, sqft, price_per_night, original_price, tag, image_url, created_at)
+        VALUES
+          ('2-r1', 2, 'Hillside Suite', 3, 'Queen Bed', 380, 7000.0, 9000.0, 'Popular', 'https://images.unsplash.com/photo-1571896349842-b08d4ca884db?w=500', NOW()),
+          ('2-r2', 2, 'Couple Room', 2, 'Double Bed', 280, 5000.0, 6000.0, 'Refundable', 'https://images.unsplash.com/photo-1571896349842-b08d4ca884db?w=500', NOW())
+        ON CONFLICT DO NOTHING;
+    END IF;
+END$$;
+
 SELECT 'Seed data inserted successfully!' AS status;

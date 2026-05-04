@@ -23,6 +23,7 @@ public class GuestService {
     private final BookingRepository bookingRepository;
     private final ReviewRepository reviewRepository;
     private final MessageRepository messageRepository;
+    private final com.b4code.backend.modules.guest.repository.RoomRepository roomRepository;
 
     // ───────── PROPERTY METHODS ─────────
 
@@ -51,6 +52,17 @@ public class GuestService {
                 .collect(Collectors.toList());
         dto.setReviews(reviewDtos);
         dto.setReviewCount(reviews.size());
+
+        // Fetch and add rooms from DB if present
+        try {
+            List<com.b4code.backend.modules.guest.entity.Room> rooms = roomRepository.findByPropertyId(propertyId);
+            List<RoomDto> roomDtos = rooms.stream()
+                    .map(com.b4code.backend.modules.guest.dto.RoomDto::fromEntity)
+                    .collect(Collectors.toList());
+            dto.setRooms(roomDtos);
+        } catch (Exception e) {
+            // If rooms table doesn't exist or any error occurs, leave the sample rooms (if any) set in DTO
+        }
         
         return dto;
     }
