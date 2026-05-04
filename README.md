@@ -9,7 +9,7 @@ This repository contains the backend infrastructure for the **B4Code** hospitali
 - **Database:** PostgreSQL 16
 - **Cache / Sessions:** Redis 7
 - **DevOps / Orchestration:** Docker & Kubernetes (Helm)
-- **CI/CD:** GitHub Actions (SAST, DAST)
+- **CI/CD:** GitHub Actions (SAST, DAST, Docker build & push)
 
 ---
 
@@ -78,3 +78,16 @@ Visit the following API to test connectivity:
 - **Encryption at Rest:** Sensitive PII columns across entities are safeguarded using AES-256 via the `AttributeEncryptor`.
 
 *(Documentation drafted during Phase 1 - Architecture Setup)*
+
+---
+
+## ⚙️ CI/CD Pipeline
+
+The GitHub Actions workflow (`.github/workflows/ci.yml`) runs on every **push** and **pull_request** targeting `main`, `dev`, or `develop`.
+
+| Job | Trigger | Behaviour |
+|-----|---------|-----------|
+| `build-and-test` | push & pull_request | Maven build, CodeQL SAST, OWASP Dependency Check |
+| `docker-build` | push & pull_request | Always builds the Docker image; **only pushes to registry on `push` events** (requires `DOCKER_USERNAME` / `DOCKER_PASSWORD` secrets) |
+
+> PRs catch Dockerfile/image build errors **before** merging. Registry credentials are never needed for PR runs.
