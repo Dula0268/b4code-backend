@@ -91,10 +91,10 @@ Simple GitHub Actions workflow for Continuous Integration and Docker building.
 
 ### Pipeline Overview
 
-| Job | Purpose | Trigger | Duration |
-|-----|---------|---------|----------|
-| **build-and-test** | Compile & run unit tests | Every PR/push | ~3-5 min |
-| **docker-build-and-push** | Build & push Docker image | Push to main/develop | ~3-5 min |
+| Job                       | Purpose                   | Trigger              | Duration |
+| ------------------------- | ------------------------- | -------------------- | -------- |
+| **build-and-test**        | Compile & run unit tests  | Every PR/push | ~3-5 min |
+| **docker-build-and-push** | Build & push Docker image | Every PR/push | ~3-5 min |
 
 ### Setup Instructions
 
@@ -119,19 +119,14 @@ DOCKER_REGISTRY = docker.io
 ### Workflow Flow
 
 ```
-GitHub Event (PR/Push)
+GitHub Event (PR/Push - All Branches)
 │
-└─→ build-and-test (all branches)
-    ├─ mvn clean package -DskipTests
-    └─ mvn test
-    
-    [IF PUSH TO main/develop]
-    │
-    └─→ docker-build-and-push
-        └─ Build and push Docker image
-```
-
-### Quick Testing
+├─→ build-and-test
+│   ├─ mvn clean package -DskipTests
+│   └─ mvn test
+│
+└─→ docker-build-and-push
+    └─ Build and push Docker image
 
 Before creating a PR:
 
@@ -197,6 +192,7 @@ java -version
 ### View Results
 
 1. Go to **Actions** tab in GitHub
+
 ### View Results
 
 1. Go to **Actions** tab in GitHub
