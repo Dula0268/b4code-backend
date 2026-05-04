@@ -91,16 +91,16 @@ Simple GitHub Actions workflow for Continuous Integration and Docker building.
 
 ### Pipeline Overview
 
-| Job                       | Purpose                   | Trigger              | Duration |
-| ------------------------- | ------------------------- | -------------------- | -------- |
+| Job                       | Purpose                   | Trigger       | Duration |
+| ------------------------- | ------------------------- | ------------- | -------- |
 | **build-and-test**        | Compile & run unit tests  | Every PR/push | ~3-5 min |
-| **docker-build-and-push** | Build & push Docker image | Every PR/push | ~3-5 min |
+| **docker-build-and-push** | Build Docker image        | Every PR/push | ~3-5 min |
 
 ### Setup Instructions
 
-#### 1. Configure Docker Registry
+#### 1. Configure Docker Registry (Optional - For Push Only)
 
-Add these to GitHub repository **Settings → Secrets and variables → Actions**:
+If you want to push Docker images to a registry, add these to GitHub **Settings → Secrets and variables → Actions**:
 
 ```
 DOCKER_USERNAME     # Your Docker registry username
@@ -108,17 +108,13 @@ DOCKER_PASSWORD     # Your Docker registry password or token
 DOCKER_REGISTRY     # Your Docker registry (e.g., docker.io, ghcr.io, myacr.azurecr.io)
 ```
 
-**Example for DockerHub:**
+**Currently**: Docker is built on every PR/push but **not pushed** (requires credentials).
 
-```
-DOCKER_USERNAME = your-dockerhub-username
-DOCKER_PASSWORD = your-dockerhub-token
-DOCKER_REGISTRY = docker.io
-```
+To enable push, uncomment the login and push steps in `.github/workflows/ci.yml` after setting secrets.
 
 ### Workflow Flow
 
-```
+````
 GitHub Event (PR/Push - All Branches)
 │
 ├─→ build-and-test
@@ -139,7 +135,7 @@ mvn test
 
 # Check Java version (must be 21)
 java -version
-```
+````
 
 ### Pre-Merge Checklist
 
