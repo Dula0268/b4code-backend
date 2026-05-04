@@ -91,10 +91,11 @@ Simple GitHub Actions workflow for Continuous Integration and Docker building.
 
 ### Pipeline Overview
 
-| Job                       | Purpose                   | Trigger       | Duration |
-| ------------------------- | ------------------------- | ------------- | -------- |
-| **build-and-test**        | Compile & run unit tests  | Every PR/push | ~3-5 min |
-| **docker-build-and-push** | Build Docker image        | Every PR/push | ~3-5 min |
+| Job                       | Purpose                  | Trigger       | Duration |
+| ------------------------- | ------------------------ | ------------- | -------- |
+| **build-and-test**        | Compile & run unit tests | Every PR/push | ~3-5 min |
+| **code-quality**          | CodeQL security analysis | Every PR/push | ~5-8 min |
+| **docker-build-and-push** | Build Docker image       | Push only     | ~3-5 min |
 
 ### Setup Instructions
 
@@ -114,15 +115,25 @@ To enable push, uncomment the login and push steps in `.github/workflows/ci.yml`
 
 ### Workflow Flow
 
-````
-GitHub Event (PR/Push - All Branches)
+```
+GitHub Event (PR/Push)
 │
 ├─→ build-and-test
+│   ├─ Set up JDK 21
 │   ├─ mvn clean package -DskipTests
 │   └─ mvn test
 │
-└─→ docker-build-and-push
-    └─ Build and push Docker image
+├─→ code-quality (parallel)
+│   ├─ Set up JDK 21 (IMPORTANT: Java setup required for CodeQL)
+│   ├─ Initialize CodeQL
+│   ├─ mvn -B -DskipTests package (explicit build, not autobuild)
+│   └─ Perform CodeQL Analysis
+│
+└─→ [IF PUSH] docker-build-and-push
+    └─ Build Docker image
+```
+
+### Quick Testing
 
 Before creating a PR:
 
@@ -135,11 +146,12 @@ mvn test
 
 # Check Java version (must be 21)
 java -version
-````
+```
 
 ### Pre-Merge Checklist
 
-- [ ] All GitHub Actions checks pass (build-and-test ✅)
+- [ ] All GitHub Actions checks pass (build-and-test ✅, code-quality ✅)
+- [ ] CodeQL findings reviewed (no critical issues)
 - [ ] Tests pass locally: `mvn test`
 - [ ] Build passes locally: `mvn clean package`
 - [ ] Code reviewed and approved
