@@ -30,6 +30,7 @@ jobs:
   docker-build-and-push:
     needs: build-and-test
     runs-on: ubuntu-latest
+    if: github.event_name == 'push'
 
     steps:
       - name: Checkout code
