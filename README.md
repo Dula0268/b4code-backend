@@ -91,13 +91,13 @@ Complete GitHub Actions workflow for Continuous Integration and Continuous Deplo
 
 ### Pipeline Overview
 
-| Job | Purpose | Trigger | Duration |
-|-----|---------|---------|----------|
-| **build-and-test** | Compile & run unit tests | Every PR/push | ~3-5 min |
-| **code-quality** | CodeQL + OWASP dependency check | Every PR/push | ~5-10 min |
-| **docker-build-and-push** | Build & push Docker image | Push to main/develop | ~3-5 min |
-| **deploy-to-staging** | Auto-deploy to staging | Push to develop | ~2-3 min |
-| **deploy-to-production** | Deploy to production (requires approval) | Push to main | ~2-3 min |
+| Job                       | Purpose                                  | Trigger              | Duration  |
+| ------------------------- | ---------------------------------------- | -------------------- | --------- |
+| **build-and-test**        | Compile & run unit tests                 | Every PR/push        | ~3-5 min  |
+| **code-quality**          | CodeQL + OWASP dependency check          | Every PR/push        | ~5-10 min |
+| **docker-build-and-push** | Build & push Docker image                | Push to main/develop | ~3-5 min  |
+| **deploy-to-staging**     | Auto-deploy to staging                   | Push to develop      | ~2-3 min  |
+| **deploy-to-production**  | Deploy to production (requires approval) | Push to main         | ~2-3 min  |
 
 ### Setup Instructions
 
@@ -112,6 +112,7 @@ DOCKER_REGISTRY     # Your Docker registry (e.g., docker.io, ghcr.io, myacr.azur
 ```
 
 **Example for DockerHub:**
+
 ```
 DOCKER_USERNAME = your-dockerhub-username
 DOCKER_PASSWORD = your-dockerhub-token
@@ -119,6 +120,7 @@ DOCKER_REGISTRY = docker.io
 ```
 
 **Example for Azure Container Registry:**
+
 ```
 DOCKER_USERNAME = your-acr-name
 DOCKER_PASSWORD = your-acr-password
@@ -141,6 +143,7 @@ Now anyone deploying to production needs approval from your reviewers.
 Edit `.github/workflows/ci.yml` and add your deployment commands:
 
 **For Kubernetes (Helm):**
+
 ```bash
 - name: Deploy to Production
   run: |
@@ -151,6 +154,7 @@ Edit `.github/workflows/ci.yml` and add your deployment commands:
 ```
 
 **For Docker Swarm:**
+
 ```bash
 - name: Deploy to Production
   run: |
@@ -159,6 +163,7 @@ Edit `.github/workflows/ci.yml` and add your deployment commands:
 ```
 
 **For Custom Scripts:**
+
 ```bash
 - name: Deploy to Production
   run: bash ./deploy.sh ${{ github.sha }}
