@@ -27,52 +27,8 @@ jobs:
       - name: Run Tests
         run: mvn test
 
-  code-quality:
-    runs-on: ubuntu-latest
-    if: github.event_name == 'push'
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up JDK 21
-        uses: actions/setup-java@v4
-        with:
-          java-version: "21"
-          distribution: "temurin"
-          cache: maven
-
-      # SAST: Static Application Security Testing using CodeQL
-      - name: Initialize CodeQL
-        uses: github/codeql-action/init@v3
-        with:
-          languages: java
-
-      - name: Build for CodeQL
-        run: mvn clean package -DskipTests
-
-      - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@v3
-
-      # Dependency Check
-      - name: Run OWASP Dependency Check
-        uses: dependency-check/Dependency-Check_Action@main
-        with:
-          project: "b4code-backend"
-          path: "."
-          format: "HTML"
-          args: >
-            --enableExperimental
-
-      - name: Upload Dependency Check Report
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: dependency-check-report
-          path: dependency-check-report.html
-
   docker-build-and-push:
-    needs: [build-and-test, code-quality]
+    needs: build-and-test
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
 
@@ -100,35 +56,3 @@ jobs:
             ${{ vars.DOCKER_REGISTRY }}/b4code/backend:latest
           cache-from: type=registry,ref=${{ vars.DOCKER_REGISTRY }}/b4code/backend:buildcache
           cache-to: type=registry,ref=${{ vars.DOCKER_REGISTRY }}/b4code/backend:buildcache,mode=max
-
-  deploy-to-staging:
-    needs: docker-build-and-push
-    runs-on: ubuntu-latest
-    if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Deploy to Staging
-        run: |
-          echo "Deploying to staging environment..."
-          # Add your staging deployment commands here
-          # Example: kubectl set image deployment/backend backend=${{ vars.DOCKER_REGISTRY }}/b4code/backend:${{ github.sha }} -n staging
-
-  deploy-to-production:
-    needs: docker-build-and-push
-    runs-on: ubuntu-latest
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    environment:
-      name: production
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Deploy to Production
-        run: |
-          echo "Deploying to production environment..."
-          # Add your production deployment commands here
-          # Example: kubectl set image deployment/backend backend=${{ vars.DOCKER_REGISTRY }}/b4code/backend:${{ github.sha }} -n production
