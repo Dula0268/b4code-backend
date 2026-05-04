@@ -1,0 +1,196 @@
+package com.b4code.backend.modules.guest.service;
+
+import com.hospitality.dto.BookingDTO.*;
+import com.hospitality.exception.ResourceNotFoundException;
+import com.hospitality.exception.RoomNotAvailableException;
+import com.hospitality.model.*;
+import com.hospitality.repository.BookingRepository;
+import com.hospitality.repository.RoomRepository;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.*;
+import org.mockito.junit.jupiter.MockitoExtension;
+
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.util.Optional;
+
+import static org.assertj.core.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
+
+@ExtendWith(MockitoExtension.class)
+class BookingServiceTest {
+
+    @Mock BookingRepository bookingRepository;
+    @Mock RoomRepository    roomRepository;
+
+    @InjectMocks BookingService bookingService;
+
+    private Room  mockRoom;
+    private Property mockProperty;
+
+    @BeforeEach
+    void setUp() {
+        mockProperty = Property.builder()
+            .id(1L)
+            .name("Ocean Breeze Hotel")
+            .address("123 Beach Road, Colombo")
+            .build();
+
+        mockRoom = Room.builder()
+            .id(10L)
+            .property(mockProperty)
+            .name("Deluxe Double")
+            .roomType("DOUBLE")
+            .maxOccupancy(2)
+            .pricePerNight(new BigDecimal("100.00"))
+            .available(true)
+            .build();
+    }
+
+    // ──────────────────────────────────
+    // Price Breakdown Tests
+    // ──────────────────────────────────
+
+    @Test
+    @DisplayName("Price breakdown: 3 nights, no promo → correct tax and total")
+    void priceBreakdown_noPromo_correctTotals() {
+        when(roomRepository.findById(10L)).thenReturn(Optional.of(mockRoom));
+
+        LocalDate checkIn  = LocalDate.of(2025, 10, 1);
+        LocalDate checkOut = LocalDate.of(2025, 10, 4); // 3 nights
+
+        PriceBreakdown result = bookingService.getPrice(10L, checkIn, checkOut, null);
+
+        assertThat(result.getNights()).isEqualTo(3);
+        assertThat(result.getSubtotal()).isEqualByComparingTo("300.00");
+        assertThat(result.getDiscountAmount()).isEqualByComparingTo("0.00");
+        assertThat(result.getTaxAmount()).isEqualByComparingTo("30.00");   // 10%
+        assertThat(result.getTotalAmount()).isEqualByComparingTo("330.00");
+    }
+
+    @Test
+    @DisplayName("Price breakdown: with promo code applies 10% discount")
+    void priceBreakdown_withPromo_applyDiscount() {
+        when(roomRepository.findById(10L)).thenReturn(Optional.of(mockRoom));
+
+        PriceBreakdown result = bookingService.getPrice(
+            10L,
+            LocalDate.of(2025, 10, 1),
+            LocalDate.of(2025, 10, 3), // 2 nights = $200
+            "SAVE10"
+        );
+
+        assertThat(result.getDiscountAmount()).isEqualByComparingTo("20.00"); // 10% of 200
+        assertThat(result.getTaxAmount()).isEqualByComparingTo("18.00");      // 10% of 180
+        assertThat(result.getTotalAmount()).isEqualByComparingTo("198.00");
+        assertThat(result.getPromoApplied()).isEqualTo("SAVE10");
+    }
+
+    @Test
+    @DisplayName("Price breakdown: room not found throws ResourceNotFoundException")
+    void priceBreakdown_roomNotFound_throwsException() {
+        when(roomRepository.findById(anyLong())).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() ->
+            bookingService.getPrice(99L, LocalDate.now(), LocalDate.now().plusDays(1), null)
+        ).isInstanceOf(ResourceNotFoundException.class);
+    }
+
+    // ──────────────────────────────────
+    // Create Booking Tests
+    // ──────────────────────────────────
+
+    @Test
+    @DisplayName("createBooking: successful booking returns confirmation number")
+    void createBooking_success_returnsConfirmation() {
+        when(roomRepository.findById(10L)).thenReturn(Optional.of(mockRoom));
+        when(bookingRepository.existsOverlappingBooking(anyLong(), any(), any()))
+            .thenReturn(false);
+        when(bookingRepository.save(any(Booking.class))).thenAnswer(inv -> {
+            Booking b = inv.getArgument(0);
+            b.setId(1L);
+            return b;
+        });
+
+        CreateBookingRequest request = CreateBookingRequest.builder()
+            .roomId(10L)
+            .guestName("John Doe")
+            .guestEmail("john@example.com")
+            .guestPhone("+94771234567")
+            .checkIn(LocalDate.of(2025, 10, 1))
+            .checkOut(LocalDate.of(2025, 10, 4))
+            .guestCount(2)
+            .paymentMethod(Booking.PaymentMethod.ONLINE_CARD)
+            .build();
+
+        BookingResponse response = bookingService.createBooking(request);
+
+        assertThat(response.getGuestName()).isEqualTo("John Doe");
+        assertThat(response.getStatus()).isEqualTo(Booking.BookingStatus.CONFIRMED);
+        assertThat(response.getConfirmationNumber()).startsWith("HB-");
+        verify(bookingRepository).save(any(Booking.class));
+    }
+
+    @Test
+    @DisplayName("createBooking: overlapping dates throws RoomNotAvailableException")
+    void createBooking_overlap_throwsException() {
+        when(roomRepository.findById(10L)).thenReturn(Optional.of(mockRoom));
+        when(bookingRepository.existsOverlappingBooking(anyLong(), any(), any()))
+            .thenReturn(true);
+
+        CreateBookingRequest request = CreateBookingRequest.builder()
+            .roomId(10L)
+            .guestName("Jane Doe")
+            .guestEmail("jane@example.com")
+            .guestPhone("+94779999999")
+            .checkIn(LocalDate.of(2025, 10, 1))
+            .checkOut(LocalDate.of(2025, 10, 4))
+            .guestCount(1)
+            .paymentMethod(Booking.PaymentMethod.PAY_AT_PROPERTY)
+            .build();
+
+        assertThatThrownBy(() -> bookingService.createBooking(request))
+            .isInstanceOf(RoomNotAvailableException.class)
+            .hasMessageContaining("not available");
+
+        verify(bookingRepository, never()).save(any());
+    }
+
+    // ──────────────────────────────────
+    // Cancel Booking Tests
+    // ──────────────────────────────────
+
+    @Test
+    @DisplayName("cancelBooking: confirmed booking is cancelled successfully")
+    void cancelBooking_success() {
+        Booking booking = Booking.builder()
+            .id(1L)
+            .room(mockRoom)
+            .guestName("John")
+            .guestEmail("j@j.com")
+            .guestPhone("123")
+            .checkIn(LocalDate.now().plusDays(1))
+            .checkOut(LocalDate.now().plusDays(3))
+            .guestCount(1)
+            .totalAmount(BigDecimal.TEN)
+            .taxAmount(BigDecimal.ONE)
+            .discountAmount(BigDecimal.ZERO)
+            .status(Booking.BookingStatus.CONFIRMED)
+            .paymentMethod(Booking.PaymentMethod.ONLINE_CARD)
+            .confirmationNumber("HB-TEST01")
+            .build();
+
+        when(bookingRepository.findById(1L)).thenReturn(Optional.of(booking));
+        when(bookingRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        BookingResponse response = bookingService.cancelBooking(
+            1L, new CancelBookingRequest("Change of plans")
+        );
+
+        assertThat(response.getStatus()).isEqualTo(Booking.BookingStatus.CANCELLED);
+    }
+}
