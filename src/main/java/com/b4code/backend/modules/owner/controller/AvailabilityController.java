@@ -12,7 +12,7 @@ import java.time.LocalDate;
 
 @RestController
 @RequestMapping("/api/owner/availability")
-@CrossOrigin(origins = {"http://localhost:3000", "http://localhost:3002", "http://localhost:3003", "http://localhost:5173"})
+@CrossOrigin(origins = "*")
 @RequiredArgsConstructor
 @Tag(name = "Owner — Availability", description = "Calendar availability endpoints")
 public class AvailabilityController {
@@ -22,7 +22,7 @@ public class AvailabilityController {
     @GetMapping("/weekly")
     @Operation(summary = "Get weekly calendar")
     public ResponseEntity<WeeklyCalendarResponse> getWeeklyCalendar(@RequestParam Long propertyId, @RequestParam(required = false) String baseDate) {
-        LocalDate date = baseDate != null ? LocalDate.parse(baseDate) : LocalDate.now();
+        LocalDate date = (baseDate != null && !baseDate.trim().isEmpty()) ? LocalDate.parse(baseDate) : LocalDate.now();
         return ResponseEntity.ok(availabilityService.getWeeklyCalendar(propertyId, date));
     }
 

@@ -16,20 +16,29 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
-@RequiredArgsConstructor
 @Slf4j
 public class AvailabilityService {
 
     private final RoomAvailabilityRepository availabilityRepository;
     private final OwnerPropertyRepository propertyRepository;
 
+    public AvailabilityService(RoomAvailabilityRepository availabilityRepository,
+            OwnerPropertyRepository propertyRepository) {
+        this.availabilityRepository = availabilityRepository;
+        this.propertyRepository = propertyRepository;
+    }
+
     public WeeklyCalendarResponse getWeeklyCalendar(Long propertyId, LocalDate baseDate) {
-        LocalDate sun = baseDate.with(DayOfWeek.SUNDAY).minusWeeks(1).plusDays(baseDate.getDayOfWeek() == DayOfWeek.SUNDAY ? 7 : 0);
-        if (baseDate.getDayOfWeek() != DayOfWeek.SUNDAY) sun = baseDate.minusDays(baseDate.getDayOfWeek().getValue());
+        LocalDate sun = baseDate.with(DayOfWeek.SUNDAY).minusWeeks(1)
+                .plusDays(baseDate.getDayOfWeek() == DayOfWeek.SUNDAY ? 7 : 0);
+        if (baseDate.getDayOfWeek() != DayOfWeek.SUNDAY)
+            sun = baseDate.minusDays(baseDate.getDayOfWeek().getValue());
         LocalDate sat = sun.plusDays(6);
 
-        List<RoomAvailability> entries = availabilityRepository.findByPropertyIdAndDateBetweenOrderByDateAsc(propertyId, sun, sat);
-        Map<LocalDate, RoomAvailability> map = entries.stream().collect(Collectors.toMap(RoomAvailability::getDate, e -> e, (a, b) -> a));
+        List<RoomAvailability> entries = availabilityRepository.findByPropertyIdAndDateBetweenOrderByDateAsc(propertyId,
+                sun, sat);
+        Map<LocalDate, RoomAvailability> map = entries.stream()
+                .collect(Collectors.toMap(RoomAvailability::getDate, e -> e, (a, b) -> a));
 
         List<DayCell> days = new ArrayList<>();
         for (int i = 0; i < 7; i++) {
@@ -37,8 +46,13 @@ public class AvailabilityService {
             DayCell cell = new DayCell();
             cell.setDate(d);
             RoomAvailability entry = map.get(d);
-            if (entry != null) { cell.setStatus(entry.getStatus()); cell.setGuestName(entry.getGuestName()); cell.setPrice(entry.getCustomPrice()); }
-            else { cell.setStatus("AVAILABLE"); }
+            if (entry != null) {
+                cell.setStatus(entry.getStatus());
+                cell.setGuestName(entry.getGuestName());
+                cell.setPrice(entry.getCustomPrice());
+            } else {
+                cell.setStatus("AVAILABLE");
+            }
             days.add(cell);
         }
 
@@ -46,28 +60,40 @@ public class AvailabilityService {
         resp.setMonthYear(sun.getMonth().getDisplayName(TextStyle.FULL, Locale.ENGLISH) + " " + sun.getYear());
         resp.setDays(days);
         resp.setPropertyId(propertyId);
+        propertyRepository.findById(propertyId).ifPresent(p -> resp.setPropertyName(p.getName()));
         return resp;
     }
 
     public MonthlyCalendarResponse getMonthlyCalendar(Long propertyId, int year, int month) {
         LocalDate start = LocalDate.of(year, month, 1);
         LocalDate end = start.withDayOfMonth(start.lengthOfMonth());
-        List<RoomAvailability> entries = availabilityRepository.findByPropertyIdAndDateBetweenOrderByDateAsc(propertyId, start, end);
-        Map<LocalDate, RoomAvailability> map = entries.stream().collect(Collectors.toMap(RoomAvailability::getDate, e -> e, (a, b) -> a));
+        List<RoomAvailability> entries = availabilityRepository.findByPropertyIdAndDateBetweenOrderByDateAsc(propertyId,
+                start, end);
+        Map<LocalDate, RoomAvailability> map = entries.stream()
+                .collect(Collectors.toMap(RoomAvailability::getDate, e -> e, (a, b) -> a));
 
         List<DayCell> days = new ArrayList<>();
         for (LocalDate d = start; !d.isAfter(end); d = d.plusDays(1)) {
             DayCell cell = new DayCell();
             cell.setDate(d);
             RoomAvailability entry = map.get(d);
-            if (entry != null) { cell.setStatus(entry.getStatus()); cell.setGuestName(entry.getGuestName()); cell.setPrice(entry.getCustomPrice()); }
-            else { cell.setStatus("AVAILABLE"); }
+            if (entry != null) {
+                cell.setStatus(entry.getStatus());
+                cell.setGuestName(entry.getGuestName());
+                cell.setPrice(entry.getCustomPrice());
+            } else {
+                cell.setStatus("AVAILABLE");
+            }
             days.add(cell);
         }
 
         MonthlyCalendarResponse resp = new MonthlyCalendarResponse();
         resp.setMonthYear(start.getMonth().getDisplayName(TextStyle.FULL, Locale.ENGLISH) + " " + year);
-        resp.setYear(year); resp.setMonth(month); resp.setDays(days); resp.setPropertyId(propertyId);
+        resp.setYear(year);
+        resp.setMonth(month);
+        resp.setDays(days);
+        resp.setPropertyId(propertyId);
+        propertyRepository.findById(propertyId).ifPresent(p -> resp.setPropertyName(p.getName()));
         return resp;
     }
 
