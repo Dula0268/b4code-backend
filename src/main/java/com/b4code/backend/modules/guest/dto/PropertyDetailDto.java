@@ -36,6 +36,19 @@ public class PropertyDetailDto {
     // Amenities
     private List<AmenityDto> amenities;
 
+    // Reviews breakdown
+    private List<RatingBreakdownDto> reviewBreakdown;
+    
+    // Reviews list
+    private List<ReviewDetailDto> reviews;
+
+    // Rooms
+    private List<RoomDto> rooms;
+
+    // Map coords
+    private Double lat;
+    private Double lng;
+
     public static PropertyDetailDto fromEntity(Property property) {
         return PropertyDetailDto.builder()
                 .id(property.getId())
@@ -52,6 +65,8 @@ public class PropertyDetailDto {
                 .hostYears(5)
                 .hostSuperhost(false)
                 .description("Luxury villa with stunning views")
+                .lat(6.9271)
+                .lng(80.7789)
                 .build();
     }
 }

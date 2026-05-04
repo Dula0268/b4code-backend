@@ -42,7 +42,17 @@ public class GuestService {
     public PropertyDetailDto getPropertyDetail(Long propertyId) {
         Property property = propertyRepository.findById(propertyId)
                 .orElseThrow(() -> new RuntimeException("Property not found"));
-        return PropertyDetailDto.fromEntity(property);
+        PropertyDetailDto dto = PropertyDetailDto.fromEntity(property);
+        
+        // Fetch and add reviews
+        List<Review> reviews = reviewRepository.findByPropertyId(propertyId);
+        List<ReviewDetailDto> reviewDtos = reviews.stream()
+                .map(ReviewDetailDto::fromEntity)
+                .collect(Collectors.toList());
+        dto.setReviews(reviewDtos);
+        dto.setReviewCount(reviews.size());
+        
+        return dto;
     }
 
     // ───────── BOOKING METHODS ─────────
