@@ -49,8 +49,7 @@ public class PropertyDetailDto {
     private Double lat;
     private Double lng;
 
-        public static PropertyDetailDto fromEntity(Property property) {
-        // Build base dto
+    public static PropertyDetailDto fromEntity(Property property) {
         PropertyDetailDto dto = PropertyDetailDto.builder()
             .id(property.getId())
             .title(property.getName())
@@ -70,7 +69,6 @@ public class PropertyDetailDto {
             .lng(80.7789)
             .build();
 
-        // Provide at least two sample rooms per property so frontend has room data to render
         RoomDto room1 = RoomDto.builder()
             .id(property.getId() + "-r1")
             .name("Master Suite")
@@ -99,5 +97,5 @@ public class PropertyDetailDto {
 
         dto.setRooms(java.util.List.of(room1, room2));
         return dto;
-        }
+    }
 }
