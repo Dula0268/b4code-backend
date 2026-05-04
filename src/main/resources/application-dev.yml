@@ -41,7 +41,7 @@ b4code:
 
 payhere:
   merchant-id: 1235421
-  merchant-secret: MzQ2NjAwMzk5NTk3MDcxMTcxMzM1MDczOTQ5MjAyMjY5NDUwMDQ4
+  merchant-secret: ${PAYHERE_SECRET:MzQ2NjAwMzk5NTk3MDcxMTcxMzM1MDczOTQ5MjAyMjY5NDUwMDQ4}
   sandbox: true
   checkout-url: https://sandbox.payhere.lk/pay/checkout
   notify-url: http://localhost:8080/api/payments/notify

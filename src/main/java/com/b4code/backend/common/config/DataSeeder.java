@@ -24,6 +24,8 @@ public class DataSeeder implements CommandLineRunner {
             admin.setFirstName("System");
             admin.setLastName("Admin");
             admin.setRole(User.Role.ADMIN);
+
+            admin.setStatus(User.UserStatus.ACTIVE);
             userRepository.save(admin);
             System.out.println("✅ Default admin user created: admin@primestay.com");
         }
