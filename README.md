@@ -87,25 +87,115 @@ _(Documentation drafted during Phase 1 - Architecture Setup)_
 
 ## 🔄 CI/CD Pipeline
 
-Automated GitHub Actions workflow triggers on every PR and push to `main`, `develop`, or `dev` branches.
+Complete GitHub Actions workflow for Continuous Integration and Continuous Deployment.
 
 ### Pipeline Overview
 
-| Job                | Purpose                                           | Duration  |
-| ------------------ | ------------------------------------------------- | --------- |
-| **build-and-test** | Compile & run unit tests (mvn test)               | ~3-5 min  |
-| **code-quality**   | CodeQL security analysis + OWASP dependency check | ~5-10 min |
-| **docker-build**   | Build Docker image (main/develop push only)       | ~2-3 min  |
+| Job | Purpose | Trigger | Duration |
+|-----|---------|---------|----------|
+| **build-and-test** | Compile & run unit tests | Every PR/push | ~3-5 min |
+| **code-quality** | CodeQL + OWASP dependency check | Every PR/push | ~5-10 min |
+| **docker-build-and-push** | Build & push Docker image | Push to main/develop | ~3-5 min |
+| **deploy-to-staging** | Auto-deploy to staging | Push to develop | ~2-3 min |
+| **deploy-to-production** | Deploy to production (requires approval) | Push to main | ~2-3 min |
+
+### Setup Instructions
+
+#### 1. Configure Docker Registry
+
+Add these to GitHub repository **Settings → Secrets and variables → Actions**:
+
+```
+DOCKER_USERNAME     # Your Docker registry username
+DOCKER_PASSWORD     # Your Docker registry password or token
+DOCKER_REGISTRY     # Your Docker registry (e.g., docker.io, ghcr.io, myacr.azurecr.io)
+```
+
+**Example for DockerHub:**
+```
+DOCKER_USERNAME = your-dockerhub-username
+DOCKER_PASSWORD = your-dockerhub-token
+DOCKER_REGISTRY = docker.io
+```
+
+**Example for Azure Container Registry:**
+```
+DOCKER_USERNAME = your-acr-name
+DOCKER_PASSWORD = your-acr-password
+DOCKER_REGISTRY = your-acr-name.azurecr.io
+```
+
+#### 2. Setup Environment Approvals (Production)
+
+For production deployment to require manual approval:
+
+1. Go to **Settings → Environments**
+2. Create environment named `production`
+3. Enable **Required reviewers** (add team members)
+4. Click **Save protection rules**
+
+Now anyone deploying to production needs approval from your reviewers.
+
+#### 3. Configure Deployment Scripts
+
+Edit `.github/workflows/ci.yml` and add your deployment commands:
+
+**For Kubernetes (Helm):**
+```bash
+- name: Deploy to Production
+  run: |
+    helm repo add b4code https://your-helm-repo.com
+    helm upgrade backend b4code/backend \
+      --set image.tag=${{ github.sha }} \
+      --namespace production
+```
+
+**For Docker Swarm:**
+```bash
+- name: Deploy to Production
+  run: |
+    docker service update backend_service \
+      --image ${{ vars.DOCKER_REGISTRY }}/b4code/backend:${{ github.sha }}
+```
+
+**For Custom Scripts:**
+```bash
+- name: Deploy to Production
+  run: bash ./deploy.sh ${{ github.sha }}
+```
+
+### Workflow Flow
+
+```
+GitHub Event (PR/Push)
+│
+├─→ build-and-test (all branches)
+│   └─ mvn clean package & mvn test
+│
+├─→ code-quality (parallel, all branches)
+│   └─ CodeQL + OWASP analysis
+│
+└─→ [IF PUSH TO main/develop]
+    │
+    ├─→ docker-build-and-push
+    │   └─ Build and push Docker image
+    │
+    └─→ [IF develop] deploy-to-staging
+    │   └─ Auto-deploy to staging
+    │
+    └─→ [IF main] deploy-to-production
+        └─ Requires manual approval before deploying
+```
 
 ### Quick Testing
 
-Before creating a PR, verify locally:
+Before creating a PR:
 
 ```bash
 # Test build
 mvn clean package
 
-# Run tests only
+# Run tests
 mvn test
 
 # Check Java version (must be 21)
@@ -114,16 +204,18 @@ java -version
 
 ### Pre-Merge Checklist
 
-- [ ] All GitHub Actions checks pass
+- [ ] All GitHub Actions checks pass (build-and-test ✅, code-quality ✅)
 - [ ] No critical CodeQL or dependency vulnerabilities
 - [ ] Tests pass locally: `mvn test`
 - [ ] Build passes locally: `mvn clean package`
+- [ ] Code reviewed and approved
 
 ### View Results
 
 1. Go to **Actions** tab in GitHub
 2. Click workflow run to see job details
 3. Download security reports from **Artifacts** section
+4. For production deployments, approve in **Environments** tab
 
 ### Troubleshooting
 
@@ -136,6 +228,10 @@ mvn test -Dtest=TestClassName  # Run specific test
 
 # Check dependencies
 mvn dependency:tree
+
+# Manual Docker build & push
+docker build -t $REGISTRY/b4code/backend:latest .
+docker push $REGISTRY/b4code/backend:latest
 ```
 
 **Workflow file**: `.github/workflows/ci.yml`
