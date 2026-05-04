@@ -71,6 +71,7 @@ public class SecurityConfig {
         configuration.setAllowedOrigins(java.util.List.of(
                 "http://localhost:5173",
                 "http://localhost:3000",
+                "http://localhost:3001",
                 "http://localhost:3002",
                 "http://localhost:3003"));
         configuration.setAllowedMethods(java.util.List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
