@@ -5,7 +5,6 @@ import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
-
 import java.time.LocalDateTime;
 
 @Entity
@@ -33,10 +32,13 @@ public class User {
     @Column
     private String phone;
 
-    // We can define roles using an Enum for simplicity right now
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private Role role; // e.g. GUEST, OWNER, ADMIN
+    private Role role;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private UserStatus status = UserStatus.ACTIVE;
 
     @CreationTimestamp
     @Column(updatable = false)
@@ -47,5 +49,9 @@ public class User {
 
     public enum Role {
         GUEST, OWNER, ADMIN, STAFF
+    }
+
+    public enum UserStatus {
+        ACTIVE, PENDING, APPROVED, REJECTED, SUSPENDED
     }
 }
