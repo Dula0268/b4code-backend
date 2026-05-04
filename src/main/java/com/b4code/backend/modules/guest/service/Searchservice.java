@@ -1,10 +1,10 @@
 package com.b4code.backend.modules.guest.service;
 
-import com.hospitality.dto.SearchDTO.*;
-import com.hospitality.model.Property;
-import com.hospitality.model.Room;
-import com.hospitality.repository.BookingRepository;
-import com.hospitality.repository.PropertyRepository;
+import com.b4code.backend.modules.guest.dto.SearchDTO.*;
+import com.b4code.backend.modules.guest.models.Property;
+import com.b4code.backend.modules.guest.models.Room;
+import com.b4code.backend.modules.guest.dao.BookingRepository;
+import com.b4code.backend.modules.guest.dao.PropertyRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 

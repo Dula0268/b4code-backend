@@ -1,7 +1,7 @@
 package com.b4code.backend.modules.guest.dto;
 
-import com.hospitality.model.Booking.BookingStatus;
-import com.hospitality.model.Booking.PaymentMethod;
+import com.b4code.backend.modules.guest.models.Booking.BookingStatus;
+import com.b4code.backend.modules.guest.models.Booking.PaymentMethod;
 import jakarta.validation.constraints.*;
 import lombok.*;
 import java.math.BigDecimal;
