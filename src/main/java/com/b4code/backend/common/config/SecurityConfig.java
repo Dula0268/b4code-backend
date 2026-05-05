@@ -29,8 +29,6 @@ public class SecurityConfig {
     private final JwtAuthFilter jwtAuthFilter;
     private final JwtUtil jwtUtil;
 
-    // Required by oauth2-resource-server dependency - provides a JwtDecoder
-    // that validates tokens using our custom JwtUtil
     @Bean
     public JwtDecoder jwtDecoder() {
         return token -> {
@@ -51,9 +49,15 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(authz -> authz
-                        .requestMatchers("/api/auth/**", "/api/test/**", "/api/payments/notify", "/api/staff/**")
-                        .permitAll()
-                        .requestMatchers("/actuator/health/**").permitAll()
+                        .requestMatchers("/api/auth/**", "/api/test/**", "/api/qr/**", "/api/orders/**", "/api/menu-items/**", "/api/messages/**", "/api/staff/**").permitAll()
+                        .requestMatchers("/api/payments/notify").permitAll()
+                        .requestMatchers("/actuator/**").permitAll()
+                        .requestMatchers(
+                                "/swagger-ui/**",
+                                "/swagger-ui.html",
+                                "/v3/api-docs/**",
+                                "/v3/api-docs.yaml"
+                        ).permitAll()
                         .anyRequest().authenticated())
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
