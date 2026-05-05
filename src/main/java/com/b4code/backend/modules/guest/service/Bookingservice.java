@@ -170,6 +170,8 @@ public class BookingService {
 
         return BookingResponse.builder()
             .bookingId(b.getId())
+            .propertyId(room.getProperty().getId())
+            .roomId(room.getId())
             .confirmationNumber(b.getConfirmationNumber())
             .guestName(b.getGuestName())
             .guestEmail(b.getGuestEmail())

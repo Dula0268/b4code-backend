@@ -32,6 +32,8 @@ public class Room {
     @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal pricePerNight;
 
+    private String imageSrc;       // URL to room image
+
     private String amenities;      // JSON string or CSV
 
     private Boolean available = true;

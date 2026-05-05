@@ -28,6 +28,11 @@ public class Property {
     private Double latitude;
     private Double longitude;
 
+    private String imageSrc;  // URL to property image
+    
+    @Column(length = 2000)
+    private String description;
+
     private Double averageRating;
     private Integer reviewCount;
 
