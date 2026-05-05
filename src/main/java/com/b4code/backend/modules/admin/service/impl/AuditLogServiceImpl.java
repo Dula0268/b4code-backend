@@ -30,7 +30,7 @@ public class AuditLogServiceImpl implements AuditLogService {
         
         Page<AuditLog> result = auditLogRepository.findAllWithFilters(
                 filterRole, searchTerm,
-                PageRequest.of(page - 1, size, Sort.by(Sort.Direction.DESC, "timestamp")) // Frontend page is 1-indexed
+                PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "timestamp"))
         );
         
         return AuditLogPageDto.builder()

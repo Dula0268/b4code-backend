@@ -43,6 +43,10 @@ public class AdminUserController {
             @Parameter(description = "Records per page") @RequestParam(defaultValue = "6") int size) {
         log.info("GET /api/admin/users — search='{}', role={}, status={}, page={}, size={}", search, role, status, page,
                 size);
+        
+        // Safety guard: Ensure page index is never negative
+        if (page < 0) page = 0;
+
         UserPageDto result = userService.getAllUsers(search, role, status, page, size);
         return ResponseEntity.ok(result);
     }

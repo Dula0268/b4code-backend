@@ -20,9 +20,11 @@ public class FlaggedReview {
     private Long id;
 
     private Long propertyId;
+    @Column(columnDefinition = "TEXT")
     private String propertyName;
 
     private Long guestId;
+    @Column(columnDefinition = "TEXT")
     private String guestName;
     private String guestInitial;
     private String guestAvatarColor;
@@ -32,12 +34,14 @@ public class FlaggedReview {
 
     private Double rating;           
 
+    @Column(columnDefinition = "TEXT")
     private String flagReason;       
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private ReviewStatus status;
 
+    @Column(columnDefinition = "TEXT")
     private String adminNote;
 
     @CreationTimestamp
