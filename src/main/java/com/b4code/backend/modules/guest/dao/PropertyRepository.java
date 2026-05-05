@@ -11,7 +11,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 
-@Repository
+@Repository("guestPropertyRepository")
 public interface PropertyRepository extends JpaRepository<Property, Long> {
 
     /**

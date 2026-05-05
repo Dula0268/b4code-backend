@@ -1,11 +1,11 @@
 package com.b4code.backend.modules.guest.service;
 
-import com.hospitality.dto.BookingDTO.*;
-import com.hospitality.exception.ResourceNotFoundException;
-import com.hospitality.exception.RoomNotAvailableException;
-import com.hospitality.model.*;
-import com.hospitality.repository.BookingRepository;
-import com.hospitality.repository.RoomRepository;
+import com.b4code.backend.modules.guest.dto.BookingDto.*;
+import com.b4code.backend.modules.guest.exceptions.ResourceNotFoundException;
+import com.b4code.backend.modules.guest.exceptions.RoomNotAvailableException;
+import com.b4code.backend.modules.guest.models.*;
+import com.b4code.backend.modules.guest.dao.BookingRepository;
+import com.b4code.backend.modules.guest.dao.RoomRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

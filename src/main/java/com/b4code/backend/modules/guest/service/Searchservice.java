@@ -5,7 +5,7 @@ import com.b4code.backend.modules.guest.models.Property;
 import com.b4code.backend.modules.guest.models.Room;
 import com.b4code.backend.modules.guest.dao.BookingRepository;
 import com.b4code.backend.modules.guest.dao.PropertyRepository;
-import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -13,11 +13,17 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
-@RequiredArgsConstructor
 public class SearchService {
 
     private final PropertyRepository propertyRepository;
     private final BookingRepository bookingRepository;
+
+    public SearchService(
+            @Qualifier("guestPropertyRepository") PropertyRepository propertyRepository,
+            BookingRepository bookingRepository) {
+        this.propertyRepository = propertyRepository;
+        this.bookingRepository = bookingRepository;
+    }
 
     /**
      * Search for available properties matching the given criteria.
