@@ -1,7 +1,7 @@
 package com.b4code.backend.modules.guest.rest;
 
-import com.hospitality.dto.SearchDTO.*;
-import com.hospitality.service.SearchService;
+import com.b4code.backend.modules.guest.dto.SearchDTO.*;
+import com.b4code.backend.modules.guest.service.SearchService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
@@ -12,7 +12,7 @@ import java.time.LocalDate;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/v1/search")
+@RequestMapping("/api/guest")
 @CrossOrigin(origins = "*") // adjust for prod
 @RequiredArgsConstructor
 public class SearchController {
@@ -20,10 +20,10 @@ public class SearchController {
     private final SearchService searchService;
 
     /**
-     * GET /api/v1/search/properties
+    * GET /api/guest/properties
      *
      * Example:
-     *   /api/v1/search/properties
+    *   /api/guest/properties
      *     ?destination=Colombo
      *     &checkIn=2025-10-01
      *     &checkOut=2025-10-05
@@ -35,8 +35,8 @@ public class SearchController {
     @GetMapping("/properties")
     public ResponseEntity<List<PropertySearchResult>> searchProperties(
             @RequestParam(required = false) String destination,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate checkIn,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate checkOut,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate checkIn,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate checkOut,
             @RequestParam(defaultValue = "1") Integer guests,
             @RequestParam(defaultValue = "1") Integer rooms,
             @RequestParam(required = false) BigDecimal minPrice,
@@ -55,5 +55,10 @@ public class SearchController {
             .build();
 
         return ResponseEntity.ok(searchService.search(request));
+    }
+
+    @GetMapping("/properties/{propertyId}")
+    public ResponseEntity<PropertySearchResult> getPropertyDetail(@PathVariable Long propertyId) {
+        return ResponseEntity.ok(searchService.getPropertyDetail(propertyId));
     }
 }

@@ -1,7 +1,7 @@
 package com.b4code.backend.modules.guest.dao;
 
-import com.hospitality.model.Booking;
-import com.hospitality.model.Booking.BookingStatus;
+import com.b4code.backend.modules.guest.models.Booking;
+import com.b4code.backend.modules.guest.models.Booking.BookingStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;

@@ -1,6 +1,7 @@
-package com.hospitality.repository;
+package com.b4code.backend.modules.guest.dao;
 
-import com.hospitality.model.Property;
+import com.b4code.backend.modules.guest.models.Booking;
+import com.b4code.backend.modules.guest.models.Property;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -28,13 +29,15 @@ public interface PropertyRepository extends JpaRepository<Property, Long> {
           AND (:minPrice IS NULL OR r.pricePerNight >= :minPrice)
           AND (:maxPrice IS NULL OR r.pricePerNight <= :maxPrice)
           AND (:minRating IS NULL OR p.averageRating >= :minRating)
-          AND NOT EXISTS (
-              SELECT b FROM Booking b
-              WHERE b.room = r
-                AND b.status NOT IN ('CANCELLED')
-                AND b.checkIn  < :checkOut
-                AND b.checkOut > :checkIn
-          )
+                    AND (
+                            :checkIn IS NULL OR :checkOut IS NULL OR NOT EXISTS (
+                                    SELECT b FROM Booking b
+                                    WHERE b.room = r
+                                        AND b.status NOT IN ('CANCELLED')
+                                        AND b.checkIn  < :checkOut
+                                        AND b.checkOut > :checkIn
+                            )
+                    )
     """)
     List<Property> searchAvailableProperties(
         @Param("destination") String destination,

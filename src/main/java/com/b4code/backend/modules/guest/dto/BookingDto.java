@@ -8,7 +8,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
-public class BookingDtO {
+public class BookingDto {
 
     // ──────────────────────────────────
     // Create Booking Request
@@ -78,6 +78,8 @@ public class BookingDtO {
     @Builder
     public static class BookingResponse {
         private Long bookingId;
+        private Long propertyId;
+        private Long roomId;
         private String confirmationNumber;
         private String guestName;
         private String guestEmail;

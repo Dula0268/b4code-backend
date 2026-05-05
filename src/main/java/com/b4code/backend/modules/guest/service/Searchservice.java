@@ -45,6 +45,14 @@ public class SearchService {
             .collect(Collectors.toList());
     }
 
+    public PropertySearchResult getPropertyDetail(Long propertyId) {
+        Property property = propertyRepository.findById(propertyId)
+            .orElseThrow(() -> new com.b4code.backend.modules.guest.exceptions.ResourceNotFoundException(
+                "Property not found: " + propertyId));
+
+        return mapToSearchResult(property, null, null, 1);
+    }
+
     // ──────────────────────────────────────────
     // Private helpers
     // ──────────────────────────────────────────
@@ -55,7 +63,7 @@ public class SearchService {
         List<Room> availableRooms = property.getRooms().stream()
             .filter(Room::getAvailable)
             .filter(r -> r.getMaxOccupancy() >= guests)
-            .filter(r -> !bookingRepository.existsOverlappingBooking(r.getId(), checkIn, checkOut))
+            .filter(r -> checkIn == null || checkOut == null || !bookingRepository.existsOverlappingBooking(r.getId(), checkIn, checkOut))
             .collect(Collectors.toList());
 
         var lowestPrice = availableRooms.stream()

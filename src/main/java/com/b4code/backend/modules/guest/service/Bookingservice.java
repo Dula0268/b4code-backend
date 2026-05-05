@@ -1,13 +1,13 @@
 package com.b4code.backend.modules.guest.service;
 
-import com.hospitality.dto.BookingDTO.*;
-import com.hospitality.exception.ResourceNotFoundException;
-import com.hospitality.exception.RoomNotAvailableException;
-import com.hospitality.model.Booking;
-import com.hospitality.model.Booking.BookingStatus;
-import com.hospitality.model.Room;
-import com.hospitality.repository.BookingRepository;
-import com.hospitality.repository.RoomRepository;
+import com.b4code.backend.modules.guest.dto.BookingDto.*;
+import com.b4code.backend.modules.guest.exceptions.ResourceNotFoundException;
+import com.b4code.backend.modules.guest.exceptions.RoomNotAvailableException;
+import com.b4code.backend.modules.guest.models.Booking;
+import com.b4code.backend.modules.guest.models.Booking.BookingStatus;
+import com.b4code.backend.modules.guest.models.Room;
+import com.b4code.backend.modules.guest.dao.BookingRepository;
+import com.b4code.backend.modules.guest.dao.RoomRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
