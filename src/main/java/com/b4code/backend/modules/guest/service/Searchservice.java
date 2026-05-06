@@ -8,7 +8,12 @@ import com.b4code.backend.modules.guest.dao.PropertyRepository;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -25,15 +30,9 @@ public class SearchService {
         this.bookingRepository = bookingRepository;
     }
 
-    /**
-     * Search for available properties matching the given criteria.
-     * Returns results in under 2 seconds (per NFR requirement).
-     */
     public List<PropertySearchResult> search(SearchRequest request) {
-
-        // Default guests to 1 if not provided
         int guests = request.getGuests() != null ? request.getGuests() : 1;
-        LocalDate checkIn  = request.getCheckIn();
+        LocalDate checkIn = request.getCheckIn();
         LocalDate checkOut = request.getCheckOut();
 
         List<Property> properties = propertyRepository.searchAvailableProperties(
@@ -47,23 +46,19 @@ public class SearchService {
         );
 
         return properties.stream()
-            .map(p -> mapToSearchResult(p, checkIn, checkOut, guests))
+            .map(p -> mapToPropertySearchResult(p, checkIn, checkOut, guests))
             .collect(Collectors.toList());
     }
 
-    public PropertySearchResult getPropertyDetail(Long propertyId) {
+    public PropertyDetailResult getPropertyDetail(Long propertyId) {
         Property property = propertyRepository.findById(propertyId)
             .orElseThrow(() -> new com.b4code.backend.modules.guest.exceptions.ResourceNotFoundException(
                 "Property not found: " + propertyId));
 
-        return mapToSearchResult(property, null, null, 1);
+        return mapToPropertyDetailResult(property);
     }
 
-    // ──────────────────────────────────────────
-    // Private helpers
-    // ──────────────────────────────────────────
-
-    private PropertySearchResult mapToSearchResult(
+    private PropertySearchResult mapToPropertySearchResult(
             Property property, LocalDate checkIn, LocalDate checkOut, int guests) {
 
         List<Room> availableRooms = property.getRooms().stream()
@@ -72,33 +67,96 @@ public class SearchService {
             .filter(r -> checkIn == null || checkOut == null || !bookingRepository.existsOverlappingBooking(r.getId(), checkIn, checkOut))
             .collect(Collectors.toList());
 
-        var lowestPrice = availableRooms.stream()
+        BigDecimal lowestPrice = availableRooms.stream()
             .map(Room::getPricePerNight)
-            .min(java.math.BigDecimal::compareTo)
-            .orElse(null);
-
-        var roomSummaries = availableRooms.stream()
-            .map(r -> RoomSummary.builder()
-                .roomId(r.getId())
-                .name(r.getName())
-                .roomType(r.getRoomType())
-                .maxOccupancy(r.getMaxOccupancy())
-                .pricePerNight(r.getPricePerNight())
-                .amenities(r.getAmenities())
-                .build())
-            .collect(Collectors.toList());
+            .min(BigDecimal::compareTo)
+            .orElse(BigDecimal.ZERO);
+            
+        int maxGuests = availableRooms.stream()
+            .mapToInt(Room::getMaxOccupancy)
+            .max()
+            .orElse(property.getBaseGuests());
 
         return PropertySearchResult.builder()
-            .propertyId(property.getId())
-            .name(property.getName())
-            .city(property.getCity())
-            .address(property.getAddress())
-            .latitude(property.getLatitude())
-            .longitude(property.getLongitude())
-            .averageRating(property.getAverageRating())
-            .reviewCount(property.getReviewCount())
-            .lowestPricePerNight(lowestPrice)
-            .availableRooms(roomSummaries)
+            .id(property.getId())
+            .title(property.getName())
+            .location(property.getCity())
+            .propertyType(property.getPropertyType())
+            .pricePerNight(lowestPrice)
+            .maxGuests(maxGuests)
+            .baseGuests(property.getBaseGuests())
+            .extraGuestFee(property.getExtraGuestFee())
+            .rating(property.getAverageRating() != null ? property.getAverageRating() : 0.0)
+            .reviewCount(property.getReviewCount() != null ? property.getReviewCount() : 0)
+            .badge(property.getBadge())
+            .imageSrc(property.getImageSrc())
+            .build();
+    }
+
+    private PropertyDetailResult mapToPropertyDetailResult(Property property) {
+        List<String> galleryImages = property.getGalleryImages() != null && !property.getGalleryImages().isEmpty()
+            ? Arrays.asList(property.getGalleryImages().split(","))
+            : new ArrayList<>();
+            
+        List<AmenityDTO> amenitiesList = new ArrayList<>();
+        if (property.getAmenities() != null && !property.getAmenities().isEmpty()) {
+            String[] ams = property.getAmenities().split(",");
+            for (String am : ams) {
+                String[] parts = am.split(":"); // Expecting "IconName:Label"
+                if (parts.length == 2) {
+                    amenitiesList.add(new AmenityDTO(parts[0], parts[1]));
+                } else {
+                    amenitiesList.add(new AmenityDTO("Check", parts[0])); // Fallback icon
+                }
+            }
+        }
+        
+        // Mock reviews for now as they might not be deeply seeded in the exact format needed. 
+        // We can leave empty, or create mock ReviewDTOs based on the property's DB reviews if available.
+        // Let's keep it simple and just map the rooms properly.
+
+        List<RoomDTO> roomDTOs = property.getRooms().stream().map(r -> {
+            List<String> features = r.getFeatures() != null && !r.getFeatures().isEmpty()
+                ? Arrays.asList(r.getFeatures().split(","))
+                : new ArrayList<>();
+                
+            return RoomDTO.builder()
+                .id(r.getId().toString())
+                .name(r.getName())
+                .maxGuests(r.getMaxOccupancy())
+                .bedType(r.getBedType())
+                .sqft(r.getSqft())
+                .pricePerNight(r.getPricePerNight())
+                .originalPrice(r.getOriginalPrice())
+                .tag(r.getTag())
+                .features(features)
+                .imageSrc(r.getImageSrc())
+                .build();
+        }).collect(Collectors.toList());
+
+        return PropertyDetailResult.builder()
+            .id(property.getId())
+            .title(property.getName())
+            .location(property.getCity())
+            .fullAddress(property.getAddress())
+            .propertyType(property.getPropertyType())
+            .pricePerNight(roomDTOs.isEmpty() ? BigDecimal.ZERO : roomDTOs.get(0).getPricePerNight())
+            .rating(property.getAverageRating() != null ? property.getAverageRating() : 0.0)
+            .reviewCount(property.getReviewCount() != null ? property.getReviewCount() : 0)
+            .badge(property.getBadge())
+            .imageSrc(property.getImageSrc())
+            .galleryImages(galleryImages)
+            .hostName(property.getHostName())
+            .hostBio(property.getHostBio())
+            .hostYears(property.getHostYears())
+            .hostSuperhost(property.getHostSuperhost())
+            .description(property.getDescription())
+            .amenities(amenitiesList)
+            .reviewBreakdown(new ArrayList<>()) // Simplified for now
+            .reviews(new ArrayList<>()) // Simplified for now
+            .rooms(roomDTOs)
+            .lat(property.getLatitude())
+            .lng(property.getLongitude())
             .build();
     }
 }

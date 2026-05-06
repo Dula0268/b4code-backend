@@ -29,12 +29,24 @@ public class Room {
     @Column(nullable = false)
     private Integer maxOccupancy;
 
+    private Integer sqft;
+    
+    private String bedType;        // e.g. "1 King Bed"
+
     @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal pricePerNight;
 
+    @Column(precision = 10, scale = 2)
+    private BigDecimal originalPrice;
+
+    private String tag;            // e.g. "Refundable", "Popular", "Last rooms"
+
     private String imageSrc;       // URL to room image
 
-    private String amenities;      // JSON string or CSV
+    private String features;      // e.g. "Private Balcony,Nespresso Machine"
+    
+    private String amenities;      // Generic room amenities
 
+    @Builder.Default
     private Boolean available = true;
 }

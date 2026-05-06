@@ -19,19 +19,6 @@ public class SearchController {
 
     private final SearchService searchService;
 
-    /**
-    * GET /api/guest/properties
-     *
-     * Example:
-    *   /api/guest/properties
-     *     ?destination=Colombo
-     *     &checkIn=2025-10-01
-     *     &checkOut=2025-10-05
-     *     &guests=2
-     *     &minPrice=50
-     *     &maxPrice=300
-     *     &minRating=4.0
-     */
     @GetMapping("/properties")
     public ResponseEntity<List<PropertySearchResult>> searchProperties(
             @RequestParam(required = false) String destination,
@@ -58,7 +45,7 @@ public class SearchController {
     }
 
     @GetMapping("/properties/{propertyId}")
-    public ResponseEntity<PropertySearchResult> getPropertyDetail(@PathVariable Long propertyId) {
+    public ResponseEntity<PropertyDetailResult> getPropertyDetail(@PathVariable Long propertyId) {
         return ResponseEntity.ok(searchService.getPropertyDetail(propertyId));
     }
 }
