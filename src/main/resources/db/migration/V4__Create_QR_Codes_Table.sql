@@ -1,19 +1,22 @@
+-- Drop old table if exists (contains mismatched schema)
+DROP TABLE IF EXISTS qr_codes CASCADE;
+
+-- Create QR Codes table with proper schema
 CREATE TABLE IF NOT EXISTS qr_codes (
-    id SERIAL PRIMARY KEY,
-    unique_qr_id VARCHAR(255) NOT NULL UNIQUE,
-    name VARCHAR(255) NOT NULL,
+    id BIGSERIAL PRIMARY KEY,
+    qr_code_value VARCHAR(255) NOT NULL UNIQUE,
+    order_id BIGINT,
+    property_id BIGINT,
+    status VARCHAR(50) DEFAULT 'ACTIVE',
+    name VARCHAR(255),
     location VARCHAR(255),
-    type VARCHAR(50) NOT NULL,
-    status VARCHAR(50) NOT NULL DEFAULT 'ACTIVE',
-    description TEXT,
-    instruction_text VARCHAR(255) DEFAULT 'Scan to Order',
+    type VARCHAR(100),
+    qr_image_data TEXT,
+    created_at TIMESTAMP,
+    updated_at TIMESTAMP,
+    scanned_at TIMESTAMP,
+    description VARCHAR(500),
+    instruction_text TEXT,
     show_room_number BOOLEAN DEFAULT FALSE,
-    show_logo BOOLEAN DEFAULT TRUE,
-    property_id BIGINT NOT NULL,
-    created_by BIGINT,
-    created_at TIMESTAMP WITHOUT TIME ZONE,
-    expires_at TIMESTAMP WITHOUT TIME ZONE,
-    scans INTEGER DEFAULT 0,
-    last_scanned_at TIMESTAMP WITHOUT TIME ZONE,
-    qr_image_url TEXT
+    show_logo BOOLEAN DEFAULT TRUE
 );
