@@ -1,5 +1,6 @@
 package com.b4code.backend.modules.qr.controller;
 
+import com.b4code.backend.modules.qr.dto.QRCodeGenerateRequest;
 import com.b4code.backend.modules.qr.dto.QRCodeResponse;
 import com.b4code.backend.modules.qr.service.QRCodeService;
 import lombok.RequiredArgsConstructor;
@@ -8,6 +9,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/qr")
@@ -16,19 +18,38 @@ public class QRCodeController {
     
     private final QRCodeService qrCodeService;
     
-    @PostMapping("/generate")
-    public ResponseEntity<QRCodeResponse> generateQRCode(
-            @RequestParam Long orderId,
+    @GetMapping("/list")
+    public ResponseEntity<List<QRCodeResponse>> getQRCodesList(
             @RequestParam Long propertyId,
-            @RequestParam(required = false) String description) {
-        
-        QRCodeResponse qrCode = qrCodeService.generateQRCode(orderId, propertyId, description);
+            @RequestParam(required = false, defaultValue = "0") int page,
+            @RequestParam(required = false, defaultValue = "10") int size) {
+        List<QRCodeResponse> qrCodes = qrCodeService.getQRCodesByPropertyPaginated(propertyId, page, size);
+        return ResponseEntity.ok(qrCodes);
+    }
+    
+    @PostMapping("/generate")
+    public ResponseEntity<QRCodeResponse> generateQRCode(@RequestBody QRCodeGenerateRequest request) {
+        QRCodeResponse qrCode = qrCodeService.generateQRCode(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(qrCode);
     }
     
     @GetMapping("/{id}")
     public ResponseEntity<QRCodeResponse> getQRCode(@PathVariable Long id) {
         QRCodeResponse qrCode = qrCodeService.getQRCodeById(id);
+        return ResponseEntity.ok(qrCode);
+    }
+    
+    @PutMapping("/{id}")
+    public ResponseEntity<QRCodeResponse> updateQRCode(
+            @PathVariable Long id,
+            @RequestBody Map<String, Object> updates) {
+        QRCodeResponse qrCode = qrCodeService.updateQRCode(id, updates);
+        return ResponseEntity.ok(qrCode);
+    }
+    
+    @PostMapping("/{id}/toggle-status")
+    public ResponseEntity<QRCodeResponse> toggleQRCodeStatus(@PathVariable Long id) {
+        QRCodeResponse qrCode = qrCodeService.toggleQRCodeStatus(id);
         return ResponseEntity.ok(qrCode);
     }
     
