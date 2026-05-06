@@ -16,10 +16,10 @@ public interface ModerationHistoryRepository extends JpaRepository<ModerationHis
 
     @Query("""
         SELECT h FROM ModerationHistory h
-        WHERE (:action IS NULL OR h.actionTaken = :action)
-          AND (:from IS NULL OR h.resolvedAt >= :from)
-          AND (:to IS NULL OR h.resolvedAt <= :to)
-          AND (:search IS NULL OR
+        WHERE (CAST(:action AS string) IS NULL OR h.actionTaken = :action)
+          AND (CAST(:from AS LocalDateTime) IS NULL OR h.resolvedAt >= :from)
+          AND (CAST(:to AS LocalDateTime) IS NULL OR h.resolvedAt <= :to)
+          AND (CAST(:search AS string) IS NULL OR :search = '' OR
                LOWER(h.caseId) LIKE LOWER(CONCAT('%',:search,'%')) OR
                LOWER(h.adminName) LIKE LOWER(CONCAT('%',:search,'%')) OR
                LOWER(h.outcome) LIKE LOWER(CONCAT('%',:search,'%')))
