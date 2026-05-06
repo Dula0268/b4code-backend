@@ -5,7 +5,7 @@ import lombok.*;
 import java.math.BigDecimal;
 import java.util.List;
 
-@Entity
+@Entity(name = "GuestProperty")
 @Table(name = "properties")
 @Data
 @NoArgsConstructor
@@ -66,10 +66,23 @@ public class Property {
     @Builder.Default
     private Boolean published = false;
 
+    // Admin-required fields to satisfy DB constraints
+    @Column(name = "owner_id", nullable = false)
+    @Builder.Default
+    private Long ownerId = 1L;
+
+    @Column(name = "pv_id", nullable = false, unique = true)
+    @Builder.Default
+    private String pvId = java.util.UUID.randomUUID().toString();
+
+    @Column(name = "status", nullable = false)
+    @Builder.Default
+    private String adminStatus = "APPROVED";
+
     // Amenities stored as JSON-style string: "Wifi,Pool,Air conditioning"
     @Column(length = 1000)
     private String amenities;
 
-    @OneToMany(mappedBy = "property", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "property", cascade = CascadeType.ALL, fetch = FetchType.LAZY, targetEntity = Room.class)
     private List<Room> rooms;
 }

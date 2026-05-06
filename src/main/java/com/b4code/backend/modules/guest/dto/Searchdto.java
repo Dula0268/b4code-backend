@@ -2,28 +2,26 @@ package com.b4code.backend.modules.guest.dto;
 
 import lombok.*;
 import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.util.List;
 
 public class SearchDTO {
 
+    // ─── Pagination Wrapper ──────────────────────────────────────────────
     @Data
     @NoArgsConstructor
     @AllArgsConstructor
     @Builder
-    public static class SearchRequest {
-        private String destination;
-        private LocalDate checkIn;
-        private LocalDate checkOut;
-        private Integer guests;
-        private Integer rooms;
-        private BigDecimal minPrice;
-        private BigDecimal maxPrice;
-        private Double minRating;
-        private List<String> propertyTypes;
-        private List<String> amenities;
+    public static class PaginatedResponse<T> {
+        private List<T> content;
+        private int page;
+        private int size;
+        private long totalElements;
+        private int totalPages;
+        private boolean first;
+        private boolean last;
     }
 
+    // ─── Search Result (card data) ───────────────────────────────────────
     @Data
     @NoArgsConstructor
     @AllArgsConstructor
@@ -41,8 +39,10 @@ public class SearchDTO {
         private Integer reviewCount;
         private String badge;
         private String imageSrc;
+        private List<String> amenities;
     }
 
+    // ─── Property Detail ─────────────────────────────────────────────────
     @Data
     @NoArgsConstructor
     @AllArgsConstructor
@@ -59,24 +59,78 @@ public class SearchDTO {
         private String badge;
         private String imageSrc;
         private List<String> galleryImages;
-        
+
         private String hostName;
         private String hostBio;
         private Integer hostYears;
         private Boolean hostSuperhost;
-        
+
         private String description;
         private List<AmenityDTO> amenities;
-        
+
         private List<ReviewBreakdownDTO> reviewBreakdown;
         private List<ReviewDTO> reviews;
-        
+
         private List<RoomDTO> rooms;
-        
+
         private Double lat;
         private Double lng;
     }
-    
+
+    // ─── Filter Options (served to frontend) ─────────────────────────────
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Builder
+    public static class FilterOptionsResponse {
+        private List<PropertyTypeOption> propertyTypes;
+        private List<String> amenities;
+        private List<RatingOption> ratingOptions;
+        private PriceRangeOption priceRange;
+        private List<SortOption> sortOptions;
+        private List<String> locations;
+    }
+
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Builder
+    public static class PropertyTypeOption {
+        private String value;
+        private String label;
+        private String icon; // Lucide icon name
+        private long count;
+    }
+
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Builder
+    public static class RatingOption {
+        private String label;
+        private String value;
+    }
+
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Builder
+    public static class PriceRangeOption {
+        private BigDecimal min;
+        private BigDecimal max;
+        private String currency;
+    }
+
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Builder
+    public static class SortOption {
+        private String value;
+        private String label;
+    }
+
+    // ─── Sub DTOs ────────────────────────────────────────────────────────
     @Data
     @NoArgsConstructor
     @AllArgsConstructor

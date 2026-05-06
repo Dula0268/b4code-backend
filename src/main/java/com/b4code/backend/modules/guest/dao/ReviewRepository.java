@@ -16,6 +16,8 @@ public interface ReviewRepository extends JpaRepository<Review, Long> {
 
     Page<Review> findByPropertyIdOrderByCreatedAtDesc(Long propertyId, Pageable pageable);
 
+    List<Review> findByPropertyIdOrderByCreatedAtDesc(Long propertyId);
+
     Optional<Review> findByBookingId(Long bookingId);
 
     @Query("""
