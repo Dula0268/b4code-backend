@@ -60,9 +60,14 @@ public class DataSeeder implements CommandLineRunner {
         }
 
         // ── Seed guest module data (properties, rooms, bookings, reviews, messages) ─────
-        if (propertyRepository.count() == 0) {
-            seedGuestData();
-        }
+        // Always empty the tables first to start fresh and apply new image URLs
+        messageRepository.deleteAll();
+        reviewRepository.deleteAll();
+        bookingRepository.deleteAll();
+        roomRepository.deleteAll();
+        propertyRepository.deleteAll();
+        
+        seedGuestData();
     }
 
     private void seedAdminUser(String first, String last, String email,
@@ -85,7 +90,7 @@ public class DataSeeder implements CommandLineRunner {
                 .address("123 Ocean View Lane, Colombo, Sri Lanka")
                 .latitude(6.9271)
                 .longitude(80.7789)
-                .imageSrc("https://picsum.photos/600/400?random=10")
+                .imageSrc("https://res.cloudinary.com/demo/image/upload/v1652343545/samples/landscapes/beach-boat.jpg")
                 .description("Experience luxury beachfront living at Sunset Peak Resort with stunning ocean views and world-class amenities.")
                 .averageRating(4.8)
                 .reviewCount(127)
@@ -99,7 +104,7 @@ public class DataSeeder implements CommandLineRunner {
                 .address("456 Hill Station Road, Kandy, Sri Lanka")
                 .latitude(7.2906)
                 .longitude(80.6337)
-                .imageSrc("https://picsum.photos/600/400?random=11")
+                .imageSrc("https://res.cloudinary.com/demo/image/upload/v1652343545/samples/landscapes/nature-mountains.jpg")
                 .description("Nestled in the misty mountains of Kandy, our villa offers tranquility and breathtaking views.")
                 .averageRating(4.6)
                 .reviewCount(89)
@@ -113,7 +118,7 @@ public class DataSeeder implements CommandLineRunner {
                 .address("789 Coastal Lane, Galle, Sri Lanka")
                 .latitude(6.0328)
                 .longitude(80.2167)
-                .imageSrc("https://picsum.photos/600/400?random=12")
+                .imageSrc("https://res.cloudinary.com/demo/image/upload/cld-sample-2.jpg")
                 .description("Your ultimate beach getaway with direct access to pristine sandy beaches and crystal-clear waters.")
                 .averageRating(4.9)
                 .reviewCount(156)
@@ -129,7 +134,7 @@ public class DataSeeder implements CommandLineRunner {
                 .roomType("DOUBLE")
                 .maxOccupancy(2)
                 .pricePerNight(new BigDecimal("35000"))
-                .imageSrc("https://picsum.photos/600/400?random=20")
+                .imageSrc("https://res.cloudinary.com/demo/image/upload/cld-sample.jpg")
                 .amenities("AC,WiFi,Balcony,TV,Minibar,Safe")
                 .available(true)
                 .build();
@@ -141,7 +146,7 @@ public class DataSeeder implements CommandLineRunner {
                 .roomType("SUITE")
                 .maxOccupancy(4)
                 .pricePerNight(new BigDecimal("52000"))
-                .imageSrc("https://picsum.photos/600/400?random=21")
+                .imageSrc("https://res.cloudinary.com/demo/image/upload/cld-sample-3.jpg")
                 .amenities("AC,WiFi,Balcony,TV,Minibar,Safe,Jacuzzi,KitchenArea")
                 .available(true)
                 .build();
@@ -153,7 +158,7 @@ public class DataSeeder implements CommandLineRunner {
                 .roomType("SINGLE")
                 .maxOccupancy(1)
                 .pricePerNight(new BigDecimal("22000"))
-                .imageSrc("https://picsum.photos/600/400?random=22")
+                .imageSrc("https://res.cloudinary.com/demo/image/upload/cld-sample-4.jpg")
                 .amenities("AC,WiFi,TV,Bathroom")
                 .available(true)
                 .build();
@@ -166,7 +171,7 @@ public class DataSeeder implements CommandLineRunner {
                 .roomType("DOUBLE")
                 .maxOccupancy(2)
                 .pricePerNight(new BigDecimal("28000"))
-                .imageSrc("https://picsum.photos/600/400?random=23")
+                .imageSrc("https://res.cloudinary.com/demo/image/upload/v1652343545/samples/landscapes/architecture-signs.jpg")
                 .amenities("AC,WiFi,Fireplace,Balcony,TV")
                 .available(true)
                 .build();
@@ -178,7 +183,7 @@ public class DataSeeder implements CommandLineRunner {
                 .roomType("SUITE")
                 .maxOccupancy(3)
                 .pricePerNight(new BigDecimal("42000"))
-                .imageSrc("https://picsum.photos/600/400?random=24")
+                .imageSrc("https://res.cloudinary.com/demo/image/upload/cld-sample-5.jpg")
                 .amenities("AC,WiFi,Fireplace,Balcony,TV,KitchenArea,Jacuzzi")
                 .available(true)
                 .build();
@@ -191,7 +196,7 @@ public class DataSeeder implements CommandLineRunner {
                 .roomType("SUITE")
                 .maxOccupancy(2)
                 .pricePerNight(new BigDecimal("48000"))
-                .imageSrc("https://picsum.photos/600/400?random=25")
+                .imageSrc("https://res.cloudinary.com/demo/image/upload/v1652343545/samples/landscapes/beach-boat.jpg")
                 .amenities("AC,WiFi,Balcony,TV,DirectBeachAccess,Minibar")
                 .available(true)
                 .build();
@@ -282,7 +287,7 @@ public class DataSeeder implements CommandLineRunner {
                 .locationRating(5)
                 .valueRating(4)
                 .comment("Excellent stay! The views were breathtaking and the staff was very helpful. Highly recommended.")
-                .photoUrls("https://picsum.photos/400/300?random=1,https://picsum.photos/400/300?random=2")
+                .photoUrls("https://res.cloudinary.com/demo/image/upload/cld-sample.jpg,https://res.cloudinary.com/demo/image/upload/cld-sample-2.jpg")
                 .isVerifiedStay(true)
                 .build();
         reviewRepository.save(review1);
@@ -298,7 +303,7 @@ public class DataSeeder implements CommandLineRunner {
                 .locationRating(5)
                 .valueRating(3)
                 .comment("Great location and comfortable rooms. Food could have been better. Overall good experience.")
-                .photoUrls("https://picsum.photos/400/300?random=3,https://picsum.photos/400/300?random=4")
+                .photoUrls("https://res.cloudinary.com/demo/image/upload/cld-sample-3.jpg,https://res.cloudinary.com/demo/image/upload/cld-sample-4.jpg")
                 .isVerifiedStay(true)
                 .build();
         reviewRepository.save(review2);
@@ -314,7 +319,7 @@ public class DataSeeder implements CommandLineRunner {
                 .locationRating(4)
                 .valueRating(5)
                 .comment("Perfect getaway! The mountain views are stunning and the service is impeccable.")
-                .photoUrls("https://picsum.photos/400/300?random=5")
+                .photoUrls("https://res.cloudinary.com/demo/image/upload/cld-sample-5.jpg")
                 .isVerifiedStay(true)
                 .build();
         reviewRepository.save(review3);
