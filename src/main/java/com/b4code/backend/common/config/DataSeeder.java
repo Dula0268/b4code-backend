@@ -6,7 +6,6 @@ import com.b4code.backend.modules.admin.models.AdminUser;
 import com.b4code.backend.modules.admin.dao.AdminUserRepository;
 import com.b4code.backend.modules.admin.enums.UserRole;
 import com.b4code.backend.modules.admin.enums.UserStatus;
-
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
@@ -18,6 +17,7 @@ public class DataSeeder implements CommandLineRunner {
     private final AdminUserRepository adminUserRepository;
     private final PasswordEncoder passwordEncoder;
 
+    // Manual constructor to avoid Lombok @RequiredArgsConstructor issues
     public DataSeeder(UserRepository userRepository,
             AdminUserRepository adminUserRepository,
             PasswordEncoder passwordEncoder) {
