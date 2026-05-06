@@ -18,6 +18,7 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import lombok.RequiredArgsConstructor;
 import io.jsonwebtoken.Claims;
+
 import java.time.Instant;
 import java.util.Collections;
 
@@ -30,7 +31,6 @@ public class SecurityConfig {
     private final JwtAuthFilter jwtAuthFilter;
     private final JwtUtil jwtUtil;
 
-    // Provides a JwtDecoder that validates tokens using our custom JwtUtil
     @Bean
     public JwtDecoder jwtDecoder() {
         return token -> {
@@ -41,7 +41,8 @@ public class SecurityConfig {
                         Instant.ofEpochMilli(claims.getIssuedAt().getTime()),
                         Instant.ofEpochMilli(claims.getExpiration().getTime()),
                         Collections.emptyMap(),
-                        Collections.singletonMap("sub", claims.getSubject()));
+                        Collections.singletonMap("sub", claims.getSubject())
+                );
             } catch (Exception e) {
                 throw new BadJwtException("Invalid JWT token", e);
             }
@@ -55,21 +56,23 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(authz -> authz
-                    .requestMatchers(
-                        "/api/auth/**",
-                        "/api/test/**",
-                        "/api/qr/**",
-                        "/api/payments/notify",
-                        "/api/staff/**"
-                    ).permitAll()
-                    .requestMatchers("/actuator/**").permitAll()
-                    .requestMatchers(
-                        "/swagger-ui/**",
-                        "/swagger-ui.html",
-                        "/v3/api-docs/**",
-                        "/v3/api-docs.yaml"
-                    ).permitAll()
-                        .anyRequest().authenticated())
+                        .requestMatchers(
+                                "/api/auth/**",
+                                "/api/test/**",
+                                "/api/qr/**",
+                                "/api/staff/**",
+                                "/api/payments/**",
+                                "/api/payments/notify"
+                        ).permitAll()
+                        .requestMatchers("/actuator/**").permitAll()
+                        .requestMatchers(
+                                "/swagger-ui/**",
+                                "/swagger-ui.html",
+                                "/v3/api-docs/**",
+                                "/v3/api-docs.yaml"
+                        ).permitAll()
+                        .anyRequest().authenticated()
+                )
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
@@ -83,7 +86,8 @@ public class SecurityConfig {
                 "http://localhost:3000",
                 "http://localhost:3001",
                 "http://localhost:3002",
-                "http://localhost:3003"));
+                "http://localhost:3003"
+        ));
         configuration.setAllowedMethods(java.util.List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(java.util.List.of("Authorization", "Content-Type", "X-Requested-With"));
         configuration.setAllowCredentials(true);

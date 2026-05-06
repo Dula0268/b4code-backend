@@ -38,7 +38,11 @@ public class PaymentService {
         payment.setAmount(request.getAmount());
         payment.setCurrency(request.getCurrency() != null ? request.getCurrency() : "LKR");
         payment.setPaymentMethod(request.getPaymentMethod());
-        payment.setStatus(Payment.PaymentStatus.PENDING);
+        if ("card".equalsIgnoreCase(request.getPaymentMethod())) {
+            payment.setStatus(Payment.PaymentStatus.SUCCESS);
+        } else {
+            payment.setStatus(Payment.PaymentStatus.PENDING);
+        }
         payment.setOrderId("ORDER-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase());
 
         if (request.getCardHolderName() != null) {
