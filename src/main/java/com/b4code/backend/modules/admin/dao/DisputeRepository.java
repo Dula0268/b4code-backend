@@ -16,8 +16,8 @@ public interface DisputeRepository extends JpaRepository<Dispute, Long> {
 
     @Query("""
         SELECT d FROM Dispute d
-        WHERE (:status IS NULL OR d.status = :status)
-          AND (:search IS NULL OR
+        WHERE (CAST(:status AS string) IS NULL OR d.status = :status)
+          AND (CAST(:search AS string) IS NULL OR :search = '' OR
                LOWER(d.guestName) LIKE LOWER(CONCAT('%',:search,'%')) OR
                LOWER(d.propertyName) LIKE LOWER(CONCAT('%',:search,'%')) OR
                LOWER(d.disputeId) LIKE LOWER(CONCAT('%',:search,'%')))

@@ -28,14 +28,15 @@ import java.util.List;
 public class UserServiceImpl implements UserService {
 
     private final AdminUserRepository userRepository;
-    private final PasswordEncoder passwordEncoder;   
+    private final PasswordEncoder passwordEncoder;
 
-    // ── GET ALL USERS  ──────────────────────────────────
+    // ── GET ALL USERS ──────────────────────────────────
 
     @Override
     @Transactional(readOnly = true)
     public UserPageDto getAllUsers(String search, UserRole role, UserStatus status, int page, int size) {
-        log.debug("Fetching users — search='{}', role={}, status={}, page={}, size={}", search, role, status, page, size);
+        log.debug("Fetching users — search='{}', role={}, status={}, page={}, size={}", search, role, status, page,
+                size);
 
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
 
@@ -48,7 +49,8 @@ public class UserServiceImpl implements UserService {
                 .map(UserDto::fromEntity)
                 .toList();
 
-        log.debug("Found {} users (total={}, pages={})", content.size(), pageResult.getTotalElements(), pageResult.getTotalPages());
+        log.debug("Found {} users (total={}, pages={})", content.size(), pageResult.getTotalElements(),
+                pageResult.getTotalPages());
 
         return UserPageDto.builder()
                 .content(content)
@@ -80,13 +82,12 @@ public class UserServiceImpl implements UserService {
         if (userRepository.existsByEmailAndDeletedFalse(userDto.getEmail())) {
             throw new CustomException(
                     "A user with email '" + userDto.getEmail() + "' already exists.",
-                    HttpStatus.CONFLICT
-            );
+                    HttpStatus.CONFLICT);
         }
 
         AdminUser newUser = userDto.toEntity();
         newUser.setPasswordHash(passwordEncoder.encode(rawPassword));
-        newUser.setStatus(UserStatus.ACTIVE);   
+        newUser.setStatus(UserStatus.ACTIVE);
         AdminUser saved = userRepository.save(newUser);
         log.info("User created successfully with id={}", saved.getId());
 
@@ -102,16 +103,18 @@ public class UserServiceImpl implements UserService {
 
         AdminUser existing = findActiveUserOrThrow(id);
 
-        if (userDto.getFirstName() != null) existing.setFirstName(userDto.getFirstName());
-        if (userDto.getLastName()  != null) existing.setLastName(userDto.getLastName());
-        if (userDto.getRole()      != null) existing.setRole(userDto.getRole());
+        if (userDto.getFirstName() != null)
+            existing.setFirstName(userDto.getFirstName());
+        if (userDto.getLastName() != null)
+            existing.setLastName(userDto.getLastName());
+        if (userDto.getRole() != null)
+            existing.setRole(userDto.getRole());
 
         if (userDto.getEmail() != null && !userDto.getEmail().equals(existing.getEmail())) {
             if (userRepository.existsByEmailAndDeletedFalse(userDto.getEmail())) {
                 throw new CustomException(
                         "Email '" + userDto.getEmail() + "' is already in use by another user.",
-                        HttpStatus.CONFLICT
-                );
+                        HttpStatus.CONFLICT);
             }
             existing.setEmail(userDto.getEmail());
         }
@@ -122,7 +125,7 @@ public class UserServiceImpl implements UserService {
         return UserDto.fromEntity(updated);
     }
 
-    // ── UPDATE STATUS  ───────────────────────────────────
+    // ── UPDATE STATUS ───────────────────────────────────
 
     @Override
     @Transactional
@@ -147,7 +150,7 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional
     public void deleteUser(Long id) {
-        log.warn("Soft-deleting user id={}", id);   
+        log.warn("Soft-deleting user id={}", id);
 
         AdminUser user = findActiveUserOrThrow(id);
 
@@ -163,7 +166,6 @@ public class UserServiceImpl implements UserService {
         return userRepository.findByIdAndDeletedFalse(id)
                 .orElseThrow(() -> new CustomException(
                         "User with id=" + id + " was not found.",
-                        HttpStatus.NOT_FOUND
-                ));
+                        HttpStatus.NOT_FOUND));
     }
 }

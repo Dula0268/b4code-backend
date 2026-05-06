@@ -1,9 +1,6 @@
 package com.b4code.backend.common.config;
 
-import com.b4code.backend.modules.admin.dao.AdminUserRepository;
-import com.b4code.backend.modules.admin.enums.UserRole;
-import com.b4code.backend.modules.admin.enums.UserStatus;
-import com.b4code.backend.modules.admin.models.AdminUser;
+
 import com.b4code.backend.modules.auth.entity.User;
 import com.b4code.backend.modules.auth.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -16,48 +13,31 @@ import org.springframework.stereotype.Component;
 public class DataSeeder implements CommandLineRunner {
 
     private final UserRepository userRepository;
-    private final AdminUserRepository adminUserRepository;
+
     private final PasswordEncoder passwordEncoder;
 
     @Override
     public void run(String... args) {
         // ── Seed auth users table (for login) ──────────────────────────────
-        if (userRepository.findByEmail("admin@primestay.com").isEmpty()) {
-            User admin = new User();
-            admin.setEmail("admin@primestay.com");
-            admin.setPasswordHash(passwordEncoder.encode("admin123"));
-            admin.setFirstName("System");
-            admin.setLastName("Admin");
-            admin.setRole(User.Role.ADMIN);
-
-            admin.setStatus(User.UserStatus.ACTIVE);
-            userRepository.save(admin);
-            System.out.println("✅ Default admin user created: admin@primestay.com");
-        }
-
-        // ── Seed admin_users table (for admin user management module) ───────
-        if (adminUserRepository.count() == 0) {
-            seedAdminUser("Sarah",  "Jenkins", "sarah.j@primestay.com",    UserRole.OWNER, UserStatus.ACTIVE);
-            seedAdminUser("Mike",   "Ross",    "mike.ross@primestay.com",  UserRole.STAFF, UserStatus.ACTIVE);
-            seedAdminUser("John",   "Doe",     "john.d@gmail.com",         UserRole.STAFF, UserStatus.SUSPENDED);
-            seedAdminUser("Emily",  "Chen",    "emily.chen@primestay.com", UserRole.OWNER, UserStatus.ACTIVE);
-            seedAdminUser("Aisha",  "Kumar",   "aisha.k@primestay.com",    UserRole.STAFF, UserStatus.ACTIVE);
-            seedAdminUser("Nina",   "Patel",   "nina.patel@primestay.com", UserRole.OWNER, UserStatus.ACTIVE);
-            seedAdminUser("Daniel", "Osei",    "daniel.o@primestay.com",   UserRole.STAFF, UserStatus.ACTIVE);
-            seedAdminUser("Priya",  "Sharma",  "priya.s@primestay.com",    UserRole.OWNER, UserStatus.SUSPENDED);
-            System.out.println("✅ Sample admin_users seeded (8 records)");
-        }
-    }
-
-    private void seedAdminUser(String first, String last, String email,
-                               UserRole role, UserStatus status) {
-        AdminUser u = new AdminUser();
-        u.setFirstName(first);
-        u.setLastName(last);
-        u.setEmail(email);
-        u.setPasswordHash(passwordEncoder.encode("password123"));
-        u.setRole(role);
-        u.setStatus(status);
-        adminUserRepository.save(u);
+        userRepository.findByEmail("admin@primestay.com").ifPresentOrElse(
+            admin -> {
+                if (admin.getRole() != User.Role.ADMIN) {
+                    admin.setRole(User.Role.ADMIN);
+                    userRepository.save(admin);
+                    System.out.println("✅ Forcefully updated admin@primestay.com to ADMIN role");
+                }
+            },
+            () -> {
+                User admin = new User();
+                admin.setEmail("admin@primestay.com");
+                admin.setPasswordHash(passwordEncoder.encode("admin123"));
+                admin.setFirstName("System");
+                admin.setLastName("Admin");
+                admin.setRole(User.Role.ADMIN);
+                admin.setStatus(User.UserStatus.ACTIVE);
+                userRepository.save(admin);
+                System.out.println("✅ Default admin user created: admin@primestay.com");
+            }
+        );
     }
 }
