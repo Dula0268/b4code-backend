@@ -6,6 +6,7 @@ import com.b4code.backend.modules.admin.models.AdminUser;
 import com.b4code.backend.modules.admin.dao.AdminUserRepository;
 import com.b4code.backend.modules.admin.enums.UserRole;
 import com.b4code.backend.modules.admin.enums.UserStatus;
+
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
@@ -59,27 +60,43 @@ public class DataSeeder implements CommandLineRunner {
         if (adminUserRepository.count() == 0) {
             seedAdminUser("Sarah", "Jenkins", "sarah.j@primestay.com", UserRole.OWNER, UserStatus.ACTIVE);
             seedAdminUser("Mike", "Ross", "mike.ross@primestay.com", UserRole.STAFF, UserStatus.ACTIVE);
-            System.out.println("✅ Admin users seeded");
+            seedAdminUser("John", "Doe", "john.d@gmail.com", UserRole.STAFF, UserStatus.SUSPENDED);
+            seedAdminUser("Emily", "Chen", "emily.chen@primestay.com", UserRole.OWNER, UserStatus.ACTIVE);
+            seedAdminUser("Aisha", "Kumar", "aisha.k@primestay.com", UserRole.STAFF, UserStatus.ACTIVE);
+            seedAdminUser("Nina", "Patel", "nina.patel@primestay.com", UserRole.OWNER, UserStatus.ACTIVE);
+            seedAdminUser("Daniel", "Osei", "daniel.o@primestay.com", UserRole.STAFF, UserStatus.ACTIVE);
+            seedAdminUser("Priya", "Sharma", "priya.s@primestay.com", UserRole.OWNER, UserStatus.SUSPENDED);
+            System.out.println("✅ Sample admin_users seeded (8 records)");
         }
     }
 
     private void seedUserIfMissing(String email, String password, String first, String last, User.Role role) {
-        if (userRepository.findByEmail(email).isEmpty()) {
-            User user = new User();
-            user.setEmail(email);
-            user.setPasswordHash(passwordEncoder.encode(password));
-            user.setFirstName(first);
-            user.setLastName(last);
-            user.setRole(role);
-            user.setStatus(User.UserStatus.ACTIVE);
-            userRepository.save(user);
-        }
-
-
+        userRepository.findByEmail(email).ifPresentOrElse(
+            user -> {
+                // From 'dev' branch: Ensure the role is correct even if user already exists
+                if (user.getRole() != role) {
+                    user.setRole(role);
+                    userRepository.save(user);
+                    System.out.println("✅ Forcefully updated " + email + " to " + role + " role");
+                }
+            },
+            () -> {
+                // From 'feature' branch: Create new user
+                User user = new User();
+                user.setEmail(email);
+                user.setPasswordHash(passwordEncoder.encode(password));
+                user.setFirstName(first);
+                user.setLastName(last);
+                user.setRole(role);
+                user.setStatus(User.UserStatus.ACTIVE);
+                userRepository.save(user);
+                System.out.println("✅ Default " + role + " user created: " + email);
+            }
+        );
     }
 
     private void seedAdminUser(String first, String last, String email,
-            UserRole role, UserStatus status) {
+                               UserRole role, UserStatus status) {
         AdminUser u = new AdminUser();
         u.setFirstName(first);
         u.setLastName(last);
