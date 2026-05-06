@@ -50,7 +50,6 @@ public class DataSeeder implements CommandLineRunner {
     private void seedUserIfMissing(String email, String password, String first, String last, User.Role role) {
         userRepository.findByEmail(email).ifPresentOrElse(
             user -> {
-                // From 'dev' branch: Ensure the role is correct even if user already exists
                 if (user.getRole() != role) {
                     user.setRole(role);
                     userRepository.save(user);
@@ -58,7 +57,6 @@ public class DataSeeder implements CommandLineRunner {
                 }
             },
             () -> {
-                // From 'feature' branch: Create new user
                 User user = new User();
                 user.setEmail(email);
                 user.setPasswordHash(passwordEncoder.encode(password));
