@@ -20,25 +20,31 @@ public class Dispute {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, unique = true)
+    @Column(nullable = false, unique = true, columnDefinition = "TEXT")
     private String disputeId;          
 
     private Long guestId;
+    @Column(columnDefinition = "TEXT")
     private String guestName;          
 
     private Long propertyId;
+    @Column(columnDefinition = "TEXT")
     private String propertyName;       
 
+    @Column(columnDefinition = "TEXT")
     private String bookingId;          
 
+    @Column(columnDefinition = "TEXT")
     private String reason;             
     @Column(nullable = false, precision = 12, scale = 2)
     private BigDecimal amount;
 
-    @Column(nullable = false, length = 3)
+    @Column(nullable = false, length = 3, columnDefinition = "TEXT")
     private String currency = "LKR";
 
+    @Column(columnDefinition = "TEXT")
     private String stayDates;          
+    @Column(columnDefinition = "TEXT")
     private String cancellationPolicy;
     private Integer daysUntilAutoClose;
 
@@ -46,6 +52,7 @@ public class Dispute {
     @Column(nullable = false)
     private DisputeStatus status;
 
+    @Column(columnDefinition = "TEXT")
     private String resolutionNote;
     private Long resolvedByAdminId;
 

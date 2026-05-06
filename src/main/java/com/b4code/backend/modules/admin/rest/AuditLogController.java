@@ -24,7 +24,7 @@ public class AuditLogController {
     public ResponseEntity<AuditLogPageDto> getAuditLogs(
             @RequestParam(defaultValue = "All") String role,
             @RequestParam(required = false) String search,
-            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
         return ResponseEntity.ok(auditLogService.getAuditLogs(role, search, page, size));
     }

@@ -22,10 +22,10 @@ public class UserDto {
     private Long id;
     private String firstName;
     private String lastName;
-    private String fullName;       
+    private String fullName;
     private String email;
-    private UserRole role;         
-    private UserStatus status;     
+    private UserRole role;
+    private UserStatus status;
     private LocalDateTime lastLogin;
     private LocalDateTime createdAt;
 

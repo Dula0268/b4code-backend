@@ -36,21 +36,26 @@ public class DashboardServiceImpl implements DashboardService {
         String revenueFormatted = "LKR " + String.format("%,.0f", totalRevenue);
         String bookingsFormatted = String.format("%,d", activeBookings);
 
+        // Calculate dynamic occupancy (similar to platform analytics)
+        long propertyCount = propertyRepository.count();
+        double occupancyRate = propertyCount > 0 ? Math.min(95.0, (double)activeBookings / (propertyCount * 10) * 100) : 0.0;
+        String occupancyFormatted = String.format("%.0f%%", occupancyRate);
+
         return DashboardKpiDto.builder()
                 .totalRevenue(KpiValueDto.builder()
                         .value(revenueFormatted)
-                        .change("+12%")
+                        .change("0%") // No history yet
                         .positive(true)
                         .build())
                 .occupancyRate(KpiValueDto.builder()
-                        .value("78%")
-                        .change("+4%")
+                        .value(occupancyFormatted)
+                        .change("0%")
                         .positive(true)
                         .build())
                 .activeBookings(KpiValueDto.builder()
                         .value(bookingsFormatted)
-                        .change("-1%")
-                        .positive(false)
+                        .change("0%")
+                        .positive(true)
                         .build())
                 .build();
     }

@@ -17,11 +17,11 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
 
   @Query("""
       SELECT t FROM Transaction t
-      WHERE (:type IS NULL OR t.type = :type)
-        AND (:from IS NULL OR t.createdAt >= :from)
-        AND (:to   IS NULL OR t.createdAt <= :to)
+      WHERE (CAST(:type AS string) IS NULL OR t.type = :type)
+        AND (CAST(:from AS LocalDateTime) IS NULL OR t.createdAt >= :from)
+        AND (CAST(:to AS LocalDateTime) IS NULL OR t.createdAt <= :to)
         AND (
-              :search IS NULL OR :search = ''
+              CAST(:search AS string) IS NULL OR :search = ''
               OR LOWER(t.referenceNumber) LIKE LOWER(CONCAT('%', :search, '%'))
               OR LOWER(t.userName)        LIKE LOWER(CONCAT('%', :search, '%'))
               OR LOWER(t.propertyName)    LIKE LOWER(CONCAT('%', :search, '%'))
