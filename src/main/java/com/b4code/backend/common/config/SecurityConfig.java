@@ -13,6 +13,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.jwt.BadJwtException;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import lombok.RequiredArgsConstructor;
@@ -29,18 +30,21 @@ public class SecurityConfig {
     private final JwtAuthFilter jwtAuthFilter;
     private final JwtUtil jwtUtil;
 
-    // Required by oauth2-resource-server dependency - provides a JwtDecoder
-    // that validates tokens using our custom JwtUtil
+    // Provides a JwtDecoder that validates tokens using our custom JwtUtil
     @Bean
     public JwtDecoder jwtDecoder() {
         return token -> {
-            Claims claims = jwtUtil.getClaims(token);
-            return new Jwt(
-                    token,
-                    Instant.ofEpochMilli(claims.getIssuedAt().getTime()),
-                    Instant.ofEpochMilli(claims.getExpiration().getTime()),
-                    Collections.emptyMap(),
-                    Collections.singletonMap("sub", claims.getSubject()));
+            try {
+                Claims claims = jwtUtil.getClaims(token);
+                return new Jwt(
+                        token,
+                        Instant.ofEpochMilli(claims.getIssuedAt().getTime()),
+                        Instant.ofEpochMilli(claims.getExpiration().getTime()),
+                        Collections.emptyMap(),
+                        Collections.singletonMap("sub", claims.getSubject()));
+            } catch (Exception e) {
+                throw new BadJwtException("Invalid JWT token", e);
+            }
         };
     }
 
@@ -51,14 +55,20 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(authz -> authz
-                        .requestMatchers("/api/auth/**", "/api/test/**").permitAll()
-                        .requestMatchers("/actuator/**").permitAll()
-                        .requestMatchers(
-                                "/swagger-ui/**",
-                                "/swagger-ui.html",
-                                "/v3/api-docs/**",
-                                "/v3/api-docs.yaml"
-                        ).permitAll()
+                    .requestMatchers(
+                        "/api/auth/**",
+                        "/api/test/**",
+                        "/api/qr/**",
+                        "/api/payments/notify",
+                        "/api/staff/**"
+                    ).permitAll()
+                    .requestMatchers("/actuator/**").permitAll()
+                    .requestMatchers(
+                        "/swagger-ui/**",
+                        "/swagger-ui.html",
+                        "/v3/api-docs/**",
+                        "/v3/api-docs.yaml"
+                    ).permitAll()
                         .anyRequest().authenticated())
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
