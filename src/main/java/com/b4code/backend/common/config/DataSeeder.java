@@ -1,11 +1,11 @@
 package com.b4code.backend.common.config;
 
-import com.b4code.backend.modules.admin.dao.AdminUserRepository;
-import com.b4code.backend.modules.admin.enums.UserRole;
-import com.b4code.backend.modules.admin.enums.UserStatus;
-import com.b4code.backend.modules.admin.models.AdminUser;
 import com.b4code.backend.modules.auth.entity.User;
 import com.b4code.backend.modules.auth.repository.UserRepository;
+import com.b4code.backend.modules.admin.entity.AdminUser;
+import com.b4code.backend.modules.admin.repository.AdminUserRepository;
+import com.b4code.backend.modules.admin.entity.AdminUser.UserRole;
+import com.b4code.backend.modules.admin.entity.AdminUser.UserStatus;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
@@ -17,7 +17,6 @@ public class DataSeeder implements CommandLineRunner {
     private final AdminUserRepository adminUserRepository;
     private final PasswordEncoder passwordEncoder;
 
-    // Manual constructor to avoid Lombok @RequiredArgsConstructor issues
     public DataSeeder(UserRepository userRepository, 
                       AdminUserRepository adminUserRepository, 
                       PasswordEncoder passwordEncoder) {
@@ -49,17 +48,28 @@ public class DataSeeder implements CommandLineRunner {
     }
 
     private void seedUserIfMissing(String email, String password, String first, String last, User.Role role) {
-        if (userRepository.findByEmail(email).isEmpty()) {
-            User user = new User();
-            user.setEmail(email);
-            user.setPasswordHash(passwordEncoder.encode(password));
-            user.setFirstName(first);
-            user.setLastName(last);
-            user.setRole(role);
-            user.setStatus(User.UserStatus.ACTIVE);
-            userRepository.save(user);
-            System.out.println("✅ Default " + role + " user created: " + email);
-        }
+        userRepository.findByEmail(email).ifPresentOrElse(
+            user -> {
+                // From 'dev' branch: Ensure the role is correct even if user already exists
+                if (user.getRole() != role) {
+                    user.setRole(role);
+                    userRepository.save(user);
+                    System.out.println("✅ Forcefully updated " + email + " to " + role + " role");
+                }
+            },
+            () -> {
+                // From 'feature' branch: Create new user
+                User user = new User();
+                user.setEmail(email);
+                user.setPasswordHash(passwordEncoder.encode(password));
+                user.setFirstName(first);
+                user.setLastName(last);
+                user.setRole(role);
+                user.setStatus(User.UserStatus.ACTIVE);
+                userRepository.save(user);
+                System.out.println("✅ Default " + role + " user created: " + email);
+            }
+        );
     }
 
     private void seedAdminUser(String first, String last, String email,
