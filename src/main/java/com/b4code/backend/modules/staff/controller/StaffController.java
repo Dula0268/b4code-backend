@@ -4,6 +4,8 @@ import com.b4code.backend.modules.staff.entity.StaffProperty;
 import com.b4code.backend.modules.staff.repository.StaffPropertyRepository;
 import com.b4code.backend.modules.admin.models.Property;
 import com.b4code.backend.modules.admin.dao.PropertyRepository;
+import com.b4code.backend.modules.qr.service.QRCodeService;
+import com.b4code.backend.modules.qr.dto.QRCodeResponse;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -20,6 +22,7 @@ public class StaffController {
 
     private final StaffPropertyRepository staffPropertyRepository;
     private final PropertyRepository propertyRepository;
+    private final QRCodeService qrCodeService;
 
     // Get properties assigned to a staff member
     @GetMapping("/properties/{staffId}")
@@ -77,5 +80,21 @@ public class StaffController {
             @PathVariable Long propertyId) {
         staffPropertyRepository.deleteByStaffIdAndPropertyId(staffId, propertyId);
         return ResponseEntity.noContent().build();
+    }
+
+    // QR Management endpoints
+    @GetMapping("/qr/property/{propertyId}")
+    public ResponseEntity<List<QRCodeResponse>> getQRCodesByProperty(
+            @PathVariable Long propertyId,
+            @RequestParam(required = false, defaultValue = "0") int skip,
+            @RequestParam(required = false, defaultValue = "10") int limit) {
+        List<QRCodeResponse> qrCodes = qrCodeService.getQRCodesByProperty(propertyId);
+        
+        // Apply pagination
+        int start = skip;
+        int end = Math.min(skip + limit, qrCodes.size());
+        List<QRCodeResponse> paginated = qrCodes.subList(start, Math.max(start, end));
+        
+        return ResponseEntity.ok(paginated);
     }
 }
