@@ -17,29 +17,61 @@ public class QRCode {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     
-    @Column(nullable = false, unique = true)
+    @Column(name = "unique_qr_id", nullable = false, unique = true)
+    private String uniqueQrId;
+
+    @Column(nullable = true, unique = true)
     private String qrCodeValue;
     
-    @Column(nullable = false)
+    @Column(nullable = true)
     private Long orderId;
     
-    @Column(nullable = false)
+    @Column(nullable = true)
     private Long propertyId;
     
-    @Column(nullable = false)
-    private String status;
+    @Column(nullable = true)
+    private String status = "ACTIVE";
+
+    @Column(length = 255)
+    private String name;
+
+    @Column(length = 255)
+    private String location;
+
+    @Column(length = 100)
+    private String type;
     
-    @Column(columnDefinition = "LONGTEXT")
+    @Column(columnDefinition = "TEXT")
     private String qrImageData;
     
-    @Column(nullable = false, updatable = false)
-    private LocalDateTime createdAt = LocalDateTime.now();
+    @Column(nullable = true, updatable = false)
+    private LocalDateTime createdAt;
     
-    @Column(nullable = false)
-    private LocalDateTime updatedAt = LocalDateTime.now();
+    @Column(nullable = true)
+    private LocalDateTime updatedAt;
     
     private LocalDateTime scannedAt;
     
     @Column(length = 500)
     private String description;
+
+    @Column(columnDefinition = "TEXT")
+    private String instructionText;
+
+    @Column(nullable = true)
+    private Boolean showRoomNumber = false;
+
+    @Column(nullable = true)
+    private Boolean showLogo = true;
+    
+    @PrePersist
+    protected void onCreate() {
+        createdAt = LocalDateTime.now();
+        updatedAt = LocalDateTime.now();
+    }
+    
+    @PreUpdate
+    protected void onUpdate() {
+        updatedAt = LocalDateTime.now();
+    }
 }
