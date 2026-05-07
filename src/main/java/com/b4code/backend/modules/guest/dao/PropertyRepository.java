@@ -23,15 +23,15 @@ public interface PropertyRepository extends JpaRepository<Property, Long> {
         SELECT DISTINCT p FROM GuestProperty p
         JOIN Room r ON r.property = p
         WHERE p.published = true
-          AND (:destination IS NULL OR LOWER(p.city) LIKE LOWER(CONCAT('%', :destination, '%'))
+          AND (LOWER(p.city) LIKE LOWER(CONCAT('%', :destination, '%'))
                OR LOWER(p.name) LIKE LOWER(CONCAT('%', :destination, '%'))
                OR LOWER(p.address) LIKE LOWER(CONCAT('%', :destination, '%')))
           AND r.maxOccupancy >= :guests
           AND r.available = true
-          AND (:minPrice IS NULL OR r.pricePerNight >= :minPrice)
-          AND (:maxPrice IS NULL OR r.pricePerNight <= :maxPrice)
-          AND (:minRating IS NULL OR p.averageRating >= :minRating)
-          AND (:propertyTypes IS NULL OR p.propertyType IN :propertyTypes)
+          AND r.pricePerNight >= :minPrice
+          AND r.pricePerNight <= :maxPrice
+          AND p.averageRating >= :minRating
+          AND p.propertyType IN :propertyTypes
           AND (
                 :checkIn IS NULL OR :checkOut IS NULL OR NOT EXISTS (
                     SELECT b FROM Booking b
@@ -61,13 +61,13 @@ public interface PropertyRepository extends JpaRepository<Property, Long> {
         SELECT DISTINCT p FROM GuestProperty p
         JOIN Room r ON r.property = p
         WHERE p.published = true
-          AND (:destination IS NULL OR LOWER(p.city) LIKE LOWER(CONCAT('%', :destination, '%'))
+          AND (LOWER(p.city) LIKE LOWER(CONCAT('%', :destination, '%'))
                OR LOWER(p.name) LIKE LOWER(CONCAT('%', :destination, '%')))
           AND r.maxOccupancy >= :guests
           AND r.available = true
-          AND (:minPrice IS NULL OR r.pricePerNight >= :minPrice)
-          AND (:maxPrice IS NULL OR r.pricePerNight <= :maxPrice)
-          AND (:minRating IS NULL OR p.averageRating >= :minRating)
+          AND r.pricePerNight >= :minPrice
+          AND r.pricePerNight <= :maxPrice
+          AND p.averageRating >= :minRating
           AND (
                 :checkIn IS NULL OR :checkOut IS NULL OR NOT EXISTS (
                     SELECT b FROM Booking b

@@ -22,7 +22,12 @@ public class PropertySeeder implements CommandLineRunner {
     private final PropertyRepository propertyRepository;
     private final RoomRepository roomRepository;
 
-    // Cloudinary demo images - replace cloud name with your own
+    // Cloudinary demo images - using Cloudinary's public demo account sample images
+    // To use your own images:
+    //   1. Create a Cloudinary account at https://cloudinary.com
+    //   2. Upload your property images via dashboard or API
+    //   3. Update these URLs with your cloud name and image IDs
+    //   4. No frontend code changes needed — URLs come from database
     private static final String IMG = "https://res.cloudinary.com/demo/image/upload";
 
     public PropertySeeder(

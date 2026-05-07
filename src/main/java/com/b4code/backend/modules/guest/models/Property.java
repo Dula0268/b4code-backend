@@ -67,17 +67,17 @@ public class Property {
     private Boolean published = false;
 
     // Admin-required fields to satisfy DB constraints
-    @Column(name = "owner_id", nullable = false)
+    @Column(nullable = false)
     @Builder.Default
     private Long ownerId = 1L;
 
-    @Column(name = "pv_id", nullable = false, unique = true)
+    @Column(nullable = false, unique = true)
     @Builder.Default
     private String pvId = java.util.UUID.randomUUID().toString();
 
-    @Column(name = "status", nullable = false)
+    @Column(nullable = false)
     @Builder.Default
-    private String adminStatus = "APPROVED";
+    private String status = "APPROVED";
 
     // Amenities stored as JSON-style string: "Wifi,Pool,Air conditioning"
     @Column(length = 1000)

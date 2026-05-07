@@ -15,6 +15,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -49,6 +50,7 @@ public class SearchService {
 
     // ─── Paginated Search ────────────────────────────────────────────────
 
+    @Transactional(readOnly = true)
     public PaginatedResponse<PropertySearchResult> search(
             String destination,
             LocalDate checkIn,
@@ -68,39 +70,71 @@ public class SearchService {
 
         int guestsVal = guests != null ? guests : 1;
 
-        // Build sort
+        // Build sort — price sorts are done in-memory since they cross a JOIN
         Sort sort = buildSort(sortBy);
-        Pageable pageable = PageRequest.of(page, size, sort);
+        boolean isPriceSort = "price_asc".equals(sortBy) || "price_desc".equals(sortBy);
+        Pageable pageable = isPriceSort
+                ? PageRequest.of(0, Integer.MAX_VALUE) // Fetch all for in-memory sort
+                : PageRequest.of(page, size, sort);
 
-        // Normalize property types to null if empty
-        List<String> types = (propertyTypes != null && !propertyTypes.isEmpty()) ? propertyTypes : null;
+        // Provide safe defaults to avoid PostgreSQL bytea null casting issues
+        String safeDestination = destination != null ? destination : "";
+        BigDecimal safeMinPrice = minPrice != null ? minPrice : BigDecimal.ZERO;
+        BigDecimal safeMaxPrice = maxPrice != null ? maxPrice : new BigDecimal("10000000");
+        Double safeMinRating = minRating != null ? minRating : 0.0;
+        List<String> types = (propertyTypes != null && !propertyTypes.isEmpty()) ? propertyTypes : java.util.Arrays.asList("Villa", "Hotel", "Guesthouse", "Apartment");
 
         Page<Property> propertyPage = propertyRepository.searchAvailableProperties(
-                destination, checkIn, checkOut, guestsVal,
-                minPrice, maxPrice, minRating, types, pageable);
+                safeDestination, checkIn, checkOut, guestsVal,
+                safeMinPrice, safeMaxPrice, safeMinRating, types, pageable);
 
         // Filter by amenities in-memory (amenities stored as comma-separated string)
-        List<PropertySearchResult> results = propertyPage.getContent().stream()
+        List<PropertySearchResult> allResults = propertyPage.getContent().stream()
                 .filter(p -> matchesAmenities(p, amenities))
                 .map(p -> mapToPropertySearchResult(p, guestsVal))
                 .collect(Collectors.toList());
 
+        // Apply in-memory price sorting if needed
+        if (isPriceSort) {
+            Comparator<PropertySearchResult> priceComp = Comparator.comparing(
+                    PropertySearchResult::getPricePerNight, Comparator.nullsLast(BigDecimal::compareTo));
+            if ("price_desc".equals(sortBy)) priceComp = priceComp.reversed();
+            allResults.sort(priceComp);
+        }
+
+        // Apply manual pagination if we fetched all
+        long totalElements;
+        int totalPages;
+        List<PropertySearchResult> results;
+        if (isPriceSort) {
+            totalElements = allResults.size();
+            totalPages = (int) Math.ceil((double) totalElements / size);
+            int from = Math.min(page * size, allResults.size());
+            int to = Math.min(from + size, allResults.size());
+            results = allResults.subList(from, to);
+        } else {
+            totalElements = propertyPage.getTotalElements();
+            totalPages = propertyPage.getTotalPages();
+            results = allResults;
+        }
+
         log.info("Search returned {} results (page {} of {})",
-                results.size(), propertyPage.getNumber() + 1, propertyPage.getTotalPages());
+                results.size(), page + 1, totalPages);
 
         return PaginatedResponse.<PropertySearchResult>builder()
                 .content(results)
-                .page(propertyPage.getNumber())
-                .size(propertyPage.getSize())
-                .totalElements(propertyPage.getTotalElements())
-                .totalPages(propertyPage.getTotalPages())
-                .first(propertyPage.isFirst())
-                .last(propertyPage.isLast())
+                .page(page)
+                .size(size)
+                .totalElements(totalElements)
+                .totalPages(totalPages)
+                .first(page == 0)
+                .last(page >= totalPages - 1)
                 .build();
     }
 
     // ─── Property Detail ─────────────────────────────────────────────────
 
+    @Transactional(readOnly = true)
     public PropertyDetailResult getPropertyDetail(Long propertyId) {
         log.info("Fetching property detail for id={}", propertyId);
 
@@ -116,6 +150,7 @@ public class SearchService {
 
     // ─── Dynamic Filter Options ──────────────────────────────────────────
 
+    @Transactional(readOnly = true)
     public FilterOptionsResponse getFilterOptions() {
         log.info("Fetching dynamic filter options");
 
@@ -196,8 +231,8 @@ public class SearchService {
     private Sort buildSort(String sortBy) {
         if (sortBy == null) return Sort.unsorted();
         return switch (sortBy) {
-            case "price_asc"  -> Sort.by(Sort.Direction.ASC, "rooms.pricePerNight");
-            case "price_desc" -> Sort.by(Sort.Direction.DESC, "rooms.pricePerNight");
+            // Price sorts are handled in-memory (cross-entity JOIN)
+            case "price_asc", "price_desc" -> Sort.unsorted();
             case "rating"     -> Sort.by(Sort.Direction.DESC, "averageRating");
             case "reviews"    -> Sort.by(Sort.Direction.DESC, "reviewCount");
             default           -> Sort.unsorted(); // "recommended" = natural order
@@ -253,6 +288,8 @@ public class SearchService {
                 .badge(property.getBadge())
                 .imageSrc(property.getImageSrc())
                 .amenities(amenityLabels)
+                .lat(property.getLatitude())
+                .lng(property.getLongitude())
                 .build();
     }
 

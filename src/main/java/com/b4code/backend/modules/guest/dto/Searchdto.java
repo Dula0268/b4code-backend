@@ -40,6 +40,8 @@ public class SearchDTO {
         private String badge;
         private String imageSrc;
         private List<String> amenities;
+        private Double lat;
+        private Double lng;
     }
 
     // ─── Property Detail ─────────────────────────────────────────────────
