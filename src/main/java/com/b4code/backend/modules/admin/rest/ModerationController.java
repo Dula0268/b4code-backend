@@ -46,6 +46,7 @@ public class ModerationController {
             @RequestParam(required = false) String search,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
+        if (page < 0) page = 0;
         return ResponseEntity.ok(moderationService.getFlaggedReviews(status, search, page, size));
     }
 
@@ -76,6 +77,7 @@ public class ModerationController {
             @RequestParam(required = false) String search,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
+        if (page < 0) page = 0;
         return ResponseEntity.ok(moderationService.getDisputes(status, search, page, size));
     }
 
@@ -102,6 +104,7 @@ public class ModerationController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime to,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "5") int size) {
+        if (page < 0) page = 0;
         return ResponseEntity.ok(moderationService.getHistory(action, search, from, to, page, size));
     }
 }

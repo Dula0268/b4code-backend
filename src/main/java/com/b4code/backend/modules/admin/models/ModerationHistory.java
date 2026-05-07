@@ -17,7 +17,7 @@ public class ModerationHistory {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false)
+    @Column(nullable = false, columnDefinition = "TEXT")
     private String caseId;             
 
     @Enumerated(EnumType.STRING)
@@ -25,10 +25,14 @@ public class ModerationHistory {
     private ModerationAction actionTaken;
 
     private Long adminId;
+    @Column(columnDefinition = "TEXT")
     private String adminName;          
+    @Column(columnDefinition = "TEXT")
     private String adminInitials;      
+    @Column(columnDefinition = "TEXT")
     private String adminColor;         
 
+    @Column(columnDefinition = "TEXT")
     private String outcome;            
     @Column(nullable = false)
     private LocalDateTime resolvedAt;

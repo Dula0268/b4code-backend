@@ -55,6 +55,7 @@ public class FinanceController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size
     ) {
+        if (page < 0) page = 0;
         return ResponseEntity.ok(financeService.getAllTransactions(search, type, from, to, page, size));
     }
 
@@ -76,6 +77,7 @@ public class FinanceController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size
     ) {
+        if (page < 0) page = 0;
         return ResponseEntity.ok(financeService.getAllRefunds(search, status, page, size));
     }
 
@@ -110,6 +112,7 @@ public class FinanceController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size
     ) {
+        if (page < 0) page = 0;
         return ResponseEntity.ok(financeService.getAllPayouts(search, status, page, size));
     }
 
