@@ -52,12 +52,8 @@ payhere:
   notify-url: http://localhost:8080/api/payments/notify
 
 # Cloudinary configuration
-# For seed data, "demo" cloud is used (Cloudinary's public demo account with sample images)
-# For production image uploads, set these to your real Cloudinary credentials:
-#   1. Sign up at https://cloudinary.com
-#   2. Copy your Cloud Name, API Key, and API Secret from the dashboard
-#   3. Create an unsigned upload preset named "ml_default" (or change CloudinaryService)
+# Use environment variables or a local .env file to set these securely.
 cloudinary:
   cloud-name: ${CLOUDINARY_CLOUD_NAME:demo}
   api-key: ${CLOUDINARY_API_KEY:}
-  api-secret: ${CLOUDINARY_API_SECRET:}
+  api-secret: ${CLOUDINARY_API_SECRET:}
