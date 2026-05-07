@@ -30,6 +30,9 @@ public class MenuItem {
     @Column(nullable = false)
     private Double price;
 
+    @Column
+    private String category;
+
     @Column(name = "is_available")
     private Boolean isAvailable = true;
 }
