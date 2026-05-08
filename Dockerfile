@@ -15,8 +15,8 @@ FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
 
 # Add a non-root user for security
-RUN addgroup -S b4group && adduser -S b4user -G b4group
-USER b4user:b4group
+RUN addgroup -S hosp-group && adduser -S hosp-user -G hosp-group
+USER hosp-user:hosp-group
 
 COPY --from=builder /app/target/*.jar app.jar
 

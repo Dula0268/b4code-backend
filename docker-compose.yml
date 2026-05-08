@@ -1,0 +1,48 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: hospitality-postgres
+    restart: always
+    environment:
+      POSTGRES_DB: ${DB_NAME:-hospitalitydb}
+      POSTGRES_USER: ${DB_USER:-hospitality}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-hospitalitypass}
+    ports:
+      - "5433:5432" # Mapping to 5433 to avoid conflicts if 5432 is in use locally
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    container_name: hospitality-redis
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - redisdata:/data
+
+  app:
+    build: .
+    container_name: hospitality-backend
+    restart: always
+    ports:
+      - "8080:8080"
+    depends_on:
+      - db
+      - redis
+    environment:
+      - SPRING_PROFILES_ACTIVE=dev
+      - DB_HOST=db
+      - DB_PORT=5432
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - CLOUDINARY_CLOUD_NAME=${CLOUDINARY_CLOUD_NAME}
+      - CLOUDINARY_API_KEY=${CLOUDINARY_API_KEY}
+      - CLOUDINARY_API_SECRET=${CLOUDINARY_API_SECRET}
+      - JWT_SECRET=${JWT_SECRET:-8a846c483a992e5927515c0e1ae5b0c96c4d444458d92a0653d9e4c19a9a1d1d}
+
+volumes:
+  pgdata:
+  redisdata:

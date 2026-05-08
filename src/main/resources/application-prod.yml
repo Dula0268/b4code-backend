@@ -1,0 +1,54 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:hospitality_prod}
+    username: ${DB_USER:postgres}
+    password: ${DB_PASSWORD:prod_password}
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: validate # Do not auto-update schema in production. Use Flyway.
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: false
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+
+  session:
+    store-type: redis
+
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${JWT_ISSUER_URI:} 
+
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
+
+hospitality:
+  security:
+    jwt:
+      secret: ${JWT_SECRET} # MUST be provided via environment variables in prod
+      expirationMs: 3600000
+      refreshExpirationMs: 86400000
+
+payhere:
+  merchant-id: ${PAYHERE_MERCHANT_ID}
+  merchant-secret: ${PAYHERE_SECRET}
+  sandbox: false
+  checkout-url: https://www.payhere.lk/pay/checkout
+  notify-url: ${PAYHERE_NOTIFY_URL}
+
+cloudinary:
+  cloud-name: ${CLOUDINARY_CLOUD_NAME}
+  api-key: ${CLOUDINARY_API_KEY}
+  api-secret: ${CLOUDINARY_API_SECRET}

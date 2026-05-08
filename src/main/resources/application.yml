@@ -1,6 +1,6 @@
 spring:
   application:
-    name: b4code-backend
+    name: hospitality-platform
 
   profiles:
     active: ${SPRING_PROFILES_ACTIVE:dev}
@@ -22,4 +22,4 @@ server:
 logging:
   level:
     root: INFO
-    com.b4code.backend: DEBUG
+    com.hospitality: DEBUG

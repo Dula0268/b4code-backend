@@ -1,8 +1,8 @@
 spring:
   datasource:
-    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5433}/${DB_NAME:b4codedb}
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5433}/${DB_NAME:hospitalitydb}
     username: ${DB_USER:b4code}
-    password: ${DB_PASSWORD:b4codepass}
+    password: ${DB_PASSWORD:hospitalitypass}
     driver-class-name: org.postgresql.Driver
 
   jpa:
@@ -37,7 +37,7 @@ spring:
       max-file-size: 10MB
       max-request-size: 10MB
 
-b4code:
+hospitality:
   security:
     jwt:
       secret: ${JWT_SECRET:8a846c483a992e5927515c0e1ae5b0c96c4d444458d92a0653d9e4c19a9a1d1d} # Ensure this is AES-256 equivalent

@@ -8,10 +8,10 @@
 		<version>3.2.4</version>
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
-	<groupId>com.b4code</groupId>
-	<artifactId>backend</artifactId>
+	<groupId>com.hospitality</groupId>
+	<artifactId>hospitality-platform</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
-	<name>b4code-backend</name>
+	<name>hospitality-platform</name>
 	<description>B4Code Backend Service</description>
 	<properties>
 		<java.version>21</java.version>
@@ -45,6 +45,12 @@
 			<groupId>org.postgresql</groupId>
 			<artifactId>postgresql</artifactId>
 			<scope>runtime</scope>
+		</dependency>
+
+		<!-- Flyway for Database Migrations -->
+		<dependency>
+			<groupId>org.flywaydb</groupId>
+			<artifactId>flyway-core</artifactId>
 		</dependency>
 		
 		<!-- Security & Auth -->

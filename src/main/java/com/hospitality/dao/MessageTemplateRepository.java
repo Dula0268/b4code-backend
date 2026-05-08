@@ -1,0 +1,19 @@
+package com.hospitality.dao;
+
+import com.hospitality.models.MessageTemplate;
+import com.hospitality.models.MessageTemplate.TemplateType;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+import java.util.List;
+import java.util.Optional;
+
+@Repository
+public interface MessageTemplateRepository extends JpaRepository<MessageTemplate, Long> {
+
+    List<MessageTemplate> findByPropertyId(Long propertyId);
+
+    Optional<MessageTemplate> findByPropertyIdAndTemplateType(Long propertyId, TemplateType templateType);
+
+    List<MessageTemplate> findByPropertyIdAndEnabledTrue(Long propertyId);
+}
