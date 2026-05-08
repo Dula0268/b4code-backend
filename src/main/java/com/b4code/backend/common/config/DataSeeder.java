@@ -104,6 +104,8 @@ public class DataSeeder implements CommandLineRunner {
             user.setStatus(User.UserStatus.ACTIVE);
             userRepository.save(user);
         }
+
+
     }
 
     private void seedAdminUser(String first, String last, String email,
