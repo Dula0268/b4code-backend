@@ -29,6 +29,13 @@
 			<artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
 			<version>2.5.0</version>
 		</dependency>
+
+		<!-- Dotenv to load .env files automatically -->
+		<dependency>
+			<groupId>me.paulschwarz</groupId>
+			<artifactId>spring-dotenv</artifactId>
+			<version>4.0.0</version>
+		</dependency>
 		
 		<!-- Database -->
 		<dependency>
@@ -79,6 +86,18 @@
 			<artifactId>spring-session-data-redis</artifactId>
 		</dependency>
 		
+		<!-- QR Code Generation -->
+		<dependency>
+			<groupId>com.google.zxing</groupId>
+			<artifactId>core</artifactId>
+			<version>3.5.3</version>
+		</dependency>
+		<dependency>
+			<groupId>com.google.zxing</groupId>
+			<artifactId>javase</artifactId>
+			<version>3.5.3</version>
+		</dependency>
+
 		<!-- DevTools & Utilities -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
@@ -89,7 +108,7 @@
 		<dependency>
 			<groupId>org.projectlombok</groupId>
 			<artifactId>lombok</artifactId>
-			<version>1.18.38</version>
+			<version>1.18.32</version>
 			<optional>true</optional>
 		</dependency>
 		

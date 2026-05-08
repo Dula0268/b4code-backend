@@ -29,7 +29,6 @@ public class AdminUser {
     @Column(nullable = false, unique = true)
     private String email;
 
-    // BCrypt-hashed password — never expose this in any DTO
     @Column(nullable = false)
     private String passwordHash;
 

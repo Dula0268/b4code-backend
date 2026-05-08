@@ -13,10 +13,12 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.jwt.BadJwtException;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import lombok.RequiredArgsConstructor;
 import io.jsonwebtoken.Claims;
+
 import java.time.Instant;
 import java.util.Collections;
 
@@ -29,18 +31,21 @@ public class SecurityConfig {
     private final JwtAuthFilter jwtAuthFilter;
     private final JwtUtil jwtUtil;
 
-    // Required by oauth2-resource-server dependency - provides a JwtDecoder
-    // that validates tokens using our custom JwtUtil
     @Bean
     public JwtDecoder jwtDecoder() {
         return token -> {
-            Claims claims = jwtUtil.getClaims(token);
-            return new Jwt(
-                    token,
-                    Instant.ofEpochMilli(claims.getIssuedAt().getTime()),
-                    Instant.ofEpochMilli(claims.getExpiration().getTime()),
-                    Collections.emptyMap(),
-                    Collections.singletonMap("sub", claims.getSubject()));
+            try {
+                Claims claims = jwtUtil.getClaims(token);
+                return new Jwt(
+                        token,
+                        Instant.ofEpochMilli(claims.getIssuedAt().getTime()),
+                        Instant.ofEpochMilli(claims.getExpiration().getTime()),
+                        Collections.emptyMap(),
+                        Collections.singletonMap("sub", claims.getSubject())
+                );
+            } catch (Exception e) {
+                throw new BadJwtException("Invalid JWT token", e);
+            }
         };
     }
 
@@ -51,9 +56,26 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(authz -> authz
-                        .requestMatchers("/api/auth/**", "/api/test/**").permitAll()
-                        .requestMatchers("/actuator/health/**").permitAll()
-                        .anyRequest().authenticated())
+
+                        .requestMatchers(
+                                "/api/auth/**",
+                                "/api/test/**",
+                                "/api/qr/**",
+                                "/api/staff/**",
+                                "/api/payments/**",
+                                "/api/guest/**",
+                                "/api/images/**",
+                                "/api/payments/notify"
+                        ).permitAll()
+                        .requestMatchers("/actuator/**").permitAll()
+                        .requestMatchers(
+                                "/swagger-ui/**",
+                                "/swagger-ui.html",
+                                "/v3/api-docs/**",
+                                "/v3/api-docs.yaml"
+                        ).permitAll()
+                        .anyRequest().authenticated()
+                )
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
@@ -65,8 +87,10 @@ public class SecurityConfig {
         configuration.setAllowedOrigins(java.util.List.of(
                 "http://localhost:5173",
                 "http://localhost:3000",
+                "http://localhost:3001",
                 "http://localhost:3002",
-                "http://localhost:3003"));
+                "http://localhost:3003"
+        ));
         configuration.setAllowedMethods(java.util.List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(java.util.List.of("Authorization", "Content-Type", "X-Requested-With"));
         configuration.setAllowCredentials(true);

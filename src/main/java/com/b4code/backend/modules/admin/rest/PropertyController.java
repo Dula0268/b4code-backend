@@ -34,6 +34,7 @@ public class PropertyController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "4") int size
     ) {
+        if (page < 0) page = 0;
         return ResponseEntity.ok(propertyService.getAllProperties(search, status, page, size));
     }
 

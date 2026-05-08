@@ -9,6 +9,9 @@ import com.b4code.backend.modules.auth.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import com.b4code.backend.modules.admin.dao.AuditLogRepository;
+import com.b4code.backend.modules.admin.models.AuditLog;
+import java.time.LocalDateTime;
 
 @Service
 @RequiredArgsConstructor
@@ -17,6 +20,7 @@ public class AuthService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
+    private final AuditLogRepository auditLogRepository;
 
     public AuthResponse register(RegisterRequest request) {
         if (userRepository.findByEmail(request.getEmail()).isPresent()) {
@@ -26,12 +30,12 @@ public class AuthService {
         User user = new User();
         user.setEmail(request.getEmail().toLowerCase());
         user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
-        // Handle fullName split if firstName is not provided
+
         if (request.getFirstName() != null) {
             user.setFirstName(request.getFirstName());
             user.setLastName(request.getLastName() != null ? request.getLastName() : "");
         } else if (request.getPhone() != null) {
-            // fullName came as one string — split it
+
             String[] parts = request.getPhone().split(" ", 2);
             user.setFirstName(parts[0]);
             user.setLastName(parts.length > 1 ? parts[1] : "");
@@ -50,24 +54,62 @@ public class AuthService {
         user.setRole(role);
 
         userRepository.save(user);
+        AuditLog log = new AuditLog();
+        log.setUserId(user.getId());
+        log.setUserName(user.getEmail());
+        log.setUserRole(user.getRole().name());
+        log.setAction("REGISTER");
+        log.setEntity("AUTH");
+        log.setEntityDetail(user.getEmail());
+        log.setTimestamp(LocalDateTime.now());
+
+        auditLogRepository.save(log);
 
         String token = jwtUtil.generateToken(user.getEmail(), user.getRole().name());
         String refreshToken = jwtUtil.generateRefreshToken(user.getEmail());
 
-        return new AuthResponse(token, refreshToken, user.getEmail(), user.getRole().name(), user.getId());
+        return new AuthResponse(token, refreshToken, user.getEmail(), user.getRole().name(), user.getId(),
+                user.getStatus().name());
+
     }
 
     public AuthResponse login(LoginRequest request) {
+
         User user = userRepository.findByEmail(request.getEmail().toLowerCase())
                 .orElseThrow(() -> new RuntimeException("Invalid email or password"));
 
-        if (!passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
+        boolean success = passwordEncoder.matches(request.getPassword(), user.getPasswordHash());
+
+        if (!success) {
+            // LOG FAILED LOGIN
+            AuditLog log = new AuditLog();
+            log.setUserName(request.getEmail());
+            log.setUserRole("UNKNOWN");
+            log.setAction("LOGIN_FAILED");
+            log.setEntity("AUTH");
+            log.setEntityDetail(request.getEmail());
+            log.setTimestamp(LocalDateTime.now());
+
+            auditLogRepository.save(log);
+
             throw new RuntimeException("Invalid email or password");
         }
+
+        AuditLog log = new AuditLog();
+        log.setUserId(user.getId());
+        log.setUserName(user.getEmail());
+        log.setUserRole(user.getRole().name());
+        log.setAction("LOGIN_SUCCESS");
+        log.setEntity("AUTH");
+        log.setEntityDetail(user.getEmail());
+        log.setTimestamp(LocalDateTime.now());
+
+        auditLogRepository.save(log);
 
         String token = jwtUtil.generateToken(user.getEmail(), user.getRole().name());
         String refreshToken = jwtUtil.generateRefreshToken(user.getEmail());
 
-        return new AuthResponse(token, refreshToken, user.getEmail(), user.getRole().name(), user.getId());
+        return new AuthResponse(token, refreshToken, user.getEmail(),
+                user.getRole().name(), user.getId(), user.getStatus().name());
     }
 }

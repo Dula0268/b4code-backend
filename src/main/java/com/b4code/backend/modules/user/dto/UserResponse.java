@@ -14,6 +14,7 @@ public class UserResponse {
     private String firstName;
     private String lastName;
     private String role;
+    private String phone;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
@@ -24,6 +25,7 @@ public class UserResponse {
         response.setFirstName(user.getFirstName());
         response.setLastName(user.getLastName());
         response.setRole(user.getRole().name());
+        response.setPhone(user.getPhone());
         response.setCreatedAt(user.getCreatedAt());
         response.setUpdatedAt(user.getUpdatedAt());
         return response;
