@@ -33,21 +33,21 @@ public class ModerationController {
     public ResponseEntity<Map<String, Long>> getBadgeCounts() {
         return ResponseEntity.ok(Map.of(
                 "pendingReviews", moderationService.getPendingReviewCount(),
-                "openDisputes",   moderationService.getOpenDisputeCount()
+                "openDisputes",   moderationService.getOpenDisputeCount(),
+                "removedToday",   moderationService.getRemovedTodayCount()
         ));
     }
 
-    // ── Reviews Queue
     @GetMapping("/reviews")
     @PreAuthorize("hasAnyRole('ADMIN','STAFF')")
-    @Operation(summary = "List flagged reviews with optional status filter and search")
+    @Operation(summary = "List flagged reviews with optional reason filter and search")
     public ResponseEntity<Page<FlaggedReviewDto>> getFlaggedReviews(
-            @RequestParam(required = false) ReviewStatus status,
+            @RequestParam(required = false) String flagReason,
             @RequestParam(required = false) String search,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
         if (page < 0) page = 0;
-        return ResponseEntity.ok(moderationService.getFlaggedReviews(status, search, page, size));
+        return ResponseEntity.ok(moderationService.getFlaggedReviews(ReviewStatus.FLAGGED, flagReason, search, page, size));
     }
 
     // PUT /api/admin/moderation/reviews/{id}/approve
