@@ -9,6 +9,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
@@ -55,7 +56,7 @@ public class ReservationService {
         r.setPropertyId(req.getPropertyId()); r.setRoomId(req.getRoomId());
         r.setGuestName(req.getGuestName()); r.setGuestEmail(req.getGuestEmail()); r.setGuestId(0L);
         r.setCheckInDate(req.getCheckInDate()); r.setCheckOutDate(req.getCheckOutDate());
-        r.setTotalPrice(req.getTotalPrice() != null ? req.getTotalPrice().doubleValue() : 0.0); r.setPaymentStatus(req.getPaymentStatus() != null ? req.getPaymentStatus() : "UNPAID");
+        r.setTotalPrice(req.getTotalPrice() != null ? req.getTotalPrice() : BigDecimal.ZERO); r.setPaymentStatus(req.getPaymentStatus() != null ? req.getPaymentStatus() : "UNPAID");
         r.setStatus("CONFIRMED");
         return toResponse(reservationRepository.save(r));
     }
@@ -73,7 +74,7 @@ public class ReservationService {
         resp.setGuestTier(r.getGuestTier()); resp.setPropertyName(r.getPropertyName()); resp.setRoomName(r.getRoomName());
         resp.setCheckIn(r.getCheckInDate() != null ? r.getCheckInDate().format(DISPLAY_FMT) : "");
         resp.setCheckOut(r.getCheckOutDate() != null ? r.getCheckOutDate().format(DISPLAY_FMT) : "");
-        resp.setPaymentStatus(r.getPaymentStatus()); resp.setStatus(r.getStatus()); resp.setTotalPrice(r.getTotalPrice() != null ? java.math.BigDecimal.valueOf(r.getTotalPrice()) : null);
+        resp.setPaymentStatus(r.getPaymentStatus()); resp.setStatus(r.getStatus()); resp.setTotalPrice(r.getTotalPrice());
         String name = r.getGuestName();
         if (name != null && !name.trim().isEmpty()) { String[] p = name.trim().split("\\s+"); resp.setGuestInitials(p.length >= 2 ? (""+p[0].charAt(0)+p[1].charAt(0)).toUpperCase() : (""+p[0].charAt(0)).toUpperCase()); }
         return resp;
