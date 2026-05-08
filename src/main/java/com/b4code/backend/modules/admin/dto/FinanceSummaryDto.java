@@ -9,5 +9,6 @@ public class FinanceSummaryDto {
     private BigDecimal platformCommission;
     private BigDecimal totalPayouts;
     private BigDecimal totalRefunds;
+    private Long pendingPayouts;
     private String currency;
 }

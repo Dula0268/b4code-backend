@@ -43,6 +43,7 @@ public class FinanceServiceImpl implements FinanceService {
                 .platformCommission(transactionRepository.sumPlatformCommission())
                 .totalPayouts(payoutRepository.sumProcessedPayouts())
                 .totalRefunds(refundRepository.sumApprovedRefunds())
+                .pendingPayouts(payoutRepository.countByStatus(PayoutStatus.PENDING))
                 .currency("LKR")
                 .build();
     }
