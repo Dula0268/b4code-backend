@@ -19,4 +19,6 @@ public interface QRCodeRepository extends JpaRepository<QRCode, Long> {
     List<QRCode> findByPropertyIdAndStatus(Long propertyId, String status);
     
     Optional<QRCode> findByOrderIdAndPropertyId(Long orderId, Long propertyId);
+    
+    Optional<QRCode> findByUniqueQrId(String uniqueQrId);
 }
