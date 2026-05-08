@@ -83,4 +83,12 @@ public class BookingController {
 
         return ResponseEntity.ok(bookingService.cancelBooking(id, request));
     }
+
+    @ExceptionHandler({com.b4code.backend.modules.guest.exceptions.RoomNotAvailableException.class, IllegalArgumentException.class})
+    public ResponseEntity<java.util.Map<String, String>> handleBookingValidations(Exception ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(java.util.Map.of(
+            "error", "Bad Request",
+            "message", ex.getMessage()
+        ));
+    }
 }
