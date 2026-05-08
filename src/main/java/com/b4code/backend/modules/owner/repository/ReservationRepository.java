@@ -30,7 +30,8 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
     long countOccupiedRoomsOnDate(@Param("propertyIds") List<Long> propertyIds, @Param("date") LocalDate date);
 
     @Query("SELECT r.checkInDate, COUNT(r) FROM Reservation r WHERE r.propertyId IN :propertyIds AND r.checkInDate BETWEEN :startDate AND :endDate AND r.status <> 'CANCELLED' GROUP BY r.checkInDate")
-    List<Object[]> countReservationsByDateRange(@Param("propertyIds") List<Long> propertyIds, @Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate);
+    List<Object[]> countReservationsByDateRange(@Param("propertyIds") List<Long> propertyIds,
+            @Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate);
 
     List<Reservation> findByPropertyIdOrderByCheckInDateDesc(Long propertyId);
 }
