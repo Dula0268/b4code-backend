@@ -16,6 +16,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 
 @Service
 @Slf4j
@@ -30,9 +31,9 @@ public class ModerationServiceImpl implements ModerationService {
 
     @Override
     @Transactional(readOnly = true)
-    public Page<FlaggedReviewDto> getFlaggedReviews(ReviewStatus status, String search, int page, int size) {
+    public Page<FlaggedReviewDto> getFlaggedReviews(ReviewStatus status, String flagReason, String search, int page, int size) {
         String term = (search == null || search.isBlank()) ? null : search.trim();
-        return reviewRepository.findAllWithFilters(status, term,
+        return reviewRepository.findAllWithFilters(status, flagReason, term,
                 PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "flaggedAt")))
                 .map(FlaggedReviewDto::fromEntity);
     }
@@ -107,6 +108,13 @@ public class ModerationServiceImpl implements ModerationService {
     @Transactional(readOnly = true)
     public long getOpenDisputeCount() {
         return disputeRepository.countByStatusNot(DisputeStatus.RESOLVED);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public long getRemovedTodayCount() {
+        LocalDateTime startOfDay = LocalDateTime.now().with(LocalTime.MIN);
+        return historyRepository.countByActionTakenAndResolvedAtAfter(ModerationAction.REVIEW_REMOVED, startOfDay);
     }
 
 
