@@ -102,6 +102,7 @@ public class DataSeeder implements CommandLineRunner {
         
         // ✅ Specific Staff Login (Linked to Property 1 and APPROVED)
         seedUserIfMissing("staff@primestay.com", "staff123", "Mike", "Staff", User.Role.STAFF, 1L, User.UserStatus.APPROVED);
+        seedUserIfMissing("staff2@primestay.com", "staff123", "Jane", "Staff", User.Role.STAFF, 2L, User.UserStatus.APPROVED);
 
         // 4. Admin users table
         if (adminUserRepository.count() == 0) {
