@@ -29,6 +29,7 @@ public class MessageTemplate {
     @Column(nullable = false, length = 2000)
     private String content;  // Supports placeholders: {{guestName}}, {{checkInDate}}, etc.
 
+    @Builder.Default
     @Column(nullable = false)
     private Boolean enabled = true;
 

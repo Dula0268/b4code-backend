@@ -7,6 +7,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 
 import java.util.List;
 import java.util.Map;
@@ -14,11 +17,13 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/qr")
 @RequiredArgsConstructor
+@Tag(name = "Staff: QR Management", description = "Endpoints for generating and managing property QR codes")
 public class QRCodeController {
     
     private final QRCodeService qrCodeService;
     
     @GetMapping("/list")
+    @Operation(summary = "List QR codes for a property (Paginated)", description = "Returns a paginated list of QR codes assigned to a specific property")
     public ResponseEntity<List<QRCodeResponse>> getQRCodesList(
             @RequestParam Long propertyId,
             @RequestParam(required = false, defaultValue = "0") int page,
@@ -28,6 +33,7 @@ public class QRCodeController {
     }
     
     @PostMapping("/generate")
+    @Operation(summary = "Generate a new QR code", description = "Creates a new QR code location and generates the physical QR image")
     public ResponseEntity<QRCodeResponse> generateQRCode(@RequestBody QRCodeGenerateRequest request) {
         QRCodeResponse qrCode = qrCodeService.generateQRCode(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(qrCode);
@@ -48,6 +54,7 @@ public class QRCodeController {
     }
     
     @PostMapping("/{id}/toggle-status")
+    @Operation(summary = "Toggle QR status", description = "Enable or disable a QR code for guest scanning")
     public ResponseEntity<QRCodeResponse> toggleQRCodeStatus(@PathVariable Long id) {
         QRCodeResponse qrCode = qrCodeService.toggleQRCodeStatus(id);
         return ResponseEntity.ok(qrCode);
