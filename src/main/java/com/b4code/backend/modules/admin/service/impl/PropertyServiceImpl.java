@@ -4,6 +4,7 @@ import com.b4code.backend.modules.admin.dao.PropertyRepository;
 import com.b4code.backend.modules.admin.dto.PropertyDto;
 import com.b4code.backend.modules.admin.dto.PropertyPageDto;
 import com.b4code.backend.modules.admin.dto.PropertyRejectionDto;
+import com.b4code.backend.modules.admin.dto.PropertySimpleDto;
 import com.b4code.backend.modules.admin.enums.PropertyStatus;
 import com.b4code.backend.modules.admin.exceptions.CustomException;
 import com.b4code.backend.modules.admin.models.Property;
@@ -27,22 +28,14 @@ public class PropertyServiceImpl implements PropertyService {
 
     private final PropertyRepository propertyRepository;
 
-    // ── GET ALL 
     @Override
     @Transactional(readOnly = true)
     public PropertyPageDto getAllProperties(String search, PropertyStatus status, int page, int size) {
         log.debug("Fetching properties — search='{}', status={}, page={}, size={}", search, status, page, size);
-
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "submittedAt"));
         String searchTerm = (search == null || search.isBlank()) ? null : search.trim();
-
         Page<Property> pageResult = propertyRepository.findAllWithFilters(status, searchTerm, pageable);
-
-        List<PropertyDto> content = pageResult.getContent()
-                .stream()
-                .map(PropertyDto::fromEntity)
-                .toList();
-
+        List<PropertyDto> content = pageResult.getContent().stream().map(PropertyDto::fromEntity).toList();
         return PropertyPageDto.builder()
                 .content(content)
                 .currentPage(pageResult.getNumber())
@@ -52,14 +45,12 @@ public class PropertyServiceImpl implements PropertyService {
                 .build();
     }
 
-    // ── GET SINGLE
     @Override
     @Transactional(readOnly = true)
     public PropertyDto getPropertyById(Long id) {
         return PropertyDto.fromEntity(findOrThrow(id));
     }
 
-    // ── CREATE
     @Override
     @Transactional
     public PropertyDto createProperty(PropertyDto dto) {
@@ -68,7 +59,6 @@ public class PropertyServiceImpl implements PropertyService {
         return PropertyDto.fromEntity(saved);
     }
 
-    // ── APPROVE
     @Override
     @Transactional
     public PropertyDto approveProperty(Long id) {
@@ -79,7 +69,6 @@ public class PropertyServiceImpl implements PropertyService {
         return PropertyDto.fromEntity(propertyRepository.save(property));
     }
 
-    // ── REJECT
     @Override
     @Transactional
     public PropertyDto rejectProperty(Long id, PropertyRejectionDto rejection) {
@@ -90,7 +79,6 @@ public class PropertyServiceImpl implements PropertyService {
         return PropertyDto.fromEntity(propertyRepository.save(property));
     }
 
-    // ── MARK UNDER REVIEW
     @Override
     @Transactional
     public PropertyDto markUnderReview(Long id) {
@@ -100,7 +88,18 @@ public class PropertyServiceImpl implements PropertyService {
         return PropertyDto.fromEntity(propertyRepository.save(property));
     }
 
-    // ── Private helper
+    @Override
+    @Transactional(readOnly = true)
+    public List<PropertySimpleDto> getPublicPropertiesList() {
+        return propertyRepository.findByStatus(PropertyStatus.APPROVED)
+                .stream()
+                .map(p -> PropertySimpleDto.builder()
+                        .id(p.getId())
+                        .name(p.getName())
+                        .build())
+                .toList();
+    }
+
     private Property findOrThrow(Long id) {
         return propertyRepository.findById(id)
                 .orElseThrow(() -> new CustomException("Property with id=" + id + " not found.", HttpStatus.NOT_FOUND));

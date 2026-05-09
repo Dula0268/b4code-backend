@@ -56,17 +56,15 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(authz -> authz
-
                         .requestMatchers(
                                 "/api/auth/**",
                                 "/api/test/**",
                                 "/api/qr/**",
+                                "/api/properties/public/**",
+                                "/api/guest/**",
                                 "/api/staff/**",
                                 "/api/payments/**",
-                                "/api/guest/**",
-                                "/api/images/**",
-                                "/api/payments/notify",
-                                "/api/menu-items/**"
+                                "/api/payments/notify"
                         ).permitAll()
                         .requestMatchers("/actuator/**").permitAll()
                         .requestMatchers(
