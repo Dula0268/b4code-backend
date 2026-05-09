@@ -7,5 +7,4 @@ import lombok.Data;
 @AllArgsConstructor
 public class ForgotPasswordResponse {
     private String message;
-    private String devResetLink;
 }

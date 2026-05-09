@@ -23,6 +23,19 @@ spring:
   session:
     store-type: redis
 
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: ${MAIL_USERNAME}
+    password: ${MAIL_PASSWORD}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+            required: true
+
   security:
     oauth2:
       resourceserver:
@@ -45,3 +58,10 @@ payhere:
   sandbox: true
   checkout-url: https://sandbox.payhere.lk/pay/checkout
   notify-url: http://localhost:8080/api/payments/notify
+  return-url: http://localhost:3001/guest/booking/confirmation
+  cancel-url: http://localhost:3001/payment
+
+cloudinary:
+  cloud-name: ${CLOUDINARY_CLOUD_NAME}
+  api-key: ${CLOUDINARY_API_KEY}
+  api-secret: ${CLOUDINARY_API_SECRET}

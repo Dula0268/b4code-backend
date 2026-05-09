@@ -67,6 +67,8 @@ public class UserService {
         if (request.getFirstName() != null) user.setFirstName(request.getFirstName());
         if (request.getLastName() != null) user.setLastName(request.getLastName());
         if (request.getPhone() != null) user.setPhone(request.getPhone());
+        if (request.getAvatarUrl() != null) user.setAvatarUrl(request.getAvatarUrl());
+        if (request.getNationalIdUrl() != null) user.setNationalIdUrl(request.getNationalIdUrl());
 
         userRepository.save(user);
         return UserResponse.fromEntity(user);
