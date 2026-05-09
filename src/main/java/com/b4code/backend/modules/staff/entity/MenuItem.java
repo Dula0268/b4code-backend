@@ -36,4 +36,9 @@ public class MenuItem {
     // Added this missing variable to fix the crash!
     @Column(name = "category")
     private String category;
+
+    @ElementCollection
+    @CollectionTable(name = "menu_item_images", joinColumns = @JoinColumn(name = "menu_item_id"))
+    @Column(name = "image_url")
+    private java.util.List<String> imageUrls = new java.util.ArrayList<>();
 }
