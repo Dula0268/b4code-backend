@@ -9,4 +9,6 @@ import java.util.List;
 @Repository
 public interface MenuItemRepository extends JpaRepository<MenuItem, Long> {
     List<MenuItem> findByPropertyId(Long propertyId);
+    List<MenuItem> findByPropertyIdAndCategory(Long propertyId, String category);
+    void deleteByPropertyIdAndCategory(Long propertyId, String category);
 }
