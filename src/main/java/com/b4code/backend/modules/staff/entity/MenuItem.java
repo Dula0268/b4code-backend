@@ -32,4 +32,8 @@ public class MenuItem {
 
     @Column(name = "is_available")
     private Boolean isAvailable = true;
+
+    // Added this missing variable to fix the crash!
+    @Column(name = "category")
+    private String category;
 }
