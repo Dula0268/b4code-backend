@@ -478,58 +478,63 @@ private void seedAllProperties() {
     }
 
     private void seedPromoCodes() {
-        promoCodeRepository.saveAll(List.of(
+        List<PromoCode> promoCodes = List.of(
             PromoCode.builder()
-                .code("WELCOME10")
-                .description("Welcome discount — 10% off your first booking")
+                .code("ALLPROPS10")
+                .description("Platform-wide promo — 10% off any property")
                 .discountPercent(new BigDecimal("10.00"))
-                .validFrom(LocalDate.of(2026, 1, 1))
-                .validTo(LocalDate.of(2026, 12, 31))
-                .maxUses(500)
-                .currentUses(0)
-                .active(true)
-                .build(),
-            PromoCode.builder()
-                .code("SUMMER25")
-                .description("Summer special — 25% off on any property")
-                .discountPercent(new BigDecimal("25.00"))
-                .validFrom(LocalDate.of(2026, 5, 1))
-                .validTo(LocalDate.of(2026, 8, 31))
-                .maxUses(200)
+                .validFrom(LocalDate.now().minusDays(30))
+                .validTo(LocalDate.now().plusMonths(12))
+                .maxUses(1000)
                 .currentUses(0)
                 .active(true)
                 .build(),
             PromoCode.builder()
                 .code("PRIMESTAY15")
-                .description("Exclusive Prime Stay loyalty discount — 15% off")
+                .description("Exclusive Prime Stay loyalty discount — 15% off any property")
                 .discountPercent(new BigDecimal("15.00"))
-                .validFrom(LocalDate.of(2026, 1, 1))
-                .validTo(LocalDate.of(2027, 12, 31))
+                .validFrom(LocalDate.now().minusDays(30))
+                .validTo(LocalDate.now().plusMonths(18))
                 .maxUses(null)
                 .currentUses(0)
                 .active(true)
                 .build(),
             PromoCode.builder()
-                .code("KANDY20")
-                .description("20% off for Kandy Hilltop Luxury Villa only")
-                .discountPercent(new BigDecimal("20.00"))
-                .validFrom(LocalDate.of(2026, 1, 1))
-                .validTo(LocalDate.of(2026, 12, 31))
-                .maxUses(100)
-                .currentUses(0)
-                .active(true)
-                .propertyId(3L)
-                .build(),
-            PromoCode.builder()
-                .code("EXPIRED5")
-                .description("Expired test code — should not work")
-                .discountPercent(new BigDecimal("5.00"))
-                .validFrom(LocalDate.of(2025, 1, 1))
-                .validTo(LocalDate.of(2025, 12, 31))
-                .maxUses(10)
+                .code("WELCOME10")
+                .description("Welcome discount — 10% off your first booking")
+                .discountPercent(new BigDecimal("10.00"))
+                .validFrom(LocalDate.now().minusDays(30))
+                .validTo(LocalDate.now().plusMonths(6))
+                .maxUses(500)
                 .currentUses(0)
                 .active(true)
                 .build()
-        ));
+        );
+
+        promoCodeRepository.saveAll(promoCodes);
+
+        List<Property> properties = propertyRepository.findAll().stream()
+            .filter(Property::getPublished)
+            .sorted(java.util.Comparator.comparing(Property::getId))
+            .toList();
+
+        for (Property property : properties) {
+            String slug = property.getName()
+                .toUpperCase()
+                .replaceAll("[^A-Z0-9]+", "-")
+                .replaceAll("^-+|-+$", "");
+
+            promoCodeRepository.save(PromoCode.builder()
+                .code(slug + "-SPECIAL")
+                .description("Special property promo for " + property.getName())
+                .discountPercent(new BigDecimal("20.00"))
+                .validFrom(LocalDate.now().minusDays(30))
+                .validTo(LocalDate.now().plusMonths(12))
+                .maxUses(100)
+                .currentUses(0)
+                .active(true)
+                .propertyId(property.getId())
+                .build());
+        }
     }
 }

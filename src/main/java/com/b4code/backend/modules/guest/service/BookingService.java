@@ -39,45 +39,7 @@ public class BookingService {
 
         Room room = findRoomOrThrow(roomId);
 
-        long nights      = ChronoUnit.DAYS.between(checkIn, checkOut);
-        BigDecimal nNights = BigDecimal.valueOf(nights);
-        BigDecimal subtotal = room.getPricePerNight().multiply(nNights);
-
-        // Validate promo code against database
-        BigDecimal discount = BigDecimal.ZERO;
-        String promoApplied = null;
-        if (promoCode != null && !promoCode.isBlank()) {
-            PromoCode promo = promoCodeRepository.findByCodeIgnoreCase(promoCode.trim())
-                .orElseThrow(() -> new IllegalArgumentException("Invalid promo code: " + promoCode));
-
-            if (!promo.isValid()) {
-                throw new IllegalArgumentException("Promo code has expired or reached its usage limit");
-            }
-
-            BigDecimal promoRate = promo.getDiscountPercent().divide(BigDecimal.valueOf(100), 4, RoundingMode.HALF_UP);
-            discount = subtotal.multiply(promoRate).setScale(2, RoundingMode.HALF_UP);
-            promoApplied = promo.getCode().toUpperCase();
-
-            // Increment usage count
-            promo.setCurrentUses(promo.getCurrentUses() + 1);
-            promoCodeRepository.save(promo);
-        }
-
-        BigDecimal afterDiscount = subtotal.subtract(discount);
-        BigDecimal tax   = afterDiscount.multiply(TAX_RATE).setScale(2, RoundingMode.HALF_UP);
-        BigDecimal total = afterDiscount.add(tax);
-
-        return PriceBreakdown.builder()
-            .roomId(roomId)
-            .roomName(room.getName())
-            .nights((int) nights)
-            .pricePerNight(room.getPricePerNight())
-            .subtotal(subtotal)
-            .discountAmount(discount)
-            .taxAmount(tax)
-            .totalAmount(total)
-            .promoApplied(promoApplied)
-            .build();
+        return calculatePrice(room, checkIn, checkOut, promoCode, true);
     }
 
     // ──────────────────────────────────────────
@@ -166,12 +128,113 @@ public class BookingService {
     }
 
     // ──────────────────────────────────────────
+    // Modify Booking
+    // ──────────────────────────────────────────
+    @Transactional
+    public ModifyBookingResponse modifyBooking(Long bookingId, ModifyBookingRequest request) {
+        Booking booking = bookingRepository.findById(bookingId)
+            .orElseThrow(() -> new ResourceNotFoundException("Booking not found: " + bookingId));
+
+        if (booking.getStatus() == BookingStatus.CANCELLED) {
+            throw new IllegalStateException("Cancelled bookings cannot be modified");
+        }
+
+        if (!request.getCheckOutDate().isAfter(request.getCheckInDate())) {
+            throw new IllegalArgumentException("Check-out must be after check-in");
+        }
+
+        Room room = roomRepository.findById(request.getRoomId())
+            .orElseThrow(() -> new ResourceNotFoundException("Room not found: " + request.getRoomId()));
+
+        if (!room.getProperty().getId().equals(request.getPropertyId())) {
+            throw new IllegalArgumentException("Room does not belong to the selected property");
+        }
+
+        boolean overlap = bookingRepository.existsOverlappingBookingExcludingId(
+            booking.getId(), room.getId(), request.getCheckInDate(), request.getCheckOutDate()
+        );
+        if (overlap) {
+            throw new RoomNotAvailableException("Room is not available for the selected dates");
+        }
+
+        PriceBreakdown newPrice = calculatePrice(room, request.getCheckInDate(), request.getCheckOutDate(), booking.getPromoCode(), false);
+        BigDecimal previousTotal = booking.getTotalAmount();
+        BigDecimal newTotal = newPrice.getTotalAmount();
+        BigDecimal difference = newTotal.subtract(previousTotal);
+
+        booking.setRoom(room);
+        booking.setCheckIn(request.getCheckInDate());
+        booking.setCheckOut(request.getCheckOutDate());
+        booking.setGuestCount(request.getGuests());
+        booking.setTotalAmount(newTotal);
+        booking.setTaxAmount(newPrice.getTaxAmount());
+        booking.setDiscountAmount(newPrice.getDiscountAmount());
+        booking.setPaymentMethod(request.getPaymentMethod() != null ? request.getPaymentMethod() : booking.getPaymentMethod());
+
+        Booking saved = bookingRepository.save(booking);
+
+        return ModifyBookingResponse.builder()
+            .booking(mapToResponse(saved))
+            .previousTotalAmount(previousTotal)
+            .newTotalAmount(newTotal)
+            .refundAmount(difference.signum() < 0 ? difference.abs() : BigDecimal.ZERO)
+            .additionalAmountDue(difference.signum() > 0 ? difference : BigDecimal.ZERO)
+            .build();
+    }
+
+    // ──────────────────────────────────────────
     // Private helpers
     // ──────────────────────────────────────────
 
     private Room findRoomOrThrow(Long roomId) {
         return roomRepository.findById(roomId)
             .orElseThrow(() -> new ResourceNotFoundException("Room not found: " + roomId));
+    }
+
+    private PriceBreakdown calculatePrice(Room room, LocalDate checkIn, LocalDate checkOut, String promoCode, boolean incrementPromoUsage) {
+        long nights = ChronoUnit.DAYS.between(checkIn, checkOut);
+        BigDecimal nNights = BigDecimal.valueOf(nights);
+        BigDecimal subtotal = room.getPricePerNight().multiply(nNights);
+
+        BigDecimal discount = BigDecimal.ZERO;
+        String promoApplied = null;
+        if (promoCode != null && !promoCode.isBlank()) {
+            PromoCode promo = promoCodeRepository.findByCodeIgnoreCase(promoCode.trim())
+                .orElseThrow(() -> new IllegalArgumentException("Invalid promo code: " + promoCode));
+
+            if (promo.getPropertyId() != null && !promo.getPropertyId().equals(room.getProperty().getId())) {
+                throw new IllegalArgumentException("Promo code is not valid for this property");
+            }
+
+            if (!promo.isValid()) {
+                throw new IllegalArgumentException("Promo code has expired or reached its usage limit");
+            }
+
+            BigDecimal promoRate = promo.getDiscountPercent().divide(BigDecimal.valueOf(100), 4, RoundingMode.HALF_UP);
+            discount = subtotal.multiply(promoRate).setScale(2, RoundingMode.HALF_UP);
+            promoApplied = promo.getCode().toUpperCase();
+
+            if (incrementPromoUsage) {
+                promo.setCurrentUses(promo.getCurrentUses() + 1);
+                promoCodeRepository.save(promo);
+            }
+        }
+
+        BigDecimal afterDiscount = subtotal.subtract(discount);
+        BigDecimal tax = afterDiscount.multiply(TAX_RATE).setScale(2, RoundingMode.HALF_UP);
+        BigDecimal total = afterDiscount.add(tax);
+
+        return PriceBreakdown.builder()
+            .roomId(room.getId())
+            .roomName(room.getName())
+            .nights((int) nights)
+            .pricePerNight(room.getPricePerNight())
+            .subtotal(subtotal)
+            .discountAmount(discount)
+            .taxAmount(tax)
+            .totalAmount(total)
+            .promoApplied(promoApplied)
+            .build();
     }
 
     private String generateConfirmationNumber() {
