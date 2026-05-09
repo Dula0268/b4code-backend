@@ -18,6 +18,9 @@ public class UserResponse {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
+    private String avatarUrl;
+    private String nationalIdUrl;
+
     public static UserResponse fromEntity(User user) {
         UserResponse response = new UserResponse();
         response.setId(user.getId());
@@ -28,6 +31,8 @@ public class UserResponse {
         response.setPhone(user.getPhone());
         response.setCreatedAt(user.getCreatedAt());
         response.setUpdatedAt(user.getUpdatedAt());
+        response.setAvatarUrl(user.getAvatarUrl());
+        response.setNationalIdUrl(user.getNationalIdUrl());
         return response;
     }
 }

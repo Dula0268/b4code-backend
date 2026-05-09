@@ -17,4 +17,7 @@ public class PaymentRequest {
     private String email;
     private String phone;
     private String description;
+    private Long bookingId;
+    // Optional: booking params to include in the return_url (e.g. confirmationCode, propertyId, etc.)
+    private String returnParams;
 }

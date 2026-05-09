@@ -52,12 +52,15 @@ public class CloudinaryService {
         }
 
         String uploadUrl = "https://api.cloudinary.com/v1_1/" + cloudName + "/image/upload";
+        log.info("Attempting Cloudinary upload to: {}", uploadUrl);
 
         try {
             String boundary = UUID.randomUUID().toString();
             HttpURLConnection conn = (HttpURLConnection) new URL(uploadUrl).openConnection();
             conn.setRequestMethod("POST");
             conn.setDoOutput(true);
+            conn.setConnectTimeout(10000); // 10s timeout
+            conn.setReadTimeout(30000);    // 30s timeout
             conn.setRequestProperty("Content-Type", "multipart/form-data; boundary=" + boundary);
 
             try (OutputStream os = conn.getOutputStream();
@@ -87,21 +90,36 @@ public class CloudinaryService {
 
             int status = conn.getResponseCode();
             InputStream is = status >= 400 ? conn.getErrorStream() : conn.getInputStream();
+            
+            if (is == null) {
+                throw new RuntimeException("Cloudinary returned status " + status + " with no error message");
+            }
+            
             String response = new String(is.readAllBytes());
 
             if (status >= 400) {
                 log.error("Cloudinary upload failed with status {}: {}", status, response);
-                throw new RuntimeException("Cloudinary upload failed: " + response);
+                // Return the actual Cloudinary error message if possible
+                String cloudError = "Unknown Cloudinary error";
+                try {
+                    cloudError = extractJsonValue(response, "message");
+                } catch (Exception e) {
+                    cloudError = response;
+                }
+                throw new RuntimeException("Cloudinary error: " + cloudError);
             }
 
             // Extract secure_url from JSON response (simple parsing without JSON library)
             String secureUrl = extractJsonValue(response, "secure_url");
-            log.info("Image uploaded to Cloudinary: {}", secureUrl);
+            log.info("Image uploaded successfully: {}", secureUrl);
             return secureUrl;
 
         } catch (IOException e) {
-            log.error("Failed to upload image to Cloudinary", e);
-            throw new RuntimeException("Image upload failed", e);
+            log.error("Network error connecting to Cloudinary: {}", e.getMessage());
+            throw new RuntimeException("Network error: Could not connect to Cloudinary. Check your internet or Cloud Name.", e);
+        } catch (Exception e) {
+            log.error("Unexpected error during Cloudinary upload", e);
+            throw new RuntimeException("Upload failed: " + e.getMessage(), e);
         }
     }
 

@@ -13,6 +13,7 @@ import com.b4code.backend.modules.auth.entity.User;
 import com.b4code.backend.modules.auth.repository.PasswordResetTokenRepository;
 import com.b4code.backend.modules.auth.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -30,6 +31,10 @@ public class AuthService {
     private final JwtUtil jwtUtil;
     private final AuditLogRepository auditLogRepository;
     private final PasswordResetTokenRepository passwordResetTokenRepository;
+    private final EmailService emailService;
+
+    @Value("${app.frontend-url:http://localhost:3001}")
+    private String frontendUrl;
 
     // ───────────────────────── REGISTER ─────────────────────────
     public AuthResponse register(RegisterRequest request) {
@@ -89,7 +94,9 @@ public class AuthService {
         UserProfileDto profile = new UserProfileDto(
                 user.getFirstName(),
                 user.getLastName(),
-                user.getPhone()
+                user.getPhone(),
+                user.getAvatarUrl(),
+                user.getNationalIdUrl()
         );
 
         return new AuthResponse(token, refreshToken, user.getEmail(),
@@ -150,7 +157,9 @@ public class AuthService {
         UserProfileDto profile = new UserProfileDto(
                 user.getFirstName(),
                 user.getLastName(),
-                user.getPhone()
+                user.getPhone(),
+                user.getAvatarUrl(),
+                user.getNationalIdUrl()
         );
 
         return new AuthResponse(
@@ -185,7 +194,8 @@ public class AuthService {
 
         passwordResetTokenRepository.save(resetToken);
 
-        System.out.println("DEBUG reset link: http://localhost:3001/auth/reset-password?token=" + token);
+        String resetLink = frontendUrl + "/auth/reset-password?token=" + token;
+        emailService.sendPasswordResetEmail(user.getEmail(), resetLink);
 
         return token;
     }

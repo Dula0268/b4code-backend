@@ -1,11 +1,13 @@
 package com.b4code.backend.modules.payment.service;
 
 import com.b4code.backend.modules.payment.dto.PayHereRequest;
-
 import com.b4code.backend.modules.payment.dto.PaymentRequest;
 import com.b4code.backend.modules.payment.dto.PaymentResponse;
 import com.b4code.backend.modules.payment.entity.Payment;
 import com.b4code.backend.modules.payment.repository.PaymentRepository;
+import com.b4code.backend.modules.guest.dao.BookingRepository;
+import com.b4code.backend.modules.guest.models.Booking;
+import com.b4code.backend.modules.auth.service.EmailService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -21,6 +23,8 @@ import java.util.stream.Collectors;
 public class PaymentService {
 
     private final PaymentRepository paymentRepository;
+    private final BookingRepository bookingRepository;
+    private final EmailService emailService;
 
     @Value("${payhere.merchant-id}")
     private String merchantId;
@@ -31,18 +35,29 @@ public class PaymentService {
     @Value("${payhere.checkout-url}")
     private String checkoutUrl;
 
+    @Value("${payhere.return-url:http://localhost:3001/guest/booking/confirmation}")
+    private String returnUrl;
+
+    @Value("${payhere.cancel-url:http://localhost:3001/payment}")
+    private String cancelUrl;
+
     public PaymentResponse initiatePayment(PaymentRequest request, Long userId) {
         // Create payment record with PENDING status
         Payment payment = new Payment();
         payment.setUserId(userId);
+        payment.setBookingId(request.getBookingId());
         payment.setAmount(request.getAmount());
         payment.setCurrency(request.getCurrency() != null ? request.getCurrency() : "LKR");
         payment.setPaymentMethod(request.getPaymentMethod());
+        
+        // Initial status logic
         if ("card".equalsIgnoreCase(request.getPaymentMethod())) {
-            payment.setStatus(Payment.PaymentStatus.SUCCESS);
+            // For card payments, we start as PENDING and wait for notify_url callback
+            payment.setStatus(Payment.PaymentStatus.PENDING);
         } else {
             payment.setStatus(Payment.PaymentStatus.PENDING);
         }
+        
         payment.setOrderId("ORDER-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase());
 
         if (request.getCardHolderName() != null) {
@@ -92,6 +107,25 @@ public class PaymentService {
                     payment.setCardHolderName(notify.getCard_holder_name());
                 if (notify.getCard_no() != null)
                     payment.setCardLastFour(notify.getCard_no());
+                
+                // ✅ Update linked booking status to CONFIRMED when payment succeeds
+                if (payment.getBookingId() != null) {
+                    bookingRepository.findById(payment.getBookingId()).ifPresent(booking -> {
+                        booking.setStatus(Booking.BookingStatus.CONFIRMED);
+                        bookingRepository.save(booking);
+                        
+                        // ✅ Send Confirmation Email
+                        emailService.sendBookingConfirmationEmail(
+                            booking.getGuestEmail(),
+                            booking.getGuestName(),
+                            booking.getConfirmationNumber(),
+                            booking.getRoom().getProperty().getName(),
+                            booking.getCheckIn().toString(),
+                            booking.getCheckOut().toString(),
+                            booking.getTotalAmount().toString()
+                        );
+                    });
+                }
             }
             case "-1", "-2", "-3" -> {
                 payment.setStatus(Payment.PaymentStatus.FAILED);
@@ -137,8 +171,8 @@ public class PaymentService {
 
     private String generateHash(String orderId, Double amount, String currency) {
         try {
-            String secretHash = md5(merchantSecret.toUpperCase());
-            String hashStr = merchantId + orderId + String.format("%.2f", amount) + currency + secretHash;
+            String secretHash = md5(merchantSecret).toUpperCase();
+            String hashStr = merchantId + orderId + String.format(java.util.Locale.US, "%.2f", amount) + currency + secretHash;
             return md5(hashStr).toUpperCase();
         } catch (Exception e) {
             throw new RuntimeException("Error generating hash", e);
@@ -148,7 +182,7 @@ public class PaymentService {
     private String generateNotifyHash(String merchantId, String orderId,
             String amount, String currency, String statusCode) {
         try {
-            String secretHash = md5(merchantSecret.toUpperCase());
+            String secretHash = md5(merchantSecret).toUpperCase();
             String hashStr = merchantId + orderId + amount + currency + statusCode + secretHash;
             return md5(hashStr).toUpperCase();
         } catch (Exception e) {
@@ -167,21 +201,29 @@ public class PaymentService {
     }
 
     private String buildPayHereParams(Payment payment, PaymentRequest request, String hash) {
-        return "merchant_id=" + merchantId +
-                "&return_url=http://localhost:3003/guest/booking/confirmation" +
-                "&cancel_url=http://localhost:3003/payment" +
-                "&notify_url=http://localhost:8080/api/payments/notify" +
+        String finalReturnUrl = returnUrl;
+        if (request.getReturnParams() != null && !request.getReturnParams().isBlank()) {
+            finalReturnUrl = returnUrl + (returnUrl.contains("?") ? "&" : "?") + request.getReturnParams();
+        }
+        try {
+            return "merchant_id=" + merchantId +
+                    "&return_url=" + java.net.URLEncoder.encode(finalReturnUrl, "UTF-8") +
+                    "&cancel_url=" + java.net.URLEncoder.encode(cancelUrl, "UTF-8") +
+                    "&notify_url=" + java.net.URLEncoder.encode("http://localhost:8080/api/payments/notify", "UTF-8") +
                 "&order_id=" + payment.getOrderId() +
-                "&items=PrimeStay Booking" +
+                "&items=PrimeStay+Booking" +
                 "&currency=" + payment.getCurrency() +
-                "&amount=" + String.format("%.2f", payment.getAmount()) +
+                "&amount=" + String.format(java.util.Locale.US, "%.2f", payment.getAmount()) +
                 "&first_name=" + (request.getFirstName() != null ? request.getFirstName() : "Guest") +
                 "&last_name=" + (request.getLastName() != null ? request.getLastName() : "User") +
                 "&email=" + (request.getEmail() != null ? request.getEmail() : "") +
                 "&phone=" + (request.getPhone() != null ? request.getPhone() : "") +
                 "&address=Colombo" +
                 "&city=Colombo" +
-                "&country=Sri Lanka" +
+                "&country=Sri+Lanka" +
                 "&hash=" + hash;
+        } catch (Exception e) {
+            throw new RuntimeException("Error encoding URLs", e);
+        }
     }
 }
