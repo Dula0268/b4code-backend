@@ -10,7 +10,7 @@ import java.time.LocalDateTime;
 
 public interface ModerationService {
 
-    Page<FlaggedReviewDto> getFlaggedReviews(ReviewStatus status, String flagReason, String search, int page, int size);
+    Page<FlaggedReviewDto> getFlaggedReviews(ReviewStatus status, String search, int page, int size);
     FlaggedReviewDto approveReview(Long id);
     FlaggedReviewDto removeReview(Long id, String adminNote);
 
@@ -23,5 +23,4 @@ public interface ModerationService {
 
     long getPendingReviewCount();
     long getOpenDisputeCount();
-    long getRemovedTodayCount();
 }

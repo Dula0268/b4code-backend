@@ -22,4 +22,5 @@ public class RegisterRequest {
     private String staffRole;
     private String employeeId;
     private String assignedProperty;
+    private Long propertyId;
 }

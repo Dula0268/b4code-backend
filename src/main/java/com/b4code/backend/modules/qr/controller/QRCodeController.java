@@ -17,47 +17,6 @@ import java.util.Map;
 public class QRCodeController {
     
     private final QRCodeService qrCodeService;
-    private final com.b4code.backend.modules.qr.repository.QRCodeRepository qrCodeRepository;
-    private final com.b4code.backend.modules.admin.dao.PropertyRepository propertyRepository;
-    
-    /**
-     * Validate a QR code scanned by a guest.
-     * Returns the QR context (propertyId, propertyName, location, type) so
-     * the guest frontend can fetch the correct menu.
-     */
-    @PostMapping("/validate")
-    public ResponseEntity<?> validateQRCode(@RequestParam String qrId) {
-        var qrOpt = qrCodeRepository.findByUniqueQrId(qrId);
-        if (qrOpt.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(Map.of("message", "QR code not found. Please scan a valid code."));
-        }
-        
-        var qr = qrOpt.get();
-        if (!"ACTIVE".equalsIgnoreCase(qr.getStatus())) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(Map.of("message", "This QR code is no longer active."));
-        }
-        
-        // Look up the property name
-        String propertyName = "Property";
-        if (qr.getPropertyId() != null) {
-            var propOpt = propertyRepository.findById(qr.getPropertyId());
-            if (propOpt.isPresent()) {
-                propertyName = propOpt.get().getName();
-            }
-        }
-        
-        return ResponseEntity.ok(Map.of(
-                "qrId", qr.getUniqueQrId(),
-                "propertyId", qr.getPropertyId() != null ? qr.getPropertyId() : 0,
-                "propertyName", propertyName,
-                "locationLabel", qr.getLocation() != null ? qr.getLocation() : "",
-                "type", qr.getType() != null ? qr.getType() : "DINING_TABLE",
-                "name", qr.getName() != null ? qr.getName() : "",
-                "status", qr.getStatus()
-        ));
-    }
     
     @GetMapping("/list")
     public ResponseEntity<List<QRCodeResponse>> getQRCodesList(

@@ -31,6 +31,4 @@ public interface ModerationHistoryRepository extends JpaRepository<ModerationHis
             @Param("from") LocalDateTime from,
             @Param("to") LocalDateTime to,
             Pageable pageable);
-
-    long countByActionTakenAndResolvedAtAfter(ModerationAction action, LocalDateTime startOfDay);
 }

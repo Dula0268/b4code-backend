@@ -1,9 +1,7 @@
 package com.b4code.backend.modules.staff.controller;
 
 import com.b4code.backend.modules.staff.entity.StaffProperty;
-import com.b4code.backend.modules.staff.entity.Order;
 import com.b4code.backend.modules.staff.repository.StaffPropertyRepository;
-import com.b4code.backend.modules.staff.repository.OrderRepository;
 import com.b4code.backend.modules.admin.models.Property;
 import com.b4code.backend.modules.admin.dao.PropertyRepository;
 import com.b4code.backend.modules.qr.service.QRCodeService;
@@ -25,7 +23,6 @@ public class StaffController {
     private final StaffPropertyRepository staffPropertyRepository;
     private final PropertyRepository propertyRepository;
     private final QRCodeService qrCodeService;
-    private final OrderRepository orderRepository;
 
     // Get properties assigned to a staff member
     @GetMapping("/properties/{staffId}")
@@ -99,48 +96,5 @@ public class StaffController {
         List<QRCodeResponse> paginated = qrCodes.subList(start, Math.max(start, end));
         
         return ResponseEntity.ok(paginated);
-    }
-
-    // ── Order Management ──
-    @GetMapping("/orders/property/{propertyId}")
-    public ResponseEntity<List<Order>> getOrdersByProperty(@PathVariable Long propertyId) {
-        List<Order> orders = orderRepository.findByPropertyIdOrderByCreatedAtDesc(propertyId);
-        return ResponseEntity.ok(orders);
-    }
-
-    @PatchMapping("/orders/{orderId}/accept")
-    public ResponseEntity<Order> acceptOrder(@PathVariable Long orderId) {
-        Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new RuntimeException("Order not found"));
-        order.setStatus("PREPARING");
-        orderRepository.save(order);
-        return ResponseEntity.ok(order);
-    }
-
-    @PatchMapping("/orders/{orderId}/reject")
-    public ResponseEntity<Order> rejectOrder(@PathVariable Long orderId) {
-        Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new RuntimeException("Order not found"));
-        order.setStatus("CANCELLED");
-        orderRepository.save(order);
-        return ResponseEntity.ok(order);
-    }
-
-    @PatchMapping("/orders/{orderId}/ready")
-    public ResponseEntity<Order> markOrderReady(@PathVariable Long orderId) {
-        Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new RuntimeException("Order not found"));
-        order.setStatus("READY");
-        orderRepository.save(order);
-        return ResponseEntity.ok(order);
-    }
-
-    @PatchMapping("/orders/{orderId}/deliver")
-    public ResponseEntity<Order> deliverOrder(@PathVariable Long orderId) {
-        Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new RuntimeException("Order not found"));
-        order.setStatus("DELIVERED");
-        orderRepository.save(order);
-        return ResponseEntity.ok(order);
     }
 }

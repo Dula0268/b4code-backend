@@ -31,4 +31,8 @@ public interface PropertyRepository extends JpaRepository<Property, Long> {
     );
 
     List<Property> findTop5ByStatusInOrderBySubmittedAtDesc(List<PropertyStatus> statuses);
+
+    List<Property> findByStatus(PropertyStatus status);
+    
+    List<Property> findByOwnerId(Long ownerId);
 }
