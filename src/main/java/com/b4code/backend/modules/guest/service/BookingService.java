@@ -6,8 +6,10 @@ import com.b4code.backend.modules.guest.exceptions.RoomNotAvailableException;
 import com.b4code.backend.modules.guest.models.Booking;
 import com.b4code.backend.modules.guest.models.Booking.BookingStatus;
 import com.b4code.backend.modules.guest.models.Room;
+import com.b4code.backend.modules.guest.models.PromoCode;
 import com.b4code.backend.modules.guest.dao.BookingRepository;
 import com.b4code.backend.modules.guest.dao.RoomRepository;
+import com.b4code.backend.modules.guest.dao.PromoCodeRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,10 +27,10 @@ import java.util.stream.Collectors;
 public class BookingService {
 
     private static final BigDecimal TAX_RATE     = new BigDecimal("0.10"); // 10%
-    private static final BigDecimal PROMO_RATE   = new BigDecimal("0.10"); // 10% off for demo
 
     private final BookingRepository bookingRepository;
     private final RoomRepository    roomRepository;
+    private final PromoCodeRepository promoCodeRepository;
 
     // ──────────────────────────────────────────
     // Price Preview (called before confirming)
@@ -41,12 +43,24 @@ public class BookingService {
         BigDecimal nNights = BigDecimal.valueOf(nights);
         BigDecimal subtotal = room.getPricePerNight().multiply(nNights);
 
-        // Apply promo if provided (simple flat 10% discount for demo)
+        // Validate promo code against database
         BigDecimal discount = BigDecimal.ZERO;
         String promoApplied = null;
         if (promoCode != null && !promoCode.isBlank()) {
-            discount = subtotal.multiply(PROMO_RATE).setScale(2, RoundingMode.HALF_UP);
-            promoApplied = promoCode.toUpperCase();
+            PromoCode promo = promoCodeRepository.findByCodeIgnoreCase(promoCode.trim())
+                .orElseThrow(() -> new IllegalArgumentException("Invalid promo code: " + promoCode));
+
+            if (!promo.isValid()) {
+                throw new IllegalArgumentException("Promo code has expired or reached its usage limit");
+            }
+
+            BigDecimal promoRate = promo.getDiscountPercent().divide(BigDecimal.valueOf(100), 4, RoundingMode.HALF_UP);
+            discount = subtotal.multiply(promoRate).setScale(2, RoundingMode.HALF_UP);
+            promoApplied = promo.getCode().toUpperCase();
+
+            // Increment usage count
+            promo.setCurrentUses(promo.getCurrentUses() + 1);
+            promoCodeRepository.save(promo);
         }
 
         BigDecimal afterDiscount = subtotal.subtract(discount);

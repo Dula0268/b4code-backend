@@ -11,10 +11,12 @@ import com.b4code.backend.modules.guest.dao.PropertyRepository;
 import com.b4code.backend.modules.guest.dao.RoomRepository;
 import com.b4code.backend.modules.guest.dao.BookingRepository;
 import com.b4code.backend.modules.guest.dao.ReviewRepository;
+import com.b4code.backend.modules.guest.dao.PromoCodeRepository;
 import com.b4code.backend.modules.guest.models.Property;
 import com.b4code.backend.modules.guest.models.Room;
 import com.b4code.backend.modules.guest.models.Booking;
 import com.b4code.backend.modules.guest.models.Review;
+import com.b4code.backend.modules.guest.models.PromoCode;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -39,6 +41,7 @@ public class DataSeeder implements CommandLineRunner {
     private final RoomRepository roomRepository;
     private final BookingRepository bookingRepository;
     private final ReviewRepository reviewRepository;
+    private final PromoCodeRepository promoCodeRepository;
     private final Random random = new Random(42);
     private static final String IMG = "https://res.cloudinary.com/de0mj95bh/image/upload";
 
@@ -81,7 +84,8 @@ public class DataSeeder implements CommandLineRunner {
             @Qualifier("guestPropertyRepository") PropertyRepository propertyRepository,
             RoomRepository roomRepository,
             BookingRepository bookingRepository,
-            ReviewRepository reviewRepository) {
+            ReviewRepository reviewRepository,
+            PromoCodeRepository promoCodeRepository) {
         this.userRepository = userRepository;
         this.adminUserRepository = adminUserRepository;
         this.passwordEncoder = passwordEncoder;
@@ -89,6 +93,7 @@ public class DataSeeder implements CommandLineRunner {
         this.roomRepository = roomRepository;
         this.bookingRepository = bookingRepository;
         this.reviewRepository = reviewRepository;
+        this.promoCodeRepository = promoCodeRepository;
     }
 
 
@@ -137,6 +142,12 @@ public class DataSeeder implements CommandLineRunner {
             log.info("🌱 Seeding reviews...");
             seedReviews();
             log.info("✅ Review seeding complete");
+        }
+
+        if (promoCodeRepository.count() == 0) {
+            log.info("🌱 Seeding promo codes...");
+            seedPromoCodes();
+            log.info("✅ Promo code seeding complete");
         }
     }
 
@@ -463,6 +474,62 @@ private void seedAllProperties() {
         roomRepository.saveAll(List.of(
             Room.builder().property(p).name("Riverfront Suite").roomType("SUITE").maxOccupancy(2).sqft(420).bedType("1 King Bed").pricePerNight(new BigDecimal("42000")).originalPrice(new BigDecimal("50000")).tag("Popular").features("River views,Private balcony,Writing desk").imageSrc(IMG+"/v1778126085/properties/oj7bhzl7lfgqeuiznldp.jpg").available(true).build(),
             Room.builder().property(p).name("Garden Room").roomType("DOUBLE").maxOccupancy(2).sqft(300).bedType("1 Queen Bed").pricePerNight(new BigDecimal("32000")).tag("Refundable").features("Garden access,Hammock").imageSrc(IMG+"/v1778126089/properties/exgvkdnoiawfizd8u03s.jpg").available(true).build()
+        ));
+    }
+
+    private void seedPromoCodes() {
+        promoCodeRepository.saveAll(List.of(
+            PromoCode.builder()
+                .code("WELCOME10")
+                .description("Welcome discount — 10% off your first booking")
+                .discountPercent(new BigDecimal("10.00"))
+                .validFrom(LocalDate.of(2026, 1, 1))
+                .validTo(LocalDate.of(2026, 12, 31))
+                .maxUses(500)
+                .currentUses(0)
+                .active(true)
+                .build(),
+            PromoCode.builder()
+                .code("SUMMER25")
+                .description("Summer special — 25% off on any property")
+                .discountPercent(new BigDecimal("25.00"))
+                .validFrom(LocalDate.of(2026, 5, 1))
+                .validTo(LocalDate.of(2026, 8, 31))
+                .maxUses(200)
+                .currentUses(0)
+                .active(true)
+                .build(),
+            PromoCode.builder()
+                .code("PRIMESTAY15")
+                .description("Exclusive Prime Stay loyalty discount — 15% off")
+                .discountPercent(new BigDecimal("15.00"))
+                .validFrom(LocalDate.of(2026, 1, 1))
+                .validTo(LocalDate.of(2027, 12, 31))
+                .maxUses(null)
+                .currentUses(0)
+                .active(true)
+                .build(),
+            PromoCode.builder()
+                .code("KANDY20")
+                .description("20% off for Kandy Hilltop Luxury Villa only")
+                .discountPercent(new BigDecimal("20.00"))
+                .validFrom(LocalDate.of(2026, 1, 1))
+                .validTo(LocalDate.of(2026, 12, 31))
+                .maxUses(100)
+                .currentUses(0)
+                .active(true)
+                .propertyId(3L)
+                .build(),
+            PromoCode.builder()
+                .code("EXPIRED5")
+                .description("Expired test code — should not work")
+                .discountPercent(new BigDecimal("5.00"))
+                .validFrom(LocalDate.of(2025, 1, 1))
+                .validTo(LocalDate.of(2025, 12, 31))
+                .maxUses(10)
+                .currentUses(0)
+                .active(true)
+                .build()
         ));
     }
 }
