@@ -12,4 +12,6 @@ public class AuthResponse {
     private String role;
     private Long userId;
     private String status;
+    private Long propertyId;
+    private UserProfileDto profile;
 }

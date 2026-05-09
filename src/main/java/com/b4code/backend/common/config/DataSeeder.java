@@ -6,6 +6,18 @@ import com.b4code.backend.modules.admin.models.AdminUser;
 import com.b4code.backend.modules.admin.dao.AdminUserRepository;
 import com.b4code.backend.modules.admin.enums.UserRole;
 import com.b4code.backend.modules.admin.enums.UserStatus;
+import com.b4code.backend.modules.admin.models.FlaggedReview;
+import com.b4code.backend.modules.admin.models.Dispute;
+import com.b4code.backend.modules.admin.dao.FlaggedReviewRepository;
+import com.b4code.backend.modules.admin.dao.DisputeRepository;
+import com.b4code.backend.modules.admin.dao.PropertyRepository;
+import com.b4code.backend.modules.admin.enums.ReviewStatus;
+import com.b4code.backend.modules.admin.enums.DisputeStatus;
+import com.b4code.backend.modules.admin.enums.PropertyStatus;
+import com.b4code.backend.modules.admin.models.Property;
+
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 import com.b4code.backend.modules.guest.dao.PropertyRepository;
 import com.b4code.backend.modules.guest.dao.RoomRepository;
@@ -36,6 +48,9 @@ public class DataSeeder implements CommandLineRunner {
     private static final Logger log = LoggerFactory.getLogger(DataSeeder.class);
     private final UserRepository userRepository;
     private final AdminUserRepository adminUserRepository;
+    private final PropertyRepository propertyRepository;
+    private final FlaggedReviewRepository flaggedReviewRepository;
+    private final DisputeRepository disputeRepository;
     private final PasswordEncoder passwordEncoder;
     private final PropertyRepository propertyRepository;
     private final RoomRepository roomRepository;
@@ -78,6 +93,7 @@ public class DataSeeder implements CommandLineRunner {
         null, null, null
     };
 
+    // Manual constructor to avoid Lombok @RequiredArgsConstructor issues
     public DataSeeder(UserRepository userRepository,
             AdminUserRepository adminUserRepository,
             PasswordEncoder passwordEncoder,
@@ -86,8 +102,15 @@ public class DataSeeder implements CommandLineRunner {
             BookingRepository bookingRepository,
             ReviewRepository reviewRepository,
             PromoCodeRepository promoCodeRepository) {
+            PropertyRepository propertyRepository,
+            FlaggedReviewRepository flaggedReviewRepository,
+            DisputeRepository disputeRepository,
+            PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
         this.adminUserRepository = adminUserRepository;
+        this.propertyRepository = propertyRepository;
+        this.flaggedReviewRepository = flaggedReviewRepository;
+        this.disputeRepository = disputeRepository;
         this.passwordEncoder = passwordEncoder;
         this.propertyRepository = propertyRepository;
         this.roomRepository = roomRepository;
@@ -99,13 +122,37 @@ public class DataSeeder implements CommandLineRunner {
 
     public void run(String... args) {
 
-        // ✅ Ensure admin always exists (dev logic)
+        // 1. Seed Properties first so we have IDs to link to
+        if (propertyRepository.count() == 0) {
+            Property p1 = new Property();
+            p1.setName("Sunset Villa");
+            p1.setPvId("PV-1001");
+            p1.setOwnerName("Alex Owner");
+            p1.setOwnerId(1L);
+            p1.setStatus(PropertyStatus.APPROVED);
+            p1.setSubmittedAt(LocalDateTime.now());
+            p1.setAddress("123 Sunset Blvd, Miami, FL");
+            propertyRepository.save(p1);
+
+            Property p2 = new Property();
+            p2.setName("Ocean Breeze");
+            p2.setPvId("PV-1002");
+            p2.setOwnerName("Alex Owner");
+            p2.setOwnerId(1L);
+            p2.setStatus(PropertyStatus.APPROVED);
+            p2.setSubmittedAt(LocalDateTime.now());
+            p2.setAddress("456 Ocean Dr, Miami, FL");
+            propertyRepository.save(p2);
+
+            System.out.println("✅ Test properties seeded");
+        }
+
+        // 2. Ensure admin always exists
         userRepository.findByEmail("admin@primestay.com").ifPresentOrElse(
                 admin -> {
                     if (admin.getRole() != User.Role.ADMIN) {
                         admin.setRole(User.Role.ADMIN);
                         userRepository.save(admin);
-                        System.out.println("✅ Updated admin role");
                     }
                 },
                 () -> {
@@ -120,16 +167,39 @@ public class DataSeeder implements CommandLineRunner {
                     System.out.println("✅ Admin user created");
                 });
 
-        // ✅ Your additional seed users
-        seedUserIfMissing("guest@primestay.com", "guest123", "John", "Doe", User.Role.GUEST);
-        seedUserIfMissing("owner@primestay.com", "owner123", "Alex", "Owner", User.Role.OWNER);
-        seedUserIfMissing("staff@primestay.com", "staff123", "Mike", "Staff", User.Role.STAFF);
+        // 3. Seed other users
+        seedUserIfMissing("guest@primestay.com", "guest123", "John", "Doe", User.Role.GUEST, null, User.UserStatus.ACTIVE);
+        seedUserIfMissing("owner@primestay.com", "owner123", "Alex", "Owner", User.Role.OWNER, null, User.UserStatus.ACTIVE);
+        
+        // ✅ Specific Staff Login (Linked to Property 1 and APPROVED)
+        seedUserIfMissing("staff@primestay.com", "staff123", "Mike", "Staff", User.Role.STAFF, 1L, User.UserStatus.APPROVED);
 
-        // ✅ Admin users table
+        // 4. Admin users table
         if (adminUserRepository.count() == 0) {
             seedAdminUser("Sarah", "Jenkins", "sarah.j@primestay.com", UserRole.OWNER, UserStatus.ACTIVE);
             seedAdminUser("Mike", "Ross", "mike.ross@primestay.com", UserRole.STAFF, UserStatus.ACTIVE);
-            System.out.println("✅ Admin users seeded");
+            seedAdminUser("John", "Doe", "john.d@gmail.com", UserRole.STAFF, UserStatus.SUSPENDED);
+            seedAdminUser("Emily", "Chen", "emily.chen@primestay.com", UserRole.OWNER, UserStatus.ACTIVE);
+            seedAdminUser("Aisha", "Kumar", "aisha.k@primestay.com", UserRole.STAFF, UserStatus.ACTIVE);
+            seedAdminUser("Nina", "Patel", "nina.patel@primestay.com", UserRole.OWNER, UserStatus.ACTIVE);
+            seedAdminUser("Daniel", "Osei", "daniel.o@primestay.com", UserRole.STAFF, UserStatus.ACTIVE);
+            seedAdminUser("Priya", "Sharma", "priya.s@primestay.com", UserRole.OWNER, UserStatus.SUSPENDED);
+            System.out.println("✅ Sample admin_users seeded (8 records)");
+        }
+
+        // ✅ Seed Flagged Reviews
+        if (flaggedReviewRepository.count() == 0) {
+            seedFlaggedReview(101L, "Oceanview Villa", 201L, "Alice Smith", "AS", "blue", "The place was a total mess and not as described. Bugs everywhere!", 1.5, "Inappropriate Content", ReviewStatus.FLAGGED);
+            seedFlaggedReview(102L, "Mountain Retreat", 202L, "Bob Jones", "BJ", "green", "Host demanded extra cash upon arrival. Very shady.", 2.0, "Policy Violation", ReviewStatus.FLAGGED);
+            seedFlaggedReview(103L, "City Center Apartment", 203L, "Carol White", "CW", "purple", "Great place, but the neighbors were a bit loud.", 4.0, "Spam", ReviewStatus.FLAGGED);
+            System.out.println("✅ Flagged reviews seeded");
+        }
+
+        // ✅ Seed Disputes
+        if (disputeRepository.count() == 0) {
+            seedDispute("DSP-1001", 201L, "Alice Smith", 101L, "Oceanview Villa", "BKG-9901", "Host cancelled last minute, requesting full refund.", new BigDecimal("15000.00"), "LKR", "2026-06-01 to 2026-06-05", "Strict", 5, DisputeStatus.OPEN);
+            seedDispute("DSP-1002", 204L, "David Brown", 104L, "Desert Oasis", "BKG-9902", "Property amenities missing (no pool as advertised).", new BigDecimal("5000.00"), "LKR", "2026-05-10 to 2026-05-12", "Moderate", 3, DisputeStatus.OPEN);
+            System.out.println("✅ Disputes seeded");
         }
 
         if (propertyRepository.countByPublishedTrue() == 0) {
@@ -252,7 +322,7 @@ public class DataSeeder implements CommandLineRunner {
     }
 
     private void seedAdminUser(String first, String last, String email,
-            UserRole role, UserStatus status) {
+                               UserRole role, UserStatus status) {
         AdminUser u = new AdminUser();
         u.setFirstName(first);
         u.setLastName(last);
