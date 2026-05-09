@@ -1,5 +1,4 @@
 package com.b4code.backend.common.exception;
-
 import com.b4code.backend.modules.admin.exceptions.CustomException; // Keep an eye on this import
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
