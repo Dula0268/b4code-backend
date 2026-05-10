@@ -18,6 +18,7 @@ public class DisputeDto {
     private String stayDates;
     private String cancellationPolicy;
     private Integer daysUntilAutoClose;
+    private String internalNote;
 
     public static DisputeDto fromEntity(Dispute d) {
         return DisputeDto.builder()
@@ -32,6 +33,7 @@ public class DisputeDto {
                 .stayDates(d.getStayDates())
                 .cancellationPolicy(d.getCancellationPolicy())
                 .daysUntilAutoClose(d.getDaysUntilAutoClose())
+                .internalNote(d.getInternalNote())
                 .build();
     }
 
