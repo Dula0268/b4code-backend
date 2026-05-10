@@ -27,6 +27,9 @@ public class Property {
     private String address;
 
     @Column(nullable = false)
+    private String destination;
+
+    @Column(nullable = false)
     private String propertyType;   // Villa, Apartment, Guesthouse, Hotel
 
     private String badge;          // "Superhost", "Guest favorite", or null

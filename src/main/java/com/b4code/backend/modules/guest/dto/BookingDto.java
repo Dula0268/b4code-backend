@@ -106,4 +106,43 @@ public class BookingDto {
         @NotBlank(message = "Reason is required")
         private String reason;
     }
+
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class ModifyBookingRequest {
+        private Long guestId;
+
+        @NotNull(message = "Property ID is required")
+        private Long propertyId;
+
+        @NotNull(message = "Room ID is required")
+        private Long roomId;
+
+        @NotNull(message = "Check-in date is required")
+        private LocalDate checkInDate;
+
+        @NotNull(message = "Check-out date is required")
+        private LocalDate checkOutDate;
+
+        @NotNull(message = "Guest count is required")
+        @Min(value = 1, message = "At least 1 guest required")
+        private Integer guests;
+
+        private String specialRequests;
+        private PaymentMethod paymentMethod;
+        private BigDecimal totalPrice;
+    }
+
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Builder
+    public static class ModifyBookingResponse {
+        private BookingResponse booking;
+        private BigDecimal previousTotalAmount;
+        private BigDecimal newTotalAmount;
+        private BigDecimal refundAmount;
+        private BigDecimal additionalAmountDue;
+    }
 }
