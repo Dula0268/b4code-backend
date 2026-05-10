@@ -41,6 +41,7 @@ public class Review {
 
     private String photoUrls;  // comma-separated URLs
 
+    @Builder.Default
     @Column(nullable = false)
     private Boolean isVerifiedStay = true;
 

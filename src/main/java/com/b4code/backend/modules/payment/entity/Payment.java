@@ -19,6 +19,9 @@ public class Payment {
 
     @Column(nullable = false)
     private Long userId;
+    
+    @Column
+    private Long bookingId;
 
     @Column(nullable = false)
     private Double amount;

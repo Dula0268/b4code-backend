@@ -23,6 +23,19 @@ spring:
   session:
     store-type: redis
 
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: ${MAIL_USERNAME}
+    password: ${MAIL_PASSWORD}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+            required: true
+
   security:
     oauth2:
       resourceserver:
@@ -32,28 +45,23 @@ spring:
           # For development, we might use a secret key instead, via application properties.
           issuer-uri: ${JWT_ISSUER_URI:} 
 
-  servlet:
-    multipart:
-      max-file-size: 10MB
-      max-request-size: 10MB
-
 b4code:
   security:
     jwt:
-      secret: ${JWT_SECRET:8a846c483a992e5927515c0e1ae5b0c96c4d444458d92a0653d9e4c19a9a1d1d} # Ensure this is AES-256 equivalent
+      secret: ${JWT_SECRET}
       expirationMs: 3600000
       refreshExpirationMs: 86400000
 
 payhere:
   merchant-id: 1235421
-  merchant-secret: ${PAYHERE_SECRET:MzQ2NjAwMzk5NTk3MDcxMTcxMzM1MDczOTQ5MjAyMjY5NDUwMDQ4}
+  merchant-secret: ${PAYHERE_SECRET}
   sandbox: true
   checkout-url: https://sandbox.payhere.lk/pay/checkout
   notify-url: http://localhost:8080/api/payments/notify
+  return-url: http://localhost:3001/guest/booking/confirmation
+  cancel-url: http://localhost:3001/payment
 
-# Cloudinary configuration
-# Use environment variables or a local .env file to set these securely.
 cloudinary:
-  cloud-name: ${CLOUDINARY_CLOUD_NAME:demo}
-  api-key: ${CLOUDINARY_API_KEY:}
-  api-secret: ${CLOUDINARY_API_SECRET:}
+  cloud-name: ${CLOUDINARY_CLOUD_NAME}
+  api-key: ${CLOUDINARY_API_KEY}
+  api-secret: ${CLOUDINARY_API_SECRET}

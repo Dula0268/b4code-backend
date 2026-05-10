@@ -32,6 +32,15 @@ public class User {
     @Column
     private String phone;
 
+    @Column
+    private Long propertyId;
+
+    @Column(name = "avatar_url")
+    private String avatarUrl;
+
+    @Column(name = "national_id_url")
+    private String nationalIdUrl;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private Role role;

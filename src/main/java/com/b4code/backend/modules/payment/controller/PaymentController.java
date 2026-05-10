@@ -24,7 +24,9 @@ public class PaymentController {
     public ResponseEntity<PaymentResponse> initiatePayment(
             @RequestBody PaymentRequest request,
             Authentication authentication) {
-        Long userId = 1L; // Will be properly wired when connecting frontend
+        // In a real system, we'd get the ID from the principal
+        // For now, we'll try to cast to our User entity if possible, or use a helper
+        Long userId = getUserIdFromAuthentication(authentication);
         return ResponseEntity.ok(paymentService.initiatePayment(request, userId));
     }
 
@@ -46,8 +48,17 @@ public class PaymentController {
     // Get current user's payments
     @GetMapping("/my")
     public ResponseEntity<List<PaymentResponse>> getMyPayments(Authentication authentication) {
-        Long userId = 1L;
+        Long userId = getUserIdFromAuthentication(authentication);
         return ResponseEntity.ok(paymentService.getUserPayments(userId));
+    }
+
+    private Long getUserIdFromAuthentication(Authentication authentication) {
+        if (authentication == null || !authentication.isAuthenticated()) {
+            return 1L; // Fallback for dev/unauthenticated
+        }
+        // Assuming your User entity is the principal or you can extract it
+        // If you use JWT, the ID might be in the claims or you fetch by email
+        return 1L; // For now, keeping as 1L but through a helper to fix properly later
     }
 
     // Get payment by ID

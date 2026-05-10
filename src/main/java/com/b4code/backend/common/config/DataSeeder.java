@@ -6,6 +6,13 @@ import com.b4code.backend.modules.admin.models.AdminUser;
 import com.b4code.backend.modules.admin.dao.AdminUserRepository;
 import com.b4code.backend.modules.admin.enums.UserRole;
 import com.b4code.backend.modules.admin.enums.UserStatus;
+import com.b4code.backend.modules.admin.models.FlaggedReview;
+import com.b4code.backend.modules.admin.models.Dispute;
+import com.b4code.backend.modules.admin.dao.FlaggedReviewRepository;
+import com.b4code.backend.modules.admin.dao.DisputeRepository;
+import com.b4code.backend.modules.admin.enums.ReviewStatus;
+import com.b4code.backend.modules.admin.enums.DisputeStatus;
+import com.b4code.backend.modules.admin.enums.PropertyStatus;
 
 import com.b4code.backend.modules.guest.dao.PropertyRepository;
 import com.b4code.backend.modules.guest.dao.RoomRepository;
@@ -21,27 +28,33 @@ import com.b4code.backend.modules.guest.models.PromoCode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.boot.CommandLineRunner;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Component;
+
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Random;
-import org.springframework.boot.CommandLineRunner;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.stereotype.Component;
 
 @Component
 public class DataSeeder implements CommandLineRunner {
 
     private static final Logger log = LoggerFactory.getLogger(DataSeeder.class);
+    
     private final UserRepository userRepository;
     private final AdminUserRepository adminUserRepository;
+    private final com.b4code.backend.modules.admin.dao.PropertyRepository adminPropertyRepository;
+    private final FlaggedReviewRepository flaggedReviewRepository;
+    private final DisputeRepository disputeRepository;
     private final PasswordEncoder passwordEncoder;
-    private final PropertyRepository propertyRepository;
+    private final PropertyRepository guestPropertyRepository;
     private final RoomRepository roomRepository;
     private final BookingRepository bookingRepository;
     private final ReviewRepository reviewRepository;
     private final PromoCodeRepository promoCodeRepository;
+    
     private final Random random = new Random(42);
     private static final String IMG = "https://res.cloudinary.com/de0mj95bh/image/upload";
 
@@ -79,33 +92,62 @@ public class DataSeeder implements CommandLineRunner {
     };
 
     public DataSeeder(UserRepository userRepository,
-            AdminUserRepository adminUserRepository,
-            PasswordEncoder passwordEncoder,
-            @Qualifier("guestPropertyRepository") PropertyRepository propertyRepository,
-            RoomRepository roomRepository,
-            BookingRepository bookingRepository,
-            ReviewRepository reviewRepository,
-            PromoCodeRepository promoCodeRepository) {
+                      AdminUserRepository adminUserRepository,
+                      @Qualifier("propertyRepository") com.b4code.backend.modules.admin.dao.PropertyRepository adminPropertyRepository,
+                      FlaggedReviewRepository flaggedReviewRepository,
+                      DisputeRepository disputeRepository,
+                      PasswordEncoder passwordEncoder,
+                      @Qualifier("guestPropertyRepository") PropertyRepository guestPropertyRepository,
+                      RoomRepository roomRepository,
+                      BookingRepository bookingRepository,
+                      ReviewRepository reviewRepository,
+                      PromoCodeRepository promoCodeRepository) {
         this.userRepository = userRepository;
         this.adminUserRepository = adminUserRepository;
+        this.adminPropertyRepository = adminPropertyRepository;
+        this.flaggedReviewRepository = flaggedReviewRepository;
+        this.disputeRepository = disputeRepository;
         this.passwordEncoder = passwordEncoder;
-        this.propertyRepository = propertyRepository;
+        this.guestPropertyRepository = guestPropertyRepository;
         this.roomRepository = roomRepository;
         this.bookingRepository = bookingRepository;
         this.reviewRepository = reviewRepository;
         this.promoCodeRepository = promoCodeRepository;
     }
 
-
+    @Override
     public void run(String... args) {
+        // 1. Seed Properties first (Admin)
+        if (adminPropertyRepository.count() == 0) {
+            com.b4code.backend.modules.admin.models.Property p1 = new com.b4code.backend.modules.admin.models.Property();
+            p1.setName("Sunset Villa");
+            p1.setPvId("PV-1001");
+            p1.setOwnerName("Alex Owner");
+            p1.setOwnerId(1L);
+            p1.setStatus(PropertyStatus.APPROVED);
+            p1.setSubmittedAt(LocalDateTime.now());
+            p1.setAddress("123 Sunset Blvd, Miami, FL");
+            adminPropertyRepository.save(p1);
 
-        // ✅ Ensure admin always exists (dev logic)
+            com.b4code.backend.modules.admin.models.Property p2 = new com.b4code.backend.modules.admin.models.Property();
+            p2.setName("Ocean Breeze");
+            p2.setPvId("PV-1002");
+            p2.setOwnerName("Alex Owner");
+            p2.setOwnerId(1L);
+            p2.setStatus(PropertyStatus.APPROVED);
+            p2.setSubmittedAt(LocalDateTime.now());
+            p2.setAddress("456 Ocean Dr, Miami, FL");
+            adminPropertyRepository.save(p2);
+
+            System.out.println("✅ Test properties seeded");
+        }
+
+        // 2. Ensure admin always exists
         userRepository.findByEmail("admin@primestay.com").ifPresentOrElse(
                 admin -> {
                     if (admin.getRole() != User.Role.ADMIN) {
                         admin.setRole(User.Role.ADMIN);
                         userRepository.save(admin);
-                        System.out.println("✅ Updated admin role");
                     }
                 },
                 () -> {
@@ -120,20 +162,44 @@ public class DataSeeder implements CommandLineRunner {
                     System.out.println("✅ Admin user created");
                 });
 
-        // ✅ Your additional seed users
-        seedUserIfMissing("guest@primestay.com", "guest123", "John", "Doe", User.Role.GUEST);
-        seedUserIfMissing("owner@primestay.com", "owner123", "Alex", "Owner", User.Role.OWNER);
-        seedUserIfMissing("staff@primestay.com", "staff123", "Mike", "Staff", User.Role.STAFF);
+        // 3. Seed other users
+        seedUserIfMissing("guest@primestay.com", "guest123", "John", "Doe", User.Role.GUEST, null, User.UserStatus.ACTIVE);
+        seedUserIfMissing("owner@primestay.com", "owner123", "Alex", "Owner", User.Role.OWNER, null, User.UserStatus.ACTIVE);
+        
+        seedUserIfMissing("staff@primestay.com", "staff123", "Mike", "Staff", User.Role.STAFF, 1L, User.UserStatus.APPROVED);
+        seedUserIfMissing("staff2@primestay.com", "staff123", "Jane", "Staff", User.Role.STAFF, 2L, User.UserStatus.APPROVED);
 
-        // ✅ Admin users table
+        // 4. Admin users table
         if (adminUserRepository.count() == 0) {
             seedAdminUser("Sarah", "Jenkins", "sarah.j@primestay.com", UserRole.OWNER, UserStatus.ACTIVE);
             seedAdminUser("Mike", "Ross", "mike.ross@primestay.com", UserRole.STAFF, UserStatus.ACTIVE);
-            System.out.println("✅ Admin users seeded");
+            seedAdminUser("John", "Doe", "john.d@gmail.com", UserRole.STAFF, UserStatus.SUSPENDED);
+            seedAdminUser("Emily", "Chen", "emily.chen@primestay.com", UserRole.OWNER, UserStatus.ACTIVE);
+            seedAdminUser("Aisha", "Kumar", "aisha.k@primestay.com", UserRole.STAFF, UserStatus.ACTIVE);
+            seedAdminUser("Nina", "Patel", "nina.patel@primestay.com", UserRole.OWNER, UserStatus.ACTIVE);
+            seedAdminUser("Daniel", "Osei", "daniel.o@primestay.com", UserRole.STAFF, UserStatus.ACTIVE);
+            seedAdminUser("Priya", "Sharma", "priya.s@primestay.com", UserRole.OWNER, UserStatus.SUSPENDED);
+            System.out.println("✅ Sample admin_users seeded (8 records)");
         }
 
-        if (propertyRepository.countByPublishedTrue() == 0) {
-            log.info("🌱 Seeding properties...");
+        // 5. Seed Flagged Reviews
+        if (flaggedReviewRepository.count() == 0) {
+            seedFlaggedReview(101L, "Oceanview Villa", 201L, "Alice Smith", "AS", "blue", "The place was a total mess and not as described. Bugs everywhere!", 1.5, "Inappropriate Content", ReviewStatus.FLAGGED);
+            seedFlaggedReview(102L, "Mountain Retreat", 202L, "Bob Jones", "BJ", "green", "Host demanded extra cash upon arrival. Very shady.", 2.0, "Policy Violation", ReviewStatus.FLAGGED);
+            seedFlaggedReview(103L, "City Center Apartment", 203L, "Carol White", "CW", "purple", "Great place, but the neighbors were a bit loud.", 4.0, "Spam", ReviewStatus.FLAGGED);
+            System.out.println("✅ Flagged reviews seeded");
+        }
+
+        // 6. Seed Disputes
+        if (disputeRepository.count() == 0) {
+            seedDispute("DSP-1001", 201L, "Alice Smith", 101L, "Oceanview Villa", "BKG-9901", "Host cancelled last minute, requesting full refund.", new BigDecimal("15000.00"), "LKR", "2026-06-01 to 2026-06-05", "Strict", 5, DisputeStatus.OPEN);
+            seedDispute("DSP-1002", 204L, "David Brown", 104L, "Desert Oasis", "BKG-9902", "Property amenities missing (no pool as advertised).", new BigDecimal("5000.00"), "LKR", "2026-05-10 to 2026-05-12", "Moderate", 3, DisputeStatus.OPEN);
+            System.out.println("✅ Disputes seeded");
+        }
+
+        // 7. Seed Guest Properties and related data
+        if (guestPropertyRepository.countByPublishedTrue() == 0) {
+            log.info("🌱 Seeding guest properties...");
             seedAllProperties();
             log.info("✅ Property seeding complete");
         }
@@ -152,7 +218,7 @@ public class DataSeeder implements CommandLineRunner {
     }
 
     private void seedReviews() {
-        List<Property> properties = propertyRepository.findAll().stream()
+        List<Property> properties = guestPropertyRepository.findAll().stream()
                 .filter(Property::getPublished)
                 .toList();
 
@@ -167,7 +233,6 @@ public class DataSeeder implements CommandLineRunner {
             List<Room> rooms = roomRepository.findByPropertyId(property.getId());
             if (rooms.isEmpty()) continue;
 
-            // Seed 3-6 reviews per property
             int reviewCount = 3 + random.nextInt(4);
             double totalRating = 0;
 
@@ -176,7 +241,6 @@ public class DataSeeder implements CommandLineRunner {
                 String guestName = GUEST_NAMES[random.nextInt(GUEST_NAMES.length)];
                 String guestEmail = guestName.toLowerCase().replace(" ", ".") + "@email.com";
 
-                // Create a completed booking first (review requires a booking)
                 LocalDate checkIn = LocalDate.now().minusDays(30 + random.nextInt(180));
                 LocalDate checkOut = checkIn.plusDays(2 + random.nextInt(5));
 
@@ -197,8 +261,7 @@ public class DataSeeder implements CommandLineRunner {
                         .build();
                 booking = bookingRepository.save(booking);
 
-                // Create review
-                int overall = 4 + random.nextInt(2); // 4 or 5
+                int overall = 4 + random.nextInt(2);
                 totalRating += overall;
 
                 String ownerReply = OWNER_REPLIES[random.nextInt(OWNER_REPLIES.length)];
@@ -208,9 +271,9 @@ public class DataSeeder implements CommandLineRunner {
                         .property(property)
                         .guestName(guestName)
                         .overallRating(overall)
-                        .cleanlinessRating(3 + random.nextInt(3)) // 3-5
+                        .cleanlinessRating(3 + random.nextInt(3))
                         .accuracyRating(3 + random.nextInt(3))
-                        .communicationRating(4 + random.nextInt(2)) // 4-5
+                        .communicationRating(4 + random.nextInt(2))
                         .locationRating(4 + random.nextInt(2))
                         .valueRating(3 + random.nextInt(3))
                         .comment(POSITIVE_COMMENTS[random.nextInt(POSITIVE_COMMENTS.length)])
@@ -218,7 +281,6 @@ public class DataSeeder implements CommandLineRunner {
                         .ownerResponse(ownerReply)
                         .build();
 
-                // Set createdAt to a past date
                 review.setCreatedAt(LocalDateTime.now().minusDays(random.nextInt(120)));
                 if (ownerReply != null) {
                     review.setOwnerRespondedAt(review.getCreatedAt().plusDays(1 + random.nextInt(3)));
@@ -227,32 +289,40 @@ public class DataSeeder implements CommandLineRunner {
                 reviewRepository.save(review);
             }
 
-            // Update property average rating and review count
             double avgRating = Math.round((totalRating / reviewCount) * 100.0) / 100.0;
             property.setAverageRating(avgRating);
             property.setReviewCount(reviewCount);
-            propertyRepository.save(property);
+            guestPropertyRepository.save(property);
         }
     }
 
-
-    private void seedUserIfMissing(String email, String password, String first, String last, User.Role role) {
-        if (userRepository.findByEmail(email).isEmpty()) {
-            User user = new User();
-            user.setEmail(email);
-            user.setPasswordHash(passwordEncoder.encode(password));
-            user.setFirstName(first);
-            user.setLastName(last);
-            user.setRole(role);
-            user.setStatus(User.UserStatus.ACTIVE);
-            userRepository.save(user);
-        }
-
-
+    private void seedUserIfMissing(String email, String password, String first, String last, User.Role role, Long propertyId, User.UserStatus status) {
+        userRepository.findByEmail(email).ifPresentOrElse(
+            user -> {
+                if (user.getRole() != role || (propertyId != null && !propertyId.equals(user.getPropertyId())) || (status != null && user.getStatus() != status)) {
+                    user.setRole(role);
+                    user.setPropertyId(propertyId);
+                    if (status != null) user.setStatus(status);
+                    userRepository.save(user);
+                    System.out.println("✅ Updated " + email + " (Role: " + role + ", Status: " + status + ")");
+                }
+            },
+            () -> {
+                User user = new User();
+                user.setEmail(email);
+                user.setPasswordHash(passwordEncoder.encode(password));
+                user.setFirstName(first);
+                user.setLastName(last);
+                user.setRole(role);
+                user.setPropertyId(propertyId);
+                user.setStatus(status != null ? status : User.UserStatus.ACTIVE);
+                userRepository.save(user);
+                System.out.println("✅ Seeded user: " + email + " (Role: " + role + ", Status: " + user.getStatus() + ")");
+            }
+        );
     }
 
-    private void seedAdminUser(String first, String last, String email,
-            UserRole role, UserStatus status) {
+    private void seedAdminUser(String first, String last, String email, UserRole role, UserStatus status) {
         AdminUser u = new AdminUser();
         u.setFirstName(first);
         u.setLastName(last);
@@ -263,7 +333,7 @@ public class DataSeeder implements CommandLineRunner {
         adminUserRepository.save(u);
     }
 
-private void seedAllProperties() {
+    private void seedAllProperties() {
         seedProperty1(); seedProperty2(); seedProperty3(); seedProperty4();
         seedProperty5(); seedProperty6(); seedProperty7(); seedProperty8();
         seedProperty9(); seedProperty10(); seedProperty11(); seedProperty12();
@@ -280,7 +350,7 @@ private void seedAllProperties() {
             .baseGuests(2).extraGuestFee(new BigDecimal("5000")).averageRating(4.92).reviewCount(148).published(true)
             .amenities("Wifi:Free High Speed WiFi,Wind:Air Conditioning,Waves:Rooftop Pool,Dumbbell:Fitness Center,Car:Valet Parking,Utensils:In-suite Kitchen,ShieldCheck:24hr Security,Coffee:Nespresso Machine")
             .build();
-        p = propertyRepository.save(p);
+        p = guestPropertyRepository.save(p);
         roomRepository.saveAll(List.of(
             Room.builder().property(p).name("Deluxe Ocean View Room").roomType("DOUBLE").maxOccupancy(2).sqft(480).bedType("1 King Bed").pricePerNight(new BigDecimal("25000")).originalPrice(new BigDecimal("28000")).tag("Refundable").features("Private Balcony,Nespresso Machine").imageSrc(IMG+"/v1778126086/properties/qn7uqn1b3wqstjwg1gpv.jpg").available(true).build(),
             Room.builder().property(p).name("Panoramic Grand Suite").roomType("SUITE").maxOccupancy(4).sqft(650).bedType("2 Queen Beds").pricePerNight(new BigDecimal("35000")).tag("Popular").features("Floor-to-ceiling windows,Separate living area").imageSrc(IMG+"/v1778126089/properties/exgvkdnoiawfizd8u03s.jpg").available(true).build(),
@@ -299,7 +369,7 @@ private void seedAllProperties() {
             .baseGuests(2).extraGuestFee(new BigDecimal("4000")).averageRating(4.85).reviewCount(92).published(true)
             .amenities("Wifi:Free WiFi,Wind:Air Conditioning,BookOpen:Library,Coffee:Garden Café,ShieldCheck:24hr Security,Bike:Bicycle Rental")
             .build();
-        p = propertyRepository.save(p);
+        p = guestPropertyRepository.save(p);
         roomRepository.saveAll(List.of(
             Room.builder().property(p).name("Heritage Garden Room").roomType("DOUBLE").maxOccupancy(2).sqft(320).bedType("1 King Bed").pricePerNight(new BigDecimal("35000")).originalPrice(new BigDecimal("42000")).tag("Refundable").features("Courtyard access,Antique furnishings").imageSrc(IMG+"/v1778126087/properties/yjgtu6fcfdoctjhhd2xp.jpg").available(true).build(),
             Room.builder().property(p).name("Fort View Loft").roomType("DOUBLE").maxOccupancy(2).sqft(280).bedType("1 Queen Bed").pricePerNight(new BigDecimal("40000")).tag("Popular").features("Fort wall views,Skylight bathroom").imageSrc(IMG+"/v1778126090/properties/bafzr21edx4pzzjtuepp.jpg").available(true).build()
@@ -317,7 +387,7 @@ private void seedAllProperties() {
             .baseGuests(2).extraGuestFee(new BigDecimal("8000")).averageRating(5.0).reviewCount(67).published(true)
             .amenities("Wifi:Free High Speed WiFi,Waves:Infinity Pool,Wind:Air Conditioning,Utensils:Private Chef,Car:Chauffeur Service,Dumbbell:Yoga Pavilion,ShieldCheck:24hr Security,Coffee:Butler Service")
             .build();
-        p = propertyRepository.save(p);
+        p = guestPropertyRepository.save(p);
         roomRepository.saveAll(List.of(
             Room.builder().property(p).name("Master Lake View Suite").roomType("SUITE").maxOccupancy(2).sqft(700).bedType("1 King Bed").pricePerNight(new BigDecimal("75000")).originalPrice(new BigDecimal("90000")).tag("Popular").features("Lake-facing balcony,Rain shower,Bathtub").imageSrc(IMG+"/v1778126089/properties/exgvkdnoiawfizd8u03s.jpg").available(true).build(),
             Room.builder().property(p).name("Garden Pavilion Suite").roomType("SUITE").maxOccupancy(4).sqft(950).bedType("2 King Beds").pricePerNight(new BigDecimal("120000")).features("Private garden,Outdoor soaking tub,Kitchenette").imageSrc(IMG+"/v1778126086/properties/qn7uqn1b3wqstjwg1gpv.jpg").available(true).build()
@@ -335,7 +405,7 @@ private void seedAllProperties() {
             .baseGuests(2).extraGuestFee(new BigDecimal("6000")).averageRating(4.75).reviewCount(53).published(true)
             .amenities("Wifi:Gigabit WiFi,Wind:Air Conditioning,Monitor:Work Desk & Monitor,Coffee:Nespresso Machine,Car:Parking,ShieldCheck:24hr Security")
             .build();
-        p = propertyRepository.save(p);
+        p = guestPropertyRepository.save(p);
         roomRepository.save(Room.builder().property(p).name("Executive Business Suite").roomType("SUITE").maxOccupancy(2).sqft(520).bedType("1 King Bed").pricePerNight(new BigDecimal("85000")).tag("Refundable").features("Dual monitor setup,Standing desk,Meeting table for 4").imageSrc(IMG+"/v1778126085/properties/oj7bhzl7lfgqeuiznldp.jpg").available(true).build());
     }
 
@@ -350,7 +420,7 @@ private void seedAllProperties() {
             .baseGuests(2).extraGuestFee(new BigDecimal("7000")).averageRating(4.98).reviewCount(211).published(true)
             .amenities("Wifi:Free WiFi,Waves:Beachfront Pool,Wind:Air Conditioning,Utensils:Seafood Restaurant,Bike:Bicycle Rental,ShieldCheck:24hr Security,Dumbbell:Gym,Car:Airport Shuttle")
             .build();
-        p = propertyRepository.save(p);
+        p = guestPropertyRepository.save(p);
         roomRepository.saveAll(List.of(
             Room.builder().property(p).name("Beachfront Deluxe Room").roomType("DOUBLE").maxOccupancy(2).sqft(450).bedType("1 King Bed").pricePerNight(new BigDecimal("95000")).originalPrice(new BigDecimal("115000")).tag("Last rooms").features("Direct beach access,Outdoor shower").imageSrc(IMG+"/v1778126086/properties/qn7uqn1b3wqstjwg1gpv.jpg").available(true).build(),
             Room.builder().property(p).name("Garden Pool Villa").roomType("SUITE").maxOccupancy(4).sqft(750).bedType("2 Queen Beds").pricePerNight(new BigDecimal("150000")).tag("Popular").features("Private plunge pool,Outdoor dining").imageSrc(IMG+"/v1778126089/properties/exgvkdnoiawfizd8u03s.jpg").available(true).build()
@@ -368,7 +438,7 @@ private void seedAllProperties() {
             .baseGuests(2).extraGuestFee(new BigDecimal("3000")).averageRating(4.88).reviewCount(134).published(true)
             .amenities("Wifi:Solar WiFi,Leaf:Eco/Solar Power,Coffee:Tea Plantation Tour,Utensils:Farm-to-table Meals,Bike:Hiking Trails,ShieldCheck:Night Security")
             .build();
-        p = propertyRepository.save(p);
+        p = guestPropertyRepository.save(p);
         roomRepository.save(Room.builder().property(p).name("Tea Estate Cabin").roomType("DOUBLE").maxOccupancy(2).sqft(280).bedType("1 Queen Bed").pricePerNight(new BigDecimal("45000")).originalPrice(new BigDecimal("55000")).tag("Refundable").features("Mountain-view deck,Outdoor shower,Hammock").imageSrc(IMG+"/v1778126089/properties/exgvkdnoiawfizd8u03s.jpg").available(true).build());
     }
 
@@ -383,7 +453,7 @@ private void seedAllProperties() {
             .baseGuests(2).extraGuestFee(new BigDecimal("10000")).averageRating(4.96).reviewCount(88).published(true)
             .amenities("Wifi:Free WiFi,Waves:Ocean-edge Infinity Pool,Wind:Air Conditioning,Utensils:Private Chef,Car:Airport Transfer,ShieldCheck:24hr Security,Dumbbell:Yoga Deck,Coffee:Butler on call")
             .build();
-        p = propertyRepository.save(p);
+        p = guestPropertyRepository.save(p);
         roomRepository.saveAll(List.of(
             Room.builder().property(p).name("Ocean Master Suite").roomType("SUITE").maxOccupancy(2).sqft(650).bedType("1 King Bed").pricePerNight(new BigDecimal("120000")).originalPrice(new BigDecimal("145000")).tag("Popular").features("Sea-facing terrace,Rain shower,Soaking tub").imageSrc(IMG+"/v1778126086/properties/qn7uqn1b3wqstjwg1gpv.jpg").available(true).build(),
             Room.builder().property(p).name("Coral Bay Villa").roomType("SUITE").maxOccupancy(6).sqft(1200).bedType("3 King Beds").pricePerNight(new BigDecimal("250000")).features("Entire lower villa,Private beach access,Chef included").imageSrc(IMG+"/v1778126089/properties/exgvkdnoiawfizd8u03s.jpg").available(true).build()
@@ -401,7 +471,7 @@ private void seedAllProperties() {
             .baseGuests(2).extraGuestFee(new BigDecimal("12000")).averageRating(4.91).reviewCount(45).published(true)
             .amenities("Wifi:Free WiFi,Waves:Courtyard Pool,Wind:Air Conditioning,Utensils:Heritage Restaurant,BookOpen:Antique Library,ShieldCheck:24hr Security,Coffee:Butler Service,Car:Chauffeur")
             .build();
-        p = propertyRepository.save(p);
+        p = guestPropertyRepository.save(p);
         roomRepository.saveAll(List.of(
             Room.builder().property(p).name("Dutch Governor's Suite").roomType("SUITE").maxOccupancy(2).sqft(800).bedType("1 King Canopy Bed").pricePerNight(new BigDecimal("180000")).originalPrice(new BigDecimal("210000")).tag("Last rooms").features("Courtyard views,Original tile floors,Clawfoot bathtub").imageSrc(IMG+"/v1778126087/properties/yjgtu6fcfdoctjhhd2xp.jpg").available(true).build(),
             Room.builder().property(p).name("Rampart View Room").roomType("DOUBLE").maxOccupancy(2).sqft(420).bedType("1 Queen Bed").pricePerNight(new BigDecimal("120000")).tag("Refundable").features("Fort wall views,Antique writing desk").imageSrc(IMG+"/v1778126085/properties/oj7bhzl7lfgqeuiznldp.jpg").available(true).build()
@@ -419,7 +489,7 @@ private void seedAllProperties() {
             .baseGuests(2).extraGuestFee(new BigDecimal("5000")).averageRating(4.82).reviewCount(109).published(true)
             .amenities("Wifi:Free WiFi,Coffee:Silver Tea Service,Wind:Fireplace,Utensils:Colonial Dining,Bike:Estate Walks,ShieldCheck:Night Security")
             .build();
-        p = propertyRepository.save(p);
+        p = guestPropertyRepository.save(p);
         roomRepository.saveAll(List.of(
             Room.builder().property(p).name("Planter's Master Suite").roomType("SUITE").maxOccupancy(2).sqft(550).bedType("1 King Bed").pricePerNight(new BigDecimal("65000")).originalPrice(new BigDecimal("78000")).tag("Popular").features("Fireplace,Mountain views,Claw-foot tub").imageSrc(IMG+"/v1778126090/properties/bafzr21edx4pzzjtuepp.jpg").available(true).build(),
             Room.builder().property(p).name("Tea Garden Room").roomType("DOUBLE").maxOccupancy(2).sqft(350).bedType("1 Queen Bed").pricePerNight(new BigDecimal("48000")).tag("Refundable").features("Garden views,Writing desk").imageSrc(IMG+"/v1778126089/properties/exgvkdnoiawfizd8u03s.jpg").available(true).build()
@@ -437,7 +507,7 @@ private void seedAllProperties() {
             .baseGuests(2).extraGuestFee(new BigDecimal("6000")).averageRating(4.89).reviewCount(156).published(true)
             .amenities("Wifi:Free WiFi,Waves:Beachfront Pool,Wind:Air Conditioning,Utensils:Open-air Restaurant,Dumbbell:Dive Center,ShieldCheck:24hr Security,Car:Airport Transfer,Coffee:Beach Bar")
             .build();
-        p = propertyRepository.save(p);
+        p = guestPropertyRepository.save(p);
         roomRepository.saveAll(List.of(
             Room.builder().property(p).name("Beach Bungalow").roomType("DOUBLE").maxOccupancy(2).sqft(400).bedType("1 King Bed").pricePerNight(new BigDecimal("72000")).originalPrice(new BigDecimal("85000")).tag("Popular").features("Direct beach access,Hammock,Outdoor shower").imageSrc(IMG+"/v1778126086/properties/qn7uqn1b3wqstjwg1gpv.jpg").available(true).build(),
             Room.builder().property(p).name("Ocean Suite").roomType("SUITE").maxOccupancy(4).sqft(680).bedType("2 Queen Beds").pricePerNight(new BigDecimal("110000")).features("Panoramic ocean views,Private balcony,Jacuzzi").imageSrc(IMG+"/v1778126089/properties/exgvkdnoiawfizd8u03s.jpg").available(true).build()
@@ -455,7 +525,7 @@ private void seedAllProperties() {
             .baseGuests(2).extraGuestFee(new BigDecimal("4500")).averageRating(4.78).reviewCount(87).published(true)
             .amenities("Wifi:Free WiFi,Waves:Plunge Pool,Utensils:Bush Dining,Bike:Safari Tours,ShieldCheck:Night Security,Coffee:Nature Bar")
             .build();
-        p = propertyRepository.save(p);
+        p = guestPropertyRepository.save(p);
         roomRepository.save(Room.builder().property(p).name("Jungle Pavilion").roomType("SUITE").maxOccupancy(2).sqft(500).bedType("1 King Bed").pricePerNight(new BigDecimal("58000")).originalPrice(new BigDecimal("68000")).tag("Refundable").features("Open-air bathroom,Rock fortress views,Mosquito net canopy").imageSrc(IMG+"/v1778126089/properties/exgvkdnoiawfizd8u03s.jpg").available(true).build());
     }
 
@@ -470,7 +540,7 @@ private void seedAllProperties() {
             .baseGuests(2).extraGuestFee(new BigDecimal("4000")).averageRating(4.94).reviewCount(72).published(true)
             .amenities("Wifi:Free WiFi,Waves:River Pool,Wind:Air Conditioning,Utensils:Home Cooking,Bike:Kayak Rental,ShieldCheck:Night Security,Car:Beach Shuttle")
             .build();
-        p = propertyRepository.save(p);
+        p = guestPropertyRepository.save(p);
         roomRepository.saveAll(List.of(
             Room.builder().property(p).name("Riverfront Suite").roomType("SUITE").maxOccupancy(2).sqft(420).bedType("1 King Bed").pricePerNight(new BigDecimal("42000")).originalPrice(new BigDecimal("50000")).tag("Popular").features("River views,Private balcony,Writing desk").imageSrc(IMG+"/v1778126085/properties/oj7bhzl7lfgqeuiznldp.jpg").available(true).build(),
             Room.builder().property(p).name("Garden Room").roomType("DOUBLE").maxOccupancy(2).sqft(300).bedType("1 Queen Bed").pricePerNight(new BigDecimal("32000")).tag("Refundable").features("Garden access,Hammock").imageSrc(IMG+"/v1778126089/properties/exgvkdnoiawfizd8u03s.jpg").available(true).build()
@@ -513,7 +583,7 @@ private void seedAllProperties() {
 
         promoCodeRepository.saveAll(promoCodes);
 
-        List<Property> properties = propertyRepository.findAll().stream()
+        List<Property> properties = guestPropertyRepository.findAll().stream()
             .filter(Property::getPublished)
             .sorted(java.util.Comparator.comparing(Property::getId))
             .toList();
@@ -536,5 +606,40 @@ private void seedAllProperties() {
                 .propertyId(property.getId())
                 .build());
         }
+    }
+
+    private void seedFlaggedReview(Long propertyId, String propertyName, Long guestId, String guestName, String guestInitial, String avatarColor, String reviewText, Double rating, String flagReason, ReviewStatus status) {
+        FlaggedReview review = new FlaggedReview();
+        review.setPropertyId(propertyId);
+        review.setPropertyName(propertyName);
+        review.setGuestId(guestId);
+        review.setGuestName(guestName);
+        review.setGuestInitial(guestInitial);
+        review.setGuestAvatarColor(avatarColor);
+        review.setReviewText(reviewText);
+        review.setRating(rating);
+        review.setFlagReason(flagReason);
+        review.setStatus(status);
+        review.setFlaggedAt(LocalDateTime.now().minusDays(1));
+        flaggedReviewRepository.save(review);
+    }
+
+    private void seedDispute(String disputeId, Long guestId, String guestName, Long propertyId, String propertyName, String bookingId, String reason, BigDecimal amount, String currency, String stayDates, String cancellationPolicy, Integer daysUntilAutoClose, DisputeStatus status) {
+        Dispute dispute = new Dispute();
+        dispute.setDisputeId(disputeId);
+        dispute.setGuestId(guestId);
+        dispute.setGuestName(guestName);
+        dispute.setPropertyId(propertyId);
+        dispute.setPropertyName(propertyName);
+        dispute.setBookingId(bookingId);
+        dispute.setReason(reason);
+        dispute.setAmount(amount);
+        dispute.setCurrency(currency);
+        dispute.setStayDates(stayDates);
+        dispute.setCancellationPolicy(cancellationPolicy);
+        dispute.setDaysUntilAutoClose(daysUntilAutoClose);
+        dispute.setStatus(status);
+        dispute.setOpenedAt(LocalDateTime.now().minusDays(2));
+        disputeRepository.save(dispute);
     }
 }
