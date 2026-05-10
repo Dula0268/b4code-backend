@@ -11,7 +11,7 @@ import org.springframework.stereotype.Repository;
 
 import java.util.List;
 
-@Repository
+@Repository("adminPropertyRepository")
 public interface PropertyRepository extends JpaRepository<Property, Long> {
 
     @Query("""

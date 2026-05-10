@@ -9,7 +9,7 @@ import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDateTime;
 
-@Entity
+@Entity(name = "OwnerReview")
 @Table(name = "reviews")
 @Getter
 @Setter

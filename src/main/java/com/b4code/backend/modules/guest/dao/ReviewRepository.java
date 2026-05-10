@@ -11,7 +11,7 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 import java.util.Optional;
 
-@Repository
+@Repository("guestReviewRepository")
 public interface ReviewRepository extends JpaRepository<Review, Long> {
 
     Page<Review> findByPropertyIdOrderByCreatedAtDesc(Long propertyId, Pageable pageable);
@@ -21,7 +21,7 @@ public interface ReviewRepository extends JpaRepository<Review, Long> {
     Optional<Review> findByBookingId(Long bookingId);
 
     @Query("""
-        SELECT AVG(r.overallRating) FROM Review r
+        SELECT AVG(r.overallRating) FROM GuestReview r
         WHERE r.property.id = :propertyId
     """)
     Double calculateAverageRating(@Param("propertyId") Long propertyId);

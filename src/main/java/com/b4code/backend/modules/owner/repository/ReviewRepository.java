@@ -6,7 +6,7 @@ import org.springframework.stereotype.Repository;
 
 import java.util.List;
 
-@Repository
+@Repository("ownerReviewRepository")
 public interface ReviewRepository extends JpaRepository<Review, Long> {
 
     long countByPropertyIdInAndReadByOwner(List<Long> propertyIds, boolean readByOwner);

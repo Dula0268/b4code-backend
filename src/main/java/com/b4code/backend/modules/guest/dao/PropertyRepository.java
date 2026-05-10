@@ -21,7 +21,7 @@ public interface PropertyRepository extends JpaRepository<Property, Long> {
      */
     @Query("""
         SELECT DISTINCT p FROM GuestProperty p
-        JOIN Room r ON r.property = p
+        JOIN GuestRoom r ON r.property = p
         WHERE p.published = true
           AND (LOWER(p.city) LIKE LOWER(CONCAT('%', :destination, '%'))
                OR LOWER(p.name) LIKE LOWER(CONCAT('%', :destination, '%'))
@@ -59,7 +59,7 @@ public interface PropertyRepository extends JpaRepository<Property, Long> {
      */
     @Query("""
         SELECT DISTINCT p FROM GuestProperty p
-        JOIN Room r ON r.property = p
+        JOIN GuestRoom r ON r.property = p
         WHERE p.published = true
           AND (LOWER(p.city) LIKE LOWER(CONCAT('%', :destination, '%'))
                OR LOWER(p.name) LIKE LOWER(CONCAT('%', :destination, '%')))
@@ -96,10 +96,10 @@ public interface PropertyRepository extends JpaRepository<Property, Long> {
     @Query("SELECT DISTINCT p.city FROM GuestProperty p WHERE p.published = true ORDER BY p.city")
     List<String> findDistinctCities();
 
-    @Query("SELECT MIN(r.pricePerNight) FROM Room r WHERE r.property.published = true AND r.available = true")
+    @Query("SELECT MIN(r.pricePerNight) FROM GuestRoom r WHERE r.property.published = true AND r.available = true")
     BigDecimal findMinPrice();
 
-    @Query("SELECT MAX(r.pricePerNight) FROM Room r WHERE r.property.published = true AND r.available = true")
+    @Query("SELECT MAX(r.pricePerNight) FROM GuestRoom r WHERE r.property.published = true AND r.available = true")
     BigDecimal findMaxPrice();
 
     @Query("SELECT p.propertyType, COUNT(p) FROM GuestProperty p WHERE p.published = true GROUP BY p.propertyType")

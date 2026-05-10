@@ -15,7 +15,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 import java.util.Optional;
 
-@RestController
+@RestController("staffModuleStaffController")
 @RequestMapping("/api/staff")
 @RequiredArgsConstructor
 public class StaffController {

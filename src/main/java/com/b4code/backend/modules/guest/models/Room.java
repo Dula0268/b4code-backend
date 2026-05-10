@@ -4,7 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 import java.math.BigDecimal;
 
-@Entity
+@Entity(name = "GuestRoom")
 @Table(name = "rooms")
 @Data
 @NoArgsConstructor
@@ -49,4 +49,7 @@ public class Room {
 
     @Builder.Default
     private Boolean available = true;
+
+    @Builder.Default
+    private String status = "AVAILABLE";
 }

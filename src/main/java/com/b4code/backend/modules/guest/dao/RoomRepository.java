@@ -6,7 +6,7 @@ import org.springframework.stereotype.Repository;
 
 import java.util.List;
 
-@Repository
+@Repository("guestRoomRepository")
 public interface RoomRepository extends JpaRepository<Room, Long> {
     List<Room> findByPropertyId(Long propertyId);
 }
