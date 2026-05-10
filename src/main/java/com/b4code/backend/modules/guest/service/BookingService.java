@@ -125,6 +125,7 @@ public class BookingService {
         }
 
         booking.setStatus(BookingStatus.CANCELLED);
+        booking.setCancellationReason(request.getReason());
         return mapToResponse(bookingRepository.save(booking));
     }
 
@@ -281,6 +282,7 @@ public class BookingService {
             .guestCount(b.getGuestCount())
             .totalAmount(b.getTotalAmount())
             .status(b.getStatus())
+            .cancellationReason(b.getCancellationReason())
             .paymentMethod(b.getPaymentMethod())
             .createdAt(b.getCreatedAt())
             .build();

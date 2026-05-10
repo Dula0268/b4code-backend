@@ -61,6 +61,7 @@ public class Booking {
     private PaymentMethod paymentMethod;
 
     private String confirmationNumber;
+    private String cancellationReason;
 
     @Column(nullable = false)
     private LocalDateTime createdAt;

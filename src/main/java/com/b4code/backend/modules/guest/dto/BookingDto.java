@@ -92,6 +92,7 @@ public class BookingDto {
         private Integer guestCount;
         private BigDecimal totalAmount;
         private BookingStatus status;
+        private String cancellationReason;
         private PaymentMethod paymentMethod;
         private LocalDateTime createdAt;
     }
