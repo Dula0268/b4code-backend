@@ -9,11 +9,13 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
+import org.springframework.jdbc.core.JdbcTemplate;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.Random;
 
 @Component
@@ -27,6 +29,7 @@ public class GuestDataSeeder implements CommandLineRunner {
     private final BookingRepository bookingRepository;
     private final ReviewRepository reviewRepository;
     private final PromoCodeRepository promoCodeRepository;
+    private final JdbcTemplate jdbcTemplate;
     
     private final Random random = new Random(42);
     private static final String IMG = "https://res.cloudinary.com/de0mj95bh/image/upload";
@@ -69,12 +72,14 @@ public class GuestDataSeeder implements CommandLineRunner {
             RoomRepository roomRepository,
             BookingRepository bookingRepository,
             ReviewRepository reviewRepository,
-            PromoCodeRepository promoCodeRepository) {
+            PromoCodeRepository promoCodeRepository,
+            JdbcTemplate jdbcTemplate) {
         this.propertyRepository = propertyRepository;
         this.roomRepository = roomRepository;
         this.bookingRepository = bookingRepository;
         this.reviewRepository = reviewRepository;
         this.promoCodeRepository = promoCodeRepository;
+        this.jdbcTemplate = jdbcTemplate;
     }
 
     @Override
@@ -82,14 +87,18 @@ public class GuestDataSeeder implements CommandLineRunner {
         long publishedCount = propertyRepository.countByPublishedTrue();
         log.info("📊 Current published properties: {}", publishedCount);
         
-        // If we don't have exactly our 12 properties, wipe and re-seed for a clean state
-        if (publishedCount != 12) {
-            log.info("🧹 Wiping old guest data for a clean start...");
-            reviewRepository.deleteAll();
-            bookingRepository.deleteAll();
-            roomRepository.deleteAll();
-            promoCodeRepository.deleteAll();
-            propertyRepository.deleteAll();
+        // If we don't have exactly our 12 properties OR the first one isn't ID 1, wipe and re-seed
+        boolean idMismatch = propertyRepository.findAll().stream()
+                .filter(p -> "Colombo Sky Residency".equals(p.getName()))
+                .findFirst()
+                .map(p -> p.getId() != 1)
+                .orElse(publishedCount > 0);
+
+        if (publishedCount != 12 || idMismatch) {
+            log.info("🧹 Wiping old guest data for a clean start (Count: {}, ID Mismatch: {})...", publishedCount, idMismatch);
+            
+            // Use TRUNCATE with RESTART IDENTITY to ensure IDs start at 1
+            jdbcTemplate.execute("TRUNCATE TABLE reviews, bookings, rooms, promo_codes, properties, messages, message_templates RESTART IDENTITY CASCADE");
             
             log.info("🌱 Seeding 12 guest properties with Cloudinary images...");
             seedAllProperties();
