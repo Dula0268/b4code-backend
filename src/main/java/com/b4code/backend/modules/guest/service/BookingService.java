@@ -284,6 +284,8 @@ public class BookingService {
             .status(b.getStatus())
             .cancellationReason(b.getCancellationReason())
             .paymentMethod(b.getPaymentMethod())
+            .propertyImage(b.getRoom().getProperty().getImageSrc())
+            .hostName(b.getRoom().getProperty().getHostName())
             .createdAt(b.getCreatedAt())
             .build();
     }

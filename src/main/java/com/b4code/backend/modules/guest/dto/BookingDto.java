@@ -94,6 +94,8 @@ public class BookingDto {
         private BookingStatus status;
         private String cancellationReason;
         private PaymentMethod paymentMethod;
+        private String propertyImage;
+        private String hostName;
         private LocalDateTime createdAt;
     }
 
