@@ -130,6 +130,26 @@ public class BookingService {
     }
 
     // ──────────────────────────────────────────
+    // Complete Booking
+    // ──────────────────────────────────────────
+    @Transactional
+    public BookingResponse completeBooking(Long id) {
+        Booking booking = bookingRepository.findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("Booking not found: " + id));
+
+        if (booking.getStatus() == BookingStatus.COMPLETED) {
+            return mapToResponse(booking);
+        }
+
+        if (booking.getStatus() == BookingStatus.CANCELLED) {
+            throw new IllegalStateException("Cancelled bookings cannot be completed");
+        }
+
+        booking.setStatus(BookingStatus.COMPLETED);
+        return mapToResponse(bookingRepository.save(booking));
+    }
+
+    // ──────────────────────────────────────────
     // Modify Booking
     // ──────────────────────────────────────────
     @Transactional

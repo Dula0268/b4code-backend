@@ -85,6 +85,17 @@ public class BookingController {
     }
 
     /**
+    * PATCH /api/guest/bookings/{id}/complete
+     * Mark a booking as completed.
+     */
+    @PatchMapping("/{id}/complete")
+    public ResponseEntity<BookingResponse> completeBooking(
+            @PathVariable Long id) {
+
+        return ResponseEntity.ok(bookingService.completeBooking(id));
+    }
+
+    /**
     * PUT /api/guest/bookings/{id}
      * Modify an existing booking.
      */
