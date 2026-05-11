@@ -18,6 +18,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -124,6 +125,27 @@ public class BookingService {
         }
 
         booking.setStatus(BookingStatus.CANCELLED);
+        booking.setCancellationReason(request.getReason());
+        return mapToResponse(bookingRepository.save(booking));
+    }
+
+    // ──────────────────────────────────────────
+    // Complete Booking
+    // ──────────────────────────────────────────
+    @Transactional
+    public BookingResponse completeBooking(Long id) {
+        Booking booking = bookingRepository.findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("Booking not found: " + id));
+
+        if (booking.getStatus() == BookingStatus.COMPLETED) {
+            return mapToResponse(booking);
+        }
+
+        if (booking.getStatus() == BookingStatus.CANCELLED) {
+            throw new IllegalStateException("Cancelled bookings cannot be completed");
+        }
+
+        booking.setStatus(BookingStatus.COMPLETED);
         return mapToResponse(bookingRepository.save(booking));
     }
 
@@ -196,29 +218,48 @@ public class BookingService {
         BigDecimal nNights = BigDecimal.valueOf(nights);
         BigDecimal subtotal = room.getPricePerNight().multiply(nNights);
 
-        BigDecimal discount = BigDecimal.ZERO;
-        String promoApplied = null;
+        BigDecimal totalDiscountPercent = BigDecimal.ZERO;
+        List<String> appliedCodes = new ArrayList<>();
+
         if (promoCode != null && !promoCode.isBlank()) {
-            PromoCode promo = promoCodeRepository.findByCodeIgnoreCase(promoCode.trim())
-                .orElseThrow(() -> new IllegalArgumentException("Invalid promo code: " + promoCode));
+            // Split by comma to support multiple codes
+            String[] codes = promoCode.split(",");
+            for (String code : codes) {
+                String trimmedCode = code.trim();
+                if (trimmedCode.isEmpty()) continue;
 
-            if (promo.getPropertyId() != null && !promo.getPropertyId().equals(room.getProperty().getId())) {
-                throw new IllegalArgumentException("Promo code is not valid for this property");
-            }
+                // Validate against database (only codes from seeder/DB will work)
+                PromoCode promo = promoCodeRepository.findByCodeIgnoreCase(trimmedCode)
+                    .orElseThrow(() -> new IllegalArgumentException("Invalid promo code: " + trimmedCode));
 
-            if (!promo.isValid()) {
-                throw new IllegalArgumentException("Promo code has expired or reached its usage limit");
-            }
+                // Property restriction check
+                if (promo.getPropertyId() != null && !promo.getPropertyId().equals(room.getProperty().getId())) {
+                    throw new IllegalArgumentException("Promo code '" + trimmedCode + "' is not valid for this property");
+                }
 
-            BigDecimal promoRate = promo.getDiscountPercent().divide(BigDecimal.valueOf(100), 4, RoundingMode.HALF_UP);
-            discount = subtotal.multiply(promoRate).setScale(2, RoundingMode.HALF_UP);
-            promoApplied = promo.getCode().toUpperCase();
+                // Validity check (expiry, usage limit, active status)
+                if (!promo.isValid()) {
+                    throw new IllegalArgumentException("Promo code '" + trimmedCode + "' has expired or reached its usage limit");
+                }
 
-            if (incrementPromoUsage) {
-                promo.setCurrentUses(promo.getCurrentUses() + 1);
-                promoCodeRepository.save(promo);
+                totalDiscountPercent = totalDiscountPercent.add(promo.getDiscountPercent());
+                appliedCodes.add(promo.getCode().toUpperCase());
+
+                if (incrementPromoUsage) {
+                    promo.setCurrentUses(promo.getCurrentUses() + 1);
+                    promoCodeRepository.save(promo);
+                }
             }
         }
+
+        // Cap total discount at 100%
+        if (totalDiscountPercent.compareTo(new BigDecimal("100")) > 0) {
+            totalDiscountPercent = new BigDecimal("100");
+        }
+
+        BigDecimal discountRate = totalDiscountPercent.divide(BigDecimal.valueOf(100), 4, RoundingMode.HALF_UP);
+        BigDecimal discount = subtotal.multiply(discountRate).setScale(2, RoundingMode.HALF_UP);
+        String promoApplied = appliedCodes.isEmpty() ? null : String.join(", ", appliedCodes);
 
         BigDecimal afterDiscount = subtotal.subtract(discount);
         BigDecimal tax = afterDiscount.multiply(TAX_RATE).setScale(2, RoundingMode.HALF_UP);
@@ -261,7 +302,10 @@ public class BookingService {
             .guestCount(b.getGuestCount())
             .totalAmount(b.getTotalAmount())
             .status(b.getStatus())
+            .cancellationReason(b.getCancellationReason())
             .paymentMethod(b.getPaymentMethod())
+            .propertyImage(b.getRoom().getProperty().getImageSrc())
+            .hostName(b.getRoom().getProperty().getHostName())
             .createdAt(b.getCreatedAt())
             .build();
     }
