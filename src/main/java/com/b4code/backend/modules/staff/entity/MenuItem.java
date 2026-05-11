@@ -27,23 +27,14 @@ public class MenuItem {
     @Column(nullable = false)
     private String name;
 
-<<<<<<< HEAD
-=======
-    // ADD THIS FIELD
->>>>>>> origin/dev
     @Column(nullable = false)
     private String category;
 
     @Column(columnDefinition = "TEXT")
     private String description;
 
-<<<<<<< HEAD
     @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal price;
-=======
-    @Column(nullable = false)
-    private java.math.BigDecimal price;
->>>>>>> origin/dev
 
     @Column(name = "is_available")
     private Boolean isAvailable = true;
