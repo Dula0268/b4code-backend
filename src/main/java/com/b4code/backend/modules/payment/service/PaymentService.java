@@ -108,13 +108,13 @@ public class PaymentService {
                 if (notify.getCard_no() != null)
                     payment.setCardLastFour(notify.getCard_no());
                 
-                // ✅ Update linked booking status to CONFIRMED when payment succeeds
+                // Update linked booking status to CONFIRMED when payment succeeds
                 if (payment.getBookingId() != null) {
                     bookingRepository.findById(payment.getBookingId()).ifPresent(booking -> {
                         booking.setStatus(Booking.BookingStatus.CONFIRMED);
                         bookingRepository.save(booking);
                         
-                        // ✅ Send Confirmation Email
+                        // Send Confirmation Email
                         emailService.sendBookingConfirmationEmail(
                             booking.getGuestEmail(),
                             booking.getGuestName(),
