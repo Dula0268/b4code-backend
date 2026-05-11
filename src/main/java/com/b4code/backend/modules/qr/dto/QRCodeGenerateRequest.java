@@ -1,10 +1,12 @@
 package com.b4code.backend.modules.qr.dto;
 
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 @Data
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
 public class QRCodeGenerateRequest {
@@ -18,4 +20,6 @@ public class QRCodeGenerateRequest {
     private String instructionText;
     private Boolean showRoomNumber;
     private Boolean showLogo;
+    private Long tableId;
+    private String roomNumber;
 }

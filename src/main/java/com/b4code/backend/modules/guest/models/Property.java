@@ -1,5 +1,6 @@
 package com.b4code.backend.modules.guest.models;
 
+import com.b4code.backend.modules.admin.enums.PropertyStatus;
 import jakarta.persistence.*;
 import lombok.*;
 import java.math.BigDecimal;
@@ -20,16 +21,13 @@ public class Property {
     @Column(nullable = false)
     private String name;
 
-    @Column(nullable = false)
     private String city;
 
     @Column(nullable = false)
     private String address;
 
-    @Column(nullable = false)
     private String destination;
 
-    @Column(nullable = false)
     private String propertyType;   // Villa, Apartment, Guesthouse, Hotel
 
     private String badge;          // "Superhost", "Guest favorite", or null
@@ -54,7 +52,6 @@ public class Property {
     private Boolean hostSuperhost;
 
     // Guest capacity
-    @Column(nullable = false)
     @Builder.Default
     private Integer baseGuests = 2;
 
@@ -65,7 +62,6 @@ public class Property {
     private Double averageRating;
     private Integer reviewCount;
 
-    @Column(nullable = false)
     @Builder.Default
     private Boolean published = false;
 
@@ -78,9 +74,10 @@ public class Property {
     @Builder.Default
     private String pvId = java.util.UUID.randomUUID().toString();
 
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     @Builder.Default
-    private String status = "APPROVED";
+    private PropertyStatus status = PropertyStatus.APPROVED;
 
     // Amenities stored as JSON-style string: "Wifi,Pool,Air conditioning"
     @Column(length = 1000)

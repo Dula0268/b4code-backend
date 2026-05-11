@@ -35,6 +35,9 @@ public class Order {
     @Column(nullable = false)
     private String status; // NEW, PREPARING, DELIVERED, CANCELLED
 
+    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
+    private java.util.List<OrderItem> items = new java.util.ArrayList<>();
+
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 

@@ -24,20 +24,20 @@ public class MenuItem {
     @Column(nullable = false)
     private String name;
 
+    // ADD THIS FIELD
+    @Column(nullable = false)
+    private String category;
+
     @Column(columnDefinition = "TEXT")
     private String description;
 
     @Column(nullable = false)
-    private Double price;
+    private java.math.BigDecimal price;
 
     @Column(name = "is_available")
     private Boolean isAvailable = true;
 
-    // Added this missing variable to fix the crash!
-    @Column(name = "category")
-    private String category;
-
-    @ElementCollection
+    @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "menu_item_images", joinColumns = @JoinColumn(name = "menu_item_id"))
     @Column(name = "image_url")
     private java.util.List<String> imageUrls = new java.util.ArrayList<>();

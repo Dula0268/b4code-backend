@@ -63,6 +63,8 @@ public class SecurityConfig {
                                 "/api/properties/public/**",
                                 "/api/guest/**",
                                 "/api/staff/**",
+                                "/api/menu-items/**",
+                                "/api/orders/**",
                                 "/api/payments/**",
                                 "/api/payments/notify",
                                 "/api/users/**",
