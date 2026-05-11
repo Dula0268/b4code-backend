@@ -1,9 +1,7 @@
-package com.b4code.backend.modules.guest.service;
+package com.b4code.backend.modules.guest.config;
 
-import com.b4code.backend.modules.guest.dao.PropertyRepository;
-import com.b4code.backend.modules.guest.dao.RoomRepository;
-import com.b4code.backend.modules.guest.models.Property;
-import com.b4code.backend.modules.guest.models.Room;
+import com.b4code.backend.modules.guest.dao.*;
+import com.b4code.backend.modules.guest.models.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -11,35 +9,111 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
+import org.springframework.jdbc.core.JdbcTemplate;
 import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
+import java.util.Random;
 
 @Component
-@Order(10)
-public class PropertySeeder implements CommandLineRunner {
+@Order(2)
+public class GuestDataSeeder implements CommandLineRunner {
 
-    private static final Logger log = LoggerFactory.getLogger(PropertySeeder.class);
+    private static final Logger log = LoggerFactory.getLogger(GuestDataSeeder.class);
+    
     private final PropertyRepository propertyRepository;
     private final RoomRepository roomRepository;
-
+    private final BookingRepository bookingRepository;
+    private final ReviewRepository reviewRepository;
+    private final PromoCodeRepository promoCodeRepository;
+    private final JdbcTemplate jdbcTemplate;
+    
+    private final Random random = new Random(42);
     private static final String IMG = "https://res.cloudinary.com/de0mj95bh/image/upload";
 
-    public PropertySeeder(
+    private static final String[] GUEST_NAMES = {
+        "James Wilson", "Emma Thompson", "Liam Garcia", "Sophia Martinez",
+        "Noah Johnson", "Olivia Williams", "Ethan Brown", "Ava Davis",
+        "Mason Taylor", "Isabella Anderson", "Lucas Thomas", "Mia Jackson",
+        "Alexander White", "Charlotte Harris", "Benjamin Clark", "Amelia Lewis",
+        "Daniel Robinson", "Harper Walker", "Matthew Hall", "Evelyn Young"
+    };
+
+    private static final String[] POSITIVE_COMMENTS = {
+        "Absolutely stunning property! The views were breathtaking and the amenities were top-notch. Would definitely come back.",
+        "One of the best stays we've ever had. The host was incredibly attentive and the location was perfect.",
+        "Everything exceeded our expectations. The room was immaculate, the breakfast was delicious, and the staff went above and beyond.",
+        "A truly magical experience. Woke up to incredible views every morning. The attention to detail here is remarkable.",
+        "Perfect getaway from the city. The property is even more beautiful than the photos suggest. Highly recommended!",
+        "We had an amazing time. The pool area was gorgeous, the rooms were spacious, and the food was exceptional.",
+        "Such a peaceful and luxurious retreat. Every aspect of our stay was carefully thought out. Will be back for sure.",
+        "The hospitality here is world-class. From check-in to check-out, everything was seamless and enjoyable.",
+        "Incredible value for money. The property offers so much — great food, beautiful grounds, and wonderful service.",
+        "A hidden gem in Sri Lanka. The location is fantastic, the rooms are elegant, and the experience is unforgettable.",
+        "We celebrated our anniversary here and it was perfect. The romantic setting and excellent service made it truly special.",
+        "The architecture and design of this property are outstanding. Every corner is Instagram-worthy!",
+        "Best breakfast we've had in Sri Lanka. Fresh, local ingredients prepared with care. The room was comfortable and clean.",
+        "The staff remembered our names from day one. That personal touch made all the difference. Outstanding hospitality.",
+        "Loved the eco-friendly approach without compromising on luxury. The sustainability efforts here are impressive."
+    };
+
+    private static final String[] OWNER_REPLIES = {
+        "Thank you so much for your wonderful review! We're thrilled you enjoyed your stay. Looking forward to welcoming you back!",
+        "We appreciate your kind words! Our team works hard to ensure every guest has a memorable experience.",
+        "What a lovely review! Thank you for choosing us for your special occasion. We'd love to host you again.",
+        null, null, null
+    };
+
+    public GuestDataSeeder(
             @Qualifier("guestPropertyRepository") PropertyRepository propertyRepository,
-            RoomRepository roomRepository) {
+            RoomRepository roomRepository,
+            BookingRepository bookingRepository,
+            ReviewRepository reviewRepository,
+            PromoCodeRepository promoCodeRepository,
+            JdbcTemplate jdbcTemplate) {
         this.propertyRepository = propertyRepository;
         this.roomRepository = roomRepository;
+        this.bookingRepository = bookingRepository;
+        this.reviewRepository = reviewRepository;
+        this.promoCodeRepository = promoCodeRepository;
+        this.jdbcTemplate = jdbcTemplate;
     }
 
     @Override
     public void run(String... args) {
-        if (propertyRepository.countByPublishedTrue() > 0) {
-            log.info("✅ Properties already seeded, skipping");
-            return;
+        long publishedCount = propertyRepository.countByPublishedTrue();
+        log.info("📊 Current published properties: {}", publishedCount);
+        
+        // If we don't have exactly our 12 properties OR the first one isn't ID 1, wipe and re-seed
+        boolean idMismatch = propertyRepository.findAll().stream()
+                .filter(p -> "Colombo Sky Residency".equals(p.getName()))
+                .findFirst()
+                .map(p -> p.getId() != 1)
+                .orElse(publishedCount > 0);
+
+        if (publishedCount != 12 || idMismatch) {
+            log.info("🧹 Wiping old guest data for a clean start (Count: {}, ID Mismatch: {})...", publishedCount, idMismatch);
+            
+            // Use TRUNCATE with RESTART IDENTITY to ensure IDs start at 1
+            jdbcTemplate.execute("TRUNCATE TABLE reviews, bookings, rooms, promo_codes, properties, messages, message_templates RESTART IDENTITY CASCADE");
+            
+            log.info("🌱 Seeding 12 guest properties with Cloudinary images...");
+            seedAllProperties();
+            log.info("✅ Property seeding complete");
+            
+            log.info("🌱 Seeding reviews and bookings...");
+            seedReviews();
+            log.info("✅ Review seeding complete");
+
+            log.info("🌱 Seeding promo codes...");
+            seedPromoCodes();
+            log.info("✅ Promo code seeding complete");
+        } else {
+            log.info("✅ Guest data already correctly seeded (12 properties)");
         }
-        log.info("🌱 Seeding properties...");
-        seedAllProperties();
-        log.info("✅ Property seeding complete");
     }
 
     private void seedAllProperties() {
@@ -50,7 +124,7 @@ public class PropertySeeder implements CommandLineRunner {
 
     private void seedProperty1() {
         Property p = Property.builder()
-            .name("Colombo Sky Residency").city("Colombo 3").address("32 Galle Road, Colombo 03, Sri Lanka")
+            .name("Colombo Sky Residency").city("Colombo 3").destination("Colombo 3").address("32 Galle Road, Colombo 03, Sri Lanka")
             .propertyType("Apartment").badge("Superhost").latitude(6.9088).longitude(79.8543)
             .imageSrc(IMG + "/v1778126085/properties/oj7bhzl7lfgqeuiznldp.jpg")
             .galleryImages(String.join(",", IMG+"/v1778126086/properties/qn7uqn1b3wqstjwg1gpv.jpg", IMG+"/v1778126087/properties/yjgtu6fcfdoctjhhd2xp.jpg", IMG+"/v1778126089/properties/exgvkdnoiawfizd8u03s.jpg", IMG+"/v1778126090/properties/bafzr21edx4pzzjtuepp.jpg"))
@@ -69,7 +143,7 @@ public class PropertySeeder implements CommandLineRunner {
 
     private void seedProperty2() {
         Property p = Property.builder()
-            .name("Galle Fort Heritage Cottage").city("Galle Fort").address("14 Church St, Galle Fort, Sri Lanka")
+            .name("Galle Fort Heritage Cottage").city("Galle Fort").destination("Galle Fort").address("14 Church St, Galle Fort, Sri Lanka")
             .propertyType("Guesthouse").latitude(6.0328).longitude(80.2170)
             .imageSrc(IMG + "/v1778126086/properties/qn7uqn1b3wqstjwg1gpv.jpg")
             .galleryImages(String.join(",", IMG+"/v1778126085/properties/oj7bhzl7lfgqeuiznldp.jpg", IMG+"/v1778126087/properties/yjgtu6fcfdoctjhhd2xp.jpg", IMG+"/v1778126089/properties/exgvkdnoiawfizd8u03s.jpg", IMG+"/v1778126090/properties/bafzr21edx4pzzjtuepp.jpg"))
@@ -87,7 +161,7 @@ public class PropertySeeder implements CommandLineRunner {
 
     private void seedProperty3() {
         Property p = Property.builder()
-            .name("Kandy Hilltop Luxury Villa").city("Kandy").address("7 Rajapihilla Mawatha, Kandy, Sri Lanka")
+            .name("Kandy Hilltop Luxury Villa").city("Kandy").destination("Kandy").address("7 Rajapihilla Mawatha, Kandy, Sri Lanka")
             .propertyType("Villa").badge("Guest favorite").latitude(7.2906).longitude(80.6337)
             .imageSrc(IMG + "/v1778126087/properties/yjgtu6fcfdoctjhhd2xp.jpg")
             .galleryImages(String.join(",", IMG+"/v1778126085/properties/oj7bhzl7lfgqeuiznldp.jpg", IMG+"/v1778126089/properties/exgvkdnoiawfizd8u03s.jpg", IMG+"/v1778126086/properties/qn7uqn1b3wqstjwg1gpv.jpg", IMG+"/v1778126090/properties/bafzr21edx4pzzjtuepp.jpg"))
@@ -105,7 +179,7 @@ public class PropertySeeder implements CommandLineRunner {
 
     private void seedProperty4() {
         Property p = Property.builder()
-            .name("Colombo Boutique Business Suite").city("Colombo 7").address("18 Ward Place, Colombo 07, Sri Lanka")
+            .name("Colombo Boutique Business Suite").city("Colombo 7").destination("Colombo 7").address("18 Ward Place, Colombo 07, Sri Lanka")
             .propertyType("Apartment").latitude(6.9060).longitude(79.8605)
             .imageSrc(IMG + "/v1778126089/properties/exgvkdnoiawfizd8u03s.jpg")
             .galleryImages(String.join(",", IMG+"/v1778126085/properties/oj7bhzl7lfgqeuiznldp.jpg", IMG+"/v1778126086/properties/qn7uqn1b3wqstjwg1gpv.jpg", IMG+"/v1778126090/properties/bafzr21edx4pzzjtuepp.jpg", IMG+"/v1778126089/properties/exgvkdnoiawfizd8u03s.jpg"))
@@ -120,7 +194,7 @@ public class PropertySeeder implements CommandLineRunner {
 
     private void seedProperty5() {
         Property p = Property.builder()
-            .name("Negombo Beachside Retreat").city("Negombo").address("78 Lewis Place, Negombo, Sri Lanka")
+            .name("Negombo Beachside Retreat").city("Negombo").destination("Negombo").address("78 Lewis Place, Negombo, Sri Lanka")
             .propertyType("Hotel").badge("Superhost").latitude(7.2083).longitude(79.8358)
             .imageSrc(IMG + "/v1778126090/properties/bafzr21edx4pzzjtuepp.jpg")
             .galleryImages(String.join(",", IMG+"/v1778126089/properties/exgvkdnoiawfizd8u03s.jpg", IMG+"/v1778126090/properties/bafzr21edx4pzzjtuepp.jpg", IMG+"/v1778126087/properties/yjgtu6fcfdoctjhhd2xp.jpg", IMG+"/v1778126085/properties/oj7bhzl7lfgqeuiznldp.jpg"))
@@ -138,7 +212,7 @@ public class PropertySeeder implements CommandLineRunner {
 
     private void seedProperty6() {
         Property p = Property.builder()
-            .name("Ella Mountain Eco Cabin").city("Ella").address("Ella Gap Road, Ella, Sri Lanka")
+            .name("Ella Mountain Eco Cabin").city("Ella").destination("Ella").address("Ella Gap Road, Ella, Sri Lanka")
             .propertyType("Villa").latitude(6.8728).longitude(81.0466)
             .imageSrc(IMG + "/v1778126091/properties/t6xfaton6b1icebnvhvy.jpg")
             .galleryImages(String.join(",", IMG+"/v1778126090/properties/bafzr21edx4pzzjtuepp.jpg", IMG+"/v1778126086/properties/qn7uqn1b3wqstjwg1gpv.jpg", IMG+"/v1778126087/properties/yjgtu6fcfdoctjhhd2xp.jpg", IMG+"/v1778126085/properties/oj7bhzl7lfgqeuiznldp.jpg"))
@@ -153,7 +227,7 @@ public class PropertySeeder implements CommandLineRunner {
 
     private void seedProperty7() {
         Property p = Property.builder()
-            .name("Mirissa Oceanfront Villa").city("Mirissa").address("Mirissa Bay Road, Mirissa, Sri Lanka")
+            .name("Mirissa Oceanfront Villa").city("Mirissa").destination("Mirissa").address("Mirissa Bay Road, Mirissa, Sri Lanka")
             .propertyType("Villa").badge("Guest favorite").latitude(5.9488).longitude(80.4593)
             .imageSrc(IMG + "/v1778126092/properties/y8vz4z62rf4gtva5bwr4.jpg")
             .galleryImages(String.join(",", IMG+"/v1778126089/properties/exgvkdnoiawfizd8u03s.jpg", IMG+"/v1778126085/properties/oj7bhzl7lfgqeuiznldp.jpg", IMG+"/v1778126087/properties/yjgtu6fcfdoctjhhd2xp.jpg", IMG+"/v1778126090/properties/bafzr21edx4pzzjtuepp.jpg"))
@@ -171,7 +245,7 @@ public class PropertySeeder implements CommandLineRunner {
 
     private void seedProperty8() {
         Property p = Property.builder()
-            .name("Galle Dutch Period Mansion").city("Galle Fort").address("22 Leyn Baan Street, Galle Fort, Sri Lanka")
+            .name("Galle Dutch Period Mansion").city("Galle Fort").destination("Galle Fort").address("22 Leyn Baan Street, Galle Fort, Sri Lanka")
             .propertyType("Villa").badge("Superhost").latitude(6.0309).longitude(80.2157)
             .imageSrc(IMG + "/v1778126094/properties/ymd4nsi362k4sgmavggv.jpg")
             .galleryImages(String.join(",", IMG+"/v1778126086/properties/qn7uqn1b3wqstjwg1gpv.jpg", IMG+"/v1778126090/properties/bafzr21edx4pzzjtuepp.jpg", IMG+"/v1778126089/properties/exgvkdnoiawfizd8u03s.jpg", IMG+"/v1778126085/properties/oj7bhzl7lfgqeuiznldp.jpg"))
@@ -189,7 +263,7 @@ public class PropertySeeder implements CommandLineRunner {
 
     private void seedProperty9() {
         Property p = Property.builder()
-            .name("Nuwara Eliya Tea Planter's Bungalow").city("Nuwara Eliya").address("St Andrew's Drive, Nuwara Eliya, Sri Lanka")
+            .name("Nuwara Eliya Tea Planter's Bungalow").city("Nuwara Eliya").destination("Nuwara Eliya").address("St Andrew's Drive, Nuwara Eliya, Sri Lanka")
             .propertyType("Guesthouse").latitude(6.9497).longitude(80.7891)
             .imageSrc(IMG + "/v1778126095/properties/gxjlvgg2qvwrdomrgjsm.jpg")
             .galleryImages(String.join(",", IMG+"/v1778126089/properties/exgvkdnoiawfizd8u03s.jpg", IMG+"/v1778126086/properties/qn7uqn1b3wqstjwg1gpv.jpg", IMG+"/v1778126087/properties/yjgtu6fcfdoctjhhd2xp.jpg", IMG+"/v1778126085/properties/oj7bhzl7lfgqeuiznldp.jpg"))
@@ -207,7 +281,7 @@ public class PropertySeeder implements CommandLineRunner {
 
     private void seedProperty10() {
         Property p = Property.builder()
-            .name("Trincomalee Bay Resort").city("Trincomalee").address("Uppuveli Beach Road, Trincomalee, Sri Lanka")
+            .name("Trincomalee Bay Resort").city("Trincomalee").destination("Trincomalee").address("Uppuveli Beach Road, Trincomalee, Sri Lanka")
             .propertyType("Hotel").badge("Guest favorite").latitude(8.5874).longitude(81.2152)
             .imageSrc(IMG + "/v1778126096/properties/xikgq4kkphkmd0tcuapr.jpg")
             .galleryImages(String.join(",", IMG+"/v1778126085/properties/oj7bhzl7lfgqeuiznldp.jpg", IMG+"/v1778126089/properties/exgvkdnoiawfizd8u03s.jpg", IMG+"/v1778126087/properties/yjgtu6fcfdoctjhhd2xp.jpg", IMG+"/v1778126090/properties/bafzr21edx4pzzjtuepp.jpg"))
@@ -225,7 +299,7 @@ public class PropertySeeder implements CommandLineRunner {
 
     private void seedProperty11() {
         Property p = Property.builder()
-            .name("Sigiriya Jungle Lodge").city("Sigiriya").address("Sigiriya Road, Dambulla, Sri Lanka")
+            .name("Sigiriya Jungle Lodge").city("Sigiriya").destination("Sigiriya").address("Sigiriya Road, Dambulla, Sri Lanka")
             .propertyType("Villa").latitude(7.9570).longitude(80.7603)
             .imageSrc(IMG + "/v1778126097/properties/seuqb344gkadlzmvs2mq.jpg")
             .galleryImages(String.join(",", IMG+"/v1778126086/properties/qn7uqn1b3wqstjwg1gpv.jpg", IMG+"/v1778126087/properties/yjgtu6fcfdoctjhhd2xp.jpg", IMG+"/v1778126090/properties/bafzr21edx4pzzjtuepp.jpg", IMG+"/v1778126085/properties/oj7bhzl7lfgqeuiznldp.jpg"))
@@ -240,7 +314,7 @@ public class PropertySeeder implements CommandLineRunner {
 
     private void seedProperty12() {
         Property p = Property.builder()
-            .name("Bentota River House").city("Bentota").address("River Avenue, Bentota, Sri Lanka")
+            .name("Bentota River House").city("Bentota").destination("Bentota").address("River Avenue, Bentota, Sri Lanka")
             .propertyType("Guesthouse").badge("Superhost").latitude(6.4271).longitude(79.9977)
             .imageSrc(IMG + "/v1778126098/properties/fhgr2dqufndugvpimexq.jpg")
             .galleryImages(String.join(",", IMG+"/v1778126086/properties/qn7uqn1b3wqstjwg1gpv.jpg", IMG+"/v1778126089/properties/exgvkdnoiawfizd8u03s.jpg", IMG+"/v1778126087/properties/yjgtu6fcfdoctjhhd2xp.jpg", IMG+"/v1778126090/properties/bafzr21edx4pzzjtuepp.jpg"))
@@ -254,5 +328,135 @@ public class PropertySeeder implements CommandLineRunner {
             Room.builder().property(p).name("Riverfront Suite").roomType("SUITE").maxOccupancy(2).sqft(420).bedType("1 King Bed").pricePerNight(new BigDecimal("42000")).originalPrice(new BigDecimal("50000")).tag("Popular").features("River views,Private balcony,Writing desk").imageSrc(IMG+"/v1778126085/properties/oj7bhzl7lfgqeuiznldp.jpg").available(true).build(),
             Room.builder().property(p).name("Garden Room").roomType("DOUBLE").maxOccupancy(2).sqft(300).bedType("1 Queen Bed").pricePerNight(new BigDecimal("32000")).tag("Refundable").features("Garden access,Hammock").imageSrc(IMG+"/v1778126089/properties/exgvkdnoiawfizd8u03s.jpg").available(true).build()
         ));
+    }
+
+    private void seedReviews() {
+        List<Property> properties = propertyRepository.findAll().stream()
+                .filter(Property::getPublished)
+                .toList();
+
+        if (properties.isEmpty()) {
+            log.warn("⚠️ No published properties found — skipping review seeder");
+            return;
+        }
+
+        log.info("🌱 Seeding reviews for {} properties...", properties.size());
+
+        for (Property property : properties) {
+            List<Room> rooms = roomRepository.findByPropertyId(property.getId());
+            if (rooms.isEmpty()) continue;
+
+            int reviewCount = 3 + random.nextInt(4);
+            double totalRating = 0;
+
+            for (int i = 0; i < reviewCount; i++) {
+                Room room = rooms.get(random.nextInt(rooms.size()));
+                String guestName = GUEST_NAMES[random.nextInt(GUEST_NAMES.length)];
+                String guestEmail = guestName.toLowerCase().replace(" ", ".") + "@email.com";
+
+                LocalDate checkIn = LocalDate.now().minusDays(30 + random.nextInt(180));
+                LocalDate checkOut = checkIn.plusDays(2 + random.nextInt(5));
+
+                Booking booking = Booking.builder()
+                        .room(room)
+                        .guestName(guestName)
+                        .guestEmail(guestEmail)
+                        .guestPhone("+94" + (700000000 + random.nextInt(99999999)))
+                        .checkIn(checkIn)
+                        .checkOut(checkOut)
+                        .guestCount(1 + random.nextInt(room.getMaxOccupancy()))
+                        .totalAmount(room.getPricePerNight().multiply(BigDecimal.valueOf(checkOut.toEpochDay() - checkIn.toEpochDay())))
+                        .taxAmount(BigDecimal.valueOf(2500))
+                        .discountAmount(BigDecimal.ZERO)
+                        .status(Booking.BookingStatus.COMPLETED)
+                        .paymentMethod(Booking.PaymentMethod.ONLINE_CARD)
+                        .confirmationNumber("CONF-" + System.currentTimeMillis() + "-" + i)
+                        .build();
+                booking = bookingRepository.save(booking);
+
+                int overall = 4 + random.nextInt(2);
+                totalRating += overall;
+
+                String ownerReply = OWNER_REPLIES[random.nextInt(OWNER_REPLIES.length)];
+
+                Review review = Review.builder()
+                        .booking(booking)
+                        .property(property)
+                        .guestName(guestName)
+                        .overallRating(overall)
+                        .cleanlinessRating(3 + random.nextInt(3))
+                        .accuracyRating(3 + random.nextInt(3))
+                        .communicationRating(4 + random.nextInt(2))
+                        .locationRating(4 + random.nextInt(2))
+                        .valueRating(3 + random.nextInt(3))
+                        .comment(POSITIVE_COMMENTS[random.nextInt(POSITIVE_COMMENTS.length)])
+                        .isVerifiedStay(true)
+                        .ownerResponse(ownerReply)
+                        .build();
+
+                review.setCreatedAt(LocalDateTime.now().minusDays(random.nextInt(120)));
+                if (ownerReply != null) {
+                    review.setOwnerRespondedAt(review.getCreatedAt().plusDays(1 + random.nextInt(3)));
+                }
+
+                reviewRepository.save(review);
+            }
+
+            double avgRating = Math.round((totalRating / reviewCount) * 100.0) / 100.0;
+            property.setAverageRating(avgRating);
+            property.setReviewCount(reviewCount);
+            propertyRepository.save(property);
+        }
+    }
+
+    private void seedPromoCodes() {
+        List<PromoCode> promoCodes = new ArrayList<>();
+        promoCodes.add(PromoCode.builder()
+                .code("ALLPROPS10")
+                .description("Platform-wide promo — 10% off any property")
+                .discountPercent(new BigDecimal("10.00"))
+                .validFrom(LocalDate.now().minusDays(30))
+                .validTo(LocalDate.now().plusMonths(12))
+                .maxUses(1000)
+                .currentUses(0)
+                .active(true)
+                .build());
+
+        promoCodes.add(PromoCode.builder()
+                .code("PRIMESTAY15")
+                .description("Exclusive Prime Stay loyalty discount — 15% off any property")
+                .discountPercent(new BigDecimal("15.00"))
+                .validFrom(LocalDate.now().minusDays(30))
+                .validTo(LocalDate.now().plusMonths(18))
+                .maxUses(null)
+                .currentUses(0)
+                .active(true)
+                .build());
+
+        promoCodeRepository.saveAll(promoCodes);
+
+        List<Property> properties = propertyRepository.findAll().stream()
+            .filter(Property::getPublished)
+            .sorted(java.util.Comparator.comparing(Property::getId))
+            .toList();
+
+        for (Property property : properties) {
+            String slug = property.getName()
+                .toUpperCase()
+                .replaceAll("[^A-Z0-9]+", "-")
+                .replaceAll("^-+|-+$", "");
+
+            promoCodeRepository.save(PromoCode.builder()
+                .code(slug + "-SPECIAL")
+                .description("Special property promo for " + property.getName())
+                .discountPercent(new BigDecimal("20.00"))
+                .validFrom(LocalDate.now().minusDays(30))
+                .validTo(LocalDate.now().plusMonths(12))
+                .maxUses(100)
+                .currentUses(0)
+                .active(true)
+                .propertyId(property.getId())
+                .build());
+        }
     }
 }

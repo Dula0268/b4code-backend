@@ -56,6 +56,9 @@ public class Dispute {
     private String resolutionNote;
     private Long resolvedByAdminId;
 
+    @Column(columnDefinition = "TEXT")
+    private String internalNote;
+
     @CreationTimestamp
     @Column(updatable = false)
     private LocalDateTime openedAt;

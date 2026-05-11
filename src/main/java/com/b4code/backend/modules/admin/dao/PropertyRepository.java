@@ -16,7 +16,8 @@ public interface PropertyRepository extends JpaRepository<Property, Long> {
 
     @Query("""
             SELECT p FROM Property p
-            WHERE (:status IS NULL OR p.status = :status)
+            WHERE p.pvId LIKE 'PV-%'
+              AND (:status IS NULL OR p.status = :status)
               AND (
                     :search IS NULL OR :search = ''
                     OR LOWER(p.name)      LIKE LOWER(CONCAT('%', :search, '%'))
@@ -30,9 +31,13 @@ public interface PropertyRepository extends JpaRepository<Property, Long> {
             Pageable pageable
     );
 
-    List<Property> findTop5ByStatusInOrderBySubmittedAtDesc(List<PropertyStatus> statuses);
+    @Query("SELECT p FROM Property p WHERE p.pvId LIKE 'PV-%' AND p.status IN :statuses ORDER BY p.submittedAt DESC LIMIT 5")
+    List<Property> findTop5ByStatusInOrderBySubmittedAtDesc(@Param("statuses") List<PropertyStatus> statuses);
 
     List<Property> findByStatus(PropertyStatus status);
     
     List<Property> findByOwnerId(Long ownerId);
+
+    long countByPvIdIsNotNull();
+    long countByPvIdStartingWith(String prefix);
 }
