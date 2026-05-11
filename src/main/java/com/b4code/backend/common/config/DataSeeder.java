@@ -17,6 +17,7 @@ import com.b4code.backend.modules.admin.models.Transaction;
 import com.b4code.backend.modules.admin.models.Refund;
 import com.b4code.backend.modules.admin.models.Payout;
 import com.b4code.backend.modules.admin.models.Property;
+import com.b4code.backend.modules.admin.dao.PropertyRepository;
 import com.b4code.backend.modules.staff.entity.MenuItem;
 import com.b4code.backend.modules.staff.repository.MenuItemRepository;
 
@@ -49,6 +50,16 @@ public class DataSeeder implements CommandLineRunner {
             DisputeRepository disputeRepository,
             MenuItemRepository menuItemRepository,
             PasswordEncoder passwordEncoder) {
+
+    private final PropertyRepository propertyRepository;
+
+    public DataSeeder(UserRepository userRepository,
+            AdminUserRepository adminUserRepository,
+            FlaggedReviewRepository flaggedReviewRepository,
+            DisputeRepository disputeRepository,
+            MenuItemRepository menuItemRepository,
+            PasswordEncoder passwordEncoder,
+            PropertyRepository propertyRepository) {
         this.userRepository = userRepository;
         this.adminUserRepository = adminUserRepository;
         this.flaggedReviewRepository = flaggedReviewRepository;
@@ -60,7 +71,9 @@ public class DataSeeder implements CommandLineRunner {
         this.payoutRepository = payoutRepository;
         this.propertyRepository = propertyRepository;
         this.jdbcTemplate = jdbcTemplate;
+        this.propertyRepository = propertyRepository;
     }
+
     @Override
     public void run(String... args) {
 
@@ -86,9 +99,11 @@ public class DataSeeder implements CommandLineRunner {
                 });
 
         // 3. Seed other users
-        seedUserIfMissing("guest@primestay.com", "guest123", "John", "Doe", User.Role.GUEST, null, User.UserStatus.ACTIVE);
-        seedUserIfMissing("guest1@primestay.com", "guest123", "Alice", "Guest", User.Role.GUEST, 1L, User.UserStatus.ACTIVE);
-        
+        seedUserIfMissing("guest@primestay.com", "guest123", "John", "Doe", User.Role.GUEST, null,
+                User.UserStatus.ACTIVE);
+        seedUserIfMissing("guest1@primestay.com", "guest123", "Alice", "Guest", User.Role.GUEST, 1L,
+                User.UserStatus.ACTIVE);
+
         // Ensure guest1 has propertyId = 1 if already seeded
         userRepository.findByEmail("guest1@primestay.com").ifPresent(u -> {
             if (u.getPropertyId() == null || u.getPropertyId() != 1L) {
@@ -98,10 +113,12 @@ public class DataSeeder implements CommandLineRunner {
             }
         });
 
-        seedUserIfMissing("owner@primestay.com", "owner123", "Alex", "Owner", User.Role.OWNER, null, User.UserStatus.ACTIVE);
-        
+        seedUserIfMissing("owner@primestay.com", "owner123", "Alex", "Owner", User.Role.OWNER, null,
+                User.UserStatus.ACTIVE);
+
         // ✅ Specific Staff Login (Linked to Property 1 and APPROVED)
-        seedUserIfMissing("staff@primestay.com", "staff123", "Mike", "Staff", User.Role.STAFF, 1L, User.UserStatus.APPROVED);
+        seedUserIfMissing("staff@primestay.com", "staff123", "Mike", "Staff", User.Role.STAFF, 1L,
+                User.UserStatus.APPROVED);
 
         // ✅ Admin users table
         if (adminUserRepository.count() == 0) {
@@ -118,62 +135,73 @@ public class DataSeeder implements CommandLineRunner {
 
         // ✅ Seed Flagged Reviews
         if (flaggedReviewRepository.count() == 0) {
-            seedFlaggedReview(101L, "Oceanview Villa", 201L, "Alice Smith", "AS", "blue", "The place was a total mess and not as described. Bugs everywhere!", 1.5, "Inappropriate Content", ReviewStatus.FLAGGED);
-            seedFlaggedReview(102L, "Mountain Retreat", 202L, "Bob Jones", "BJ", "green", "Host demanded extra cash upon arrival. Very shady.", 2.0, "Policy Violation", ReviewStatus.FLAGGED);
-            seedFlaggedReview(103L, "City Center Apartment", 203L, "Carol White", "CW", "purple", "Great place, but the neighbors were a bit loud.", 4.0, "Spam", ReviewStatus.FLAGGED);
+            seedFlaggedReview(101L, "Oceanview Villa", 201L, "Alice Smith", "AS", "blue",
+                    "The place was a total mess and not as described. Bugs everywhere!", 1.5, "Inappropriate Content",
+                    ReviewStatus.FLAGGED);
+            seedFlaggedReview(102L, "Mountain Retreat", 202L, "Bob Jones", "BJ", "green",
+                    "Host demanded extra cash upon arrival. Very shady.", 2.0, "Policy Violation",
+                    ReviewStatus.FLAGGED);
+            seedFlaggedReview(103L, "City Center Apartment", 203L, "Carol White", "CW", "purple",
+                    "Great place, but the neighbors were a bit loud.", 4.0, "Spam", ReviewStatus.FLAGGED);
             System.out.println("✅ Flagged reviews seeded");
         }
 
         // ✅ Seed Disputes
         if (disputeRepository.count() == 0) {
-            seedDispute("DSP-1001", 201L, "Alice Smith", 101L, "Oceanview Villa", "BKG-9901", "Host cancelled last minute, requesting full refund.", new BigDecimal("15000.00"), "LKR", "2026-06-01 to 2026-06-05", "Strict", 5, DisputeStatus.OPEN);
-            seedDispute("DSP-1002", 204L, "David Brown", 104L, "Desert Oasis", "BKG-9902", "Property amenities missing (no pool as advertised).", new BigDecimal("5000.00"), "LKR", "2026-05-10 to 2026-05-12", "Moderate", 3, DisputeStatus.OPEN);
+            seedDispute("DSP-1001", 201L, "Alice Smith", 101L, "Oceanview Villa", "BKG-9901",
+                    "Host cancelled last minute, requesting full refund.", new BigDecimal("15000.00"), "LKR",
+                    "2026-06-01 to 2026-06-05", "Strict", 5, DisputeStatus.OPEN);
+            seedDispute("DSP-1002", 204L, "David Brown", 104L, "Desert Oasis", "BKG-9902",
+                    "Property amenities missing (no pool as advertised).", new BigDecimal("5000.00"), "LKR",
+                    "2026-05-10 to 2026-05-12", "Moderate", 3, DisputeStatus.OPEN);
             System.out.println("✅ Disputes seeded");
         }
 
         // ✅ Seed/Update Menu Items for Property 1
-        seedOrUpdateMenuItem(1L, "Classic Margherita Pizza", "Main", "Fresh mozzarella, basil, and tomato sauce on a thin crust.", new BigDecimal("2500.00"), 
-            java.util.List.of(
-                "https://res.cloudinary.com/dfydjkjw8/image/upload/v1778485194/pro3e5jrllljbttvqsni.jpg",
-                "https://res.cloudinary.com/dfydjkjw8/image/upload/v1778485195/v0tkfbvbokimxyjblsgc.jpg",
-                "https://res.cloudinary.com/dfydjkjw8/image/upload/v1778485038/iknjlwvyxlusvpa6npex.jpg"
-            ));
-        seedOrUpdateMenuItem(1L, "Sri Lankan Rice & Curry", "Main", "Authentic village-style rice and curry with chicken and assorted vegetables.", new BigDecimal("1800.00"), 
-            java.util.List.of(
-                "https://res.cloudinary.com/dfydjkjw8/image/upload/v1778485192/tsjra56wpkcjjsralkdt.jpg",
-                "https://res.cloudinary.com/dfydjkjw8/image/upload/v1778485194/t6e27scjzdoufdwqfvga.jpg"
-            ));
-        seedOrUpdateMenuItem(1L, "Watalappam", "Dessert", "Traditional Sri Lankan coconut custard pudding with jaggery.", new BigDecimal("850.00"), 
-            java.util.List.of("https://res.cloudinary.com/dfydjkjw8/image/upload/v1778485193/quifhrtj1wg0mjgb5pya.jpg"));
-        seedOrUpdateMenuItem(1L, "Fresh King Coconut", "Drink", "Chilled natural king coconut water.", new BigDecimal("450.00"), 
-            java.util.List.of(
-                "https://res.cloudinary.com/dfydjkjw8/image/upload/v1778485190/fjoolp2br10pqp56u2t3.jpg",
-                "https://res.cloudinary.com/dfydjkjw8/image/upload/v1778485191/lk3whcfcoanysx611dnu.jpg"
-            ));
+        seedOrUpdateMenuItem(1L, "Classic Margherita Pizza", "Main",
+                "Fresh mozzarella, basil, and tomato sauce on a thin crust.", new BigDecimal("2500.00"),
+                java.util.List.of(
+                        "https://res.cloudinary.com/dfydjkjw8/image/upload/v1778485194/pro3e5jrllljbttvqsni.jpg",
+                        "https://res.cloudinary.com/dfydjkjw8/image/upload/v1778485195/v0tkfbvbokimxyjblsgc.jpg",
+                        "https://res.cloudinary.com/dfydjkjw8/image/upload/v1778485038/iknjlwvyxlusvpa6npex.jpg"));
+        seedOrUpdateMenuItem(1L, "Sri Lankan Rice & Curry", "Main",
+                "Authentic village-style rice and curry with chicken and assorted vegetables.",
+                new BigDecimal("1800.00"),
+                java.util.List.of(
+                        "https://res.cloudinary.com/dfydjkjw8/image/upload/v1778485192/tsjra56wpkcjjsralkdt.jpg",
+                        "https://res.cloudinary.com/dfydjkjw8/image/upload/v1778485194/t6e27scjzdoufdwqfvga.jpg"));
+        seedOrUpdateMenuItem(1L, "Watalappam", "Dessert",
+                "Traditional Sri Lankan coconut custard pudding with jaggery.", new BigDecimal("850.00"),
+                java.util.List
+                        .of("https://res.cloudinary.com/dfydjkjw8/image/upload/v1778485193/quifhrtj1wg0mjgb5pya.jpg"));
+        seedOrUpdateMenuItem(1L, "Fresh King Coconut", "Drink", "Chilled natural king coconut water.",
+                new BigDecimal("450.00"),
+                java.util.List.of(
+                        "https://res.cloudinary.com/dfydjkjw8/image/upload/v1778485190/fjoolp2br10pqp56u2t3.jpg",
+                        "https://res.cloudinary.com/dfydjkjw8/image/upload/v1778485191/lk3whcfcoanysx611dnu.jpg"));
         System.out.println("✅ Menu items synced for Property 1");
     }
 
     private void seedUserIfMissing(String email, String password, String first, String last, User.Role role) {
         userRepository.findByEmail(email).ifPresentOrElse(
-            user -> {
-                if (user.getRole() != role) {
+                user -> {
+                    if (user.getRole() != role) {
+                        user.setRole(role);
+                        userRepository.save(user);
+                        System.out.println("✅ Forcefully updated " + email + " to " + role + " role");
+                    }
+                },
+                () -> {
+                    User user = new User();
+                    user.setEmail(email);
+                    user.setPasswordHash(passwordEncoder.encode(password));
+                    user.setFirstName(first);
+                    user.setLastName(last);
                     user.setRole(role);
+                    user.setStatus(User.UserStatus.ACTIVE);
                     userRepository.save(user);
-                    System.out.println("✅ Forcefully updated " + email + " to " + role + " role");
-                }
-            },
-            () -> {
-                User user = new User();
-                user.setEmail(email);
-                user.setPasswordHash(passwordEncoder.encode(password));
-                user.setFirstName(first);
-                user.setLastName(last);
-                user.setRole(role);
-                user.setStatus(User.UserStatus.ACTIVE);
-                userRepository.save(user);
-                System.out.println("✅ Default " + role + " user created: " + email);
-            }
-        );
+                    System.out.println("✅ Default " + role + " user created: " + email);
+                });
     }
 
     private void seedAdminUser(String first, String last, String email, UserRole role, UserStatus status) {
@@ -227,26 +255,26 @@ public class DataSeeder implements CommandLineRunner {
         disputeRepository.save(dispute);
     }
 
-    private void seedOrUpdateMenuItem(Long propertyId, String name, String category, String description, BigDecimal price, java.util.List<String> imageUrls) {
+    private void seedOrUpdateMenuItem(Long propertyId, String name, String category, String description,
+            BigDecimal price, java.util.List<String> imageUrls) {
         menuItemRepository.findByName(name).ifPresentOrElse(
-            item -> {
-                item.setCategory(category);
-                item.setDescription(description);
-                item.setPrice(price);
-                item.setImageUrls(imageUrls);
-                menuItemRepository.save(item);
-            },
-            () -> {
-                MenuItem item = new MenuItem();
-                item.setPropertyId(propertyId);
-                item.setName(name);
-                item.setCategory(category);
-                item.setDescription(description);
-                item.setPrice(price);
-                item.setIsAvailable(true);
-                item.setImageUrls(imageUrls);
-                menuItemRepository.save(item);
-            }
-        );
+                item -> {
+                    item.setCategory(category);
+                    item.setDescription(description);
+                    item.setPrice(price);
+                    item.setImageUrls(imageUrls);
+                    menuItemRepository.save(item);
+                },
+                () -> {
+                    MenuItem item = new MenuItem();
+                    item.setPropertyId(propertyId);
+                    item.setName(name);
+                    item.setCategory(category);
+                    item.setDescription(description);
+                    item.setPrice(price);
+                    item.setIsAvailable(true);
+                    item.setImageUrls(imageUrls);
+                    menuItemRepository.save(item);
+                });
     }
 }
