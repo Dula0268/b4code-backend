@@ -38,11 +38,13 @@ public class FinanceServiceImpl implements FinanceService {
     @Override
     @Transactional(readOnly = true)
     public FinanceSummaryDto getFinanceSummary() {
+        BigDecimal approvedRefunds = refundRepository.sumApprovedRefunds();
         return FinanceSummaryDto.builder()
                 .totalRevenue(transactionRepository.sumTotalRevenue())
                 .platformCommission(transactionRepository.sumPlatformCommission())
                 .totalPayouts(payoutRepository.sumProcessedPayouts())
-                .totalRefunds(refundRepository.sumApprovedRefunds())
+                .totalRefunds(approvedRefunds)
+                .pendingRefunds(approvedRefunds)   // frontend reads pendingRefunds
                 .currency("LKR")
                 .build();
     }

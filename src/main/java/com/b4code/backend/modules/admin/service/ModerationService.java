@@ -10,12 +10,13 @@ import java.time.LocalDateTime;
 
 public interface ModerationService {
 
-    Page<FlaggedReviewDto> getFlaggedReviews(ReviewStatus status, String search, int page, int size);
+    Page<FlaggedReviewDto> getFlaggedReviews(ReviewStatus status, String flagReason, Double rating, String search, int page, int size);
     FlaggedReviewDto approveReview(Long id);
     FlaggedReviewDto removeReview(Long id, String adminNote);
 
     Page<DisputeDto> getDisputes(DisputeStatus status, String search, int page, int size);
     DisputeDto resolveDispute(Long id, String resolution, boolean refundApproved);
+    DisputeDto saveDisputeNote(Long id, String note);
 
     Page<ModerationHistoryDto> getHistory(ModerationAction action, String search,
                                            LocalDateTime from, LocalDateTime to,

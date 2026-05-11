@@ -15,14 +15,17 @@ public interface FlaggedReviewRepository extends JpaRepository<FlaggedReview, Lo
     @Query("""
         SELECT r FROM FlaggedReview r
         WHERE (CAST(:status AS string) IS NULL OR r.status = :status)
+          AND (CAST(:flagReason AS string) IS NULL OR :flagReason = '' OR r.flagReason = :flagReason)
+          AND (:rating IS NULL OR r.rating = :rating)
           AND (CAST(:search AS string) IS NULL OR :search = '' OR
                LOWER(r.guestName) LIKE LOWER(CONCAT('%',:search,'%')) OR
                LOWER(r.propertyName) LIKE LOWER(CONCAT('%',:search,'%')) OR
                LOWER(r.flagReason) LIKE LOWER(CONCAT('%',:search,'%')))
-        ORDER BY r.flaggedAt DESC
         """)
     Page<FlaggedReview> findAllWithFilters(
             @Param("status") ReviewStatus status,
+            @Param("flagReason") String flagReason,
+            @Param("rating") Double rating,
             @Param("search") String search,
             Pageable pageable);
 
