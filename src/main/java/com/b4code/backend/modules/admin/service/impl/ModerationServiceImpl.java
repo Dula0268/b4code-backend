@@ -30,9 +30,10 @@ public class ModerationServiceImpl implements ModerationService {
 
     @Override
     @Transactional(readOnly = true)
-    public Page<FlaggedReviewDto> getFlaggedReviews(ReviewStatus status, String search, int page, int size) {
+    public Page<FlaggedReviewDto> getFlaggedReviews(ReviewStatus status, String flagReason, Double rating, String search, int page, int size) {
         String term = (search == null || search.isBlank()) ? null : search.trim();
-        return reviewRepository.findAllWithFilters(status, term,
+        String reasonFilter = (flagReason == null || flagReason.isBlank()) ? null : flagReason.trim();
+        return reviewRepository.findAllWithFilters(status, reasonFilter, rating, term,
                 PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "flaggedAt")))
                 .map(FlaggedReviewDto::fromEntity);
     }
@@ -82,6 +83,16 @@ public class ModerationServiceImpl implements ModerationService {
         ModerationAction action = refundApproved ? ModerationAction.REFUND_ISSUED : ModerationAction.APPEAL_DENIED;
         saveHistory(dispute.getDisputeId(), action, resolution);
         return dto;
+    }
+
+    @Override
+    @Transactional
+    public DisputeDto saveDisputeNote(Long id, String note) {
+        Dispute dispute = disputeRepository.findById(id)
+                .orElseThrow(() -> new CustomException("Dispute id=" + id + " not found.", HttpStatus.NOT_FOUND));
+        dispute.setInternalNote(note);
+        log.info("Internal note saved for dispute id={}", id);
+        return DisputeDto.fromEntity(disputeRepository.save(dispute));
     }
 
 

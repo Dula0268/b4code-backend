@@ -6,6 +6,9 @@ import com.b4code.backend.modules.admin.models.Property;
 import com.b4code.backend.modules.admin.dao.PropertyRepository;
 import com.b4code.backend.modules.qr.service.QRCodeService;
 import com.b4code.backend.modules.qr.dto.QRCodeResponse;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -18,6 +21,7 @@ import java.util.Optional;
 @RestController
 @RequestMapping("/api/staff")
 @RequiredArgsConstructor
+@Tag(name = "Staff: Property & Context", description = "Endpoints for staff property assignments and context selection")
 public class StaffController {
 
     private final StaffPropertyRepository staffPropertyRepository;
@@ -26,6 +30,7 @@ public class StaffController {
 
     // Get properties assigned to a staff member
     @GetMapping("/properties/{staffId}")
+    @Operation(summary = "Get properties assigned to a staff member", description = "Returns a list of properties where this staff member is authorized to work")
     public ResponseEntity<List<Property>> getStaffProperties(@PathVariable Long staffId) {
         List<StaffProperty> mappings = staffPropertyRepository.findByStaffId(staffId);
         List<Long> propertyIds = mappings.stream()
@@ -36,6 +41,7 @@ public class StaffController {
     }
 
     @GetMapping("/status")
+    @Operation(summary = "Check staff status at a property", description = "Checks if a staff member has an active/pending session at a property")
     public ResponseEntity<?> checkStatus(@RequestParam Long staffId,
             @RequestParam Long propertyId) {
 
@@ -56,6 +62,7 @@ public class StaffController {
     }
 
     @PostMapping("/select-property")
+    @Operation(summary = "Select a property to work at", description = "Requests to start a session at a specific property. Sets status to PENDING.")
     public ResponseEntity<?> selectProperty(@RequestParam Long staffId,
             @RequestParam Long propertyId) {
 
@@ -84,6 +91,7 @@ public class StaffController {
 
     // QR Management endpoints
     @GetMapping("/qr/property/{propertyId}")
+    @Operation(summary = "Get QR codes for a property", description = "Returns paginated QR code locations (tables, rooms, etc.) for management")
     public ResponseEntity<List<QRCodeResponse>> getQRCodesByProperty(
             @PathVariable Long propertyId,
             @RequestParam(required = false, defaultValue = "0") int skip,

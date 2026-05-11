@@ -40,14 +40,16 @@ public class ModerationController {
     // ── Reviews Queue
     @GetMapping("/reviews")
     @PreAuthorize("hasAnyRole('ADMIN','STAFF')")
-    @Operation(summary = "List flagged reviews with optional status filter and search")
+    @Operation(summary = "List flagged reviews with optional status filter, flagReason, rating and search")
     public ResponseEntity<Page<FlaggedReviewDto>> getFlaggedReviews(
             @RequestParam(required = false) ReviewStatus status,
+            @RequestParam(required = false) String flagReason,
+            @RequestParam(required = false) Double rating,
             @RequestParam(required = false) String search,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
         if (page < 0) page = 0;
-        return ResponseEntity.ok(moderationService.getFlaggedReviews(status, search, page, size));
+        return ResponseEntity.ok(moderationService.getFlaggedReviews(status, flagReason, rating, search, page, size));
     }
 
     // PUT /api/admin/moderation/reviews/{id}/approve
@@ -91,6 +93,17 @@ public class ModerationController {
         String resolution = (String) body.getOrDefault("resolution", "Resolved by admin");
         boolean refund = Boolean.TRUE.equals(body.get("refundApproved"));
         return ResponseEntity.ok(moderationService.resolveDispute(id, resolution, refund));
+    }
+
+    // PUT /api/admin/moderation/disputes/{id}/note
+    @PutMapping("/disputes/{id}/note")
+    @PreAuthorize("hasAnyRole('ADMIN','STAFF')")
+    @Operation(summary = "Save an internal admin note on a dispute")
+    public ResponseEntity<DisputeDto> saveDisputeNote(
+            @PathVariable Long id,
+            @RequestBody Map<String, String> body) {
+        String note = body.getOrDefault("note", "");
+        return ResponseEntity.ok(moderationService.saveDisputeNote(id, note));
     }
 
     // ── History tab

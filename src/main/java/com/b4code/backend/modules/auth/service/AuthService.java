@@ -12,6 +12,8 @@ import com.b4code.backend.modules.auth.entity.PasswordResetToken;
 import com.b4code.backend.modules.auth.entity.User;
 import com.b4code.backend.modules.auth.repository.PasswordResetTokenRepository;
 import com.b4code.backend.modules.auth.repository.UserRepository;
+import com.b4code.backend.modules.auth.repository.VerificationOTPRepository;
+import com.b4code.backend.modules.auth.entity.VerificationOTP;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
@@ -32,6 +34,7 @@ public class AuthService {
     private final AuditLogRepository auditLogRepository;
     private final PasswordResetTokenRepository passwordResetTokenRepository;
     private final EmailService emailService;
+    private final VerificationOTPRepository verificationOTPRepository;
 
     @Value("${app.frontend-url:http://localhost:3001}")
     private String frontendUrl;
@@ -70,12 +73,24 @@ public class AuthService {
         
         if (role == User.Role.STAFF && request.getPropertyId() != null) {
             user.setPropertyId(request.getPropertyId());
-            user.setStatus(User.UserStatus.PENDING);
-        } else if (role == User.Role.GUEST || role == User.Role.OWNER) {
-            user.setStatus(User.UserStatus.ACTIVE);
         }
+        
+        // Everyone starts as PENDING until email is verified via OTP
+        user.setStatus(User.UserStatus.PENDING);
 
         userRepository.save(user);
+
+        // ── Generate 6-digit OTP ──
+        String otpCode = String.format("%06d", new java.util.Random().nextInt(999999));
+        
+        // Remove any old OTP for this user if it exists
+        verificationOTPRepository.findByUser(user).ifPresent(verificationOTPRepository::delete);
+        
+        VerificationOTP otp = new VerificationOTP(otpCode, user, 10); // 10 minutes expiry
+        verificationOTPRepository.save(otp);
+
+        // ── Send Verification Email ──
+        emailService.sendVerificationOTPEmail(user.getEmail(), user.getFirstName(), otpCode);
 
         AuditLog log = new AuditLog();
         log.setUserId(user.getId());
@@ -129,7 +144,7 @@ public class AuthService {
             throw new CustomException("Incorrect password", HttpStatus.UNAUTHORIZED);
         }
 
-        // ✅ Block login for specific statuses
+        // Block login for specific statuses
         if (user.getStatus() == User.UserStatus.REJECTED) {
             throw new CustomException("Your account has been rejected. Please contact support.", HttpStatus.FORBIDDEN);
         }
@@ -225,6 +240,50 @@ public class AuthService {
         log.setUserName(user.getEmail());
         log.setUserRole(user.getRole().name());
         log.setAction("PASSWORD_RESET");
+        log.setEntity("AUTH");
+        log.setEntityDetail(user.getEmail());
+        log.setTimestamp(LocalDateTime.now());
+        auditLogRepository.save(log);
+    }
+
+    // ───────────────────────── VERIFY EMAIL (OTP) ─────────────────────────
+    @Transactional
+    public void verifyEmail(String email, String code) {
+        User user = userRepository.findByEmail(email.toLowerCase())
+                .orElseThrow(() -> new CustomException("User not found", HttpStatus.NOT_FOUND));
+
+        VerificationOTP otp = verificationOTPRepository.findByUser(user)
+                .orElseThrow(() -> new CustomException("No verification code found for this user", HttpStatus.BAD_REQUEST));
+
+        if (otp.isExpired()) {
+            verificationOTPRepository.delete(otp);
+            throw new CustomException("Verification code has expired", HttpStatus.BAD_REQUEST);
+        }
+
+        if (!otp.getOtp().equals(code)) {
+            throw new CustomException("Invalid verification code", HttpStatus.BAD_REQUEST);
+        }
+
+        // Logic for role-based activation
+        if (user.getRole() == User.Role.STAFF) {
+            // Staff members verified their email, but still need Owner approval
+            // So we keep them as PENDING, but we can mark their email as verified if we had a flag.
+            // For now, they stay PENDING so they can't login yet.
+            user.setStatus(User.UserStatus.PENDING);
+        } else {
+            // Guests and Owners are activated immediately after OTP verification
+            user.setStatus(User.UserStatus.ACTIVE);
+        }
+
+        userRepository.save(user);
+        verificationOTPRepository.delete(otp); // Clear OTP after success
+
+        // Log the action
+        AuditLog log = new AuditLog();
+        log.setUserId(user.getId());
+        log.setUserName(user.getEmail());
+        log.setUserRole(user.getRole().name());
+        log.setAction("EMAIL_VERIFIED");
         log.setEntity("AUTH");
         log.setEntityDetail(user.getEmail());
         log.setTimestamp(LocalDateTime.now());

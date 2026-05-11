@@ -39,4 +39,10 @@ public class AuthController {
             return ResponseEntity.badRequest().body("Invalid or expired reset link. Please request a new one.");
         }
     }
+
+    @PostMapping("/verify-email")
+    public ResponseEntity<String> verifyEmail(@RequestBody VerifyEmailRequest request) {
+        authService.verifyEmail(request.getEmail(), request.getOtp());
+        return ResponseEntity.ok("Email verified successfully.");
+    }
 }
