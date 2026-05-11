@@ -36,12 +36,16 @@ public class CloudinaryConfig {
     @Value("${cloudinary.api-secret:}")
     private String apiSecret;
 
+    @Value("${cloudinary.upload-preset:}")
+    private String uploadPreset;
+
     @Bean
     public Map<String, String> cloudinaryCredentials() {
         return Map.of(
             "cloud_name", cloudName,
             "api_key", apiKey,
-            "api_secret", apiSecret
+            "api_secret", apiSecret,
+            "upload_preset", uploadPreset
         );
     }
 
