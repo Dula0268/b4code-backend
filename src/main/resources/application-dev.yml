@@ -54,6 +54,8 @@ spring:
           issuer-uri: ${JWT_ISSUER_URI:} 
 
 b4code:
+  qr:
+    base-url: http://localhost:3000
   security:
     jwt:
       secret: ${JWT_SECRET}

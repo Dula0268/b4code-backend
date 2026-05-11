@@ -1,13 +1,15 @@
 package com.b4code.backend.modules.guest.rest;
 
 import com.b4code.backend.modules.staff.entity.Order;
-import com.b4code.backend.modules.staff.repository.OrderRepository;
+import com.b4code.backend.modules.guest.service.GuestOrderService;
+import com.b4code.backend.modules.guest.dto.OrderRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/orders")
@@ -16,45 +18,28 @@ import java.util.List;
 @CrossOrigin(origins = "*")
 public class GuestOrderController {
 
-    private final OrderRepository orderRepository;
-    private final com.b4code.backend.modules.staff.repository.MenuItemRepository menuItemRepository;
+    private final GuestOrderService guestOrderService;
 
     @PostMapping
-    public ResponseEntity<Order> placeOrder(@RequestBody com.b4code.backend.modules.guest.dto.OrderRequest request) {
+    public ResponseEntity<Order> placeOrder(@RequestBody OrderRequest request) {
         log.info("Placing new order for guest: {} at property: {}", request.getGuestId(), request.getPropertyId());
-        
-        Order order = new Order();
-        order.setPropertyId(request.getPropertyId());
-        order.setGuestId(request.getGuestId());
-        order.setRoomNumber(request.getRoomNumber());
-        order.setTotalAmount(request.getTotalAmount());
-        order.setStatus(request.getStatus() != null ? request.getStatus() : "NEW");
-
-        if (request.getItems() != null) {
-            for (com.b4code.backend.modules.guest.dto.OrderRequest.OrderItemRequest itemReq : request.getItems()) {
-                com.b4code.backend.modules.staff.entity.OrderItem item = new com.b4code.backend.modules.staff.entity.OrderItem();
-                item.setOrder(order);
-                item.setQuantity(itemReq.getQuantity());
-                item.setPriceAtOrder(itemReq.getPriceAtOrder());
-                
-                menuItemRepository.findById(itemReq.getMenuItemId()).ifPresent(item::setMenuItem);
-                order.getItems().add(item);
-            }
-        }
-
-        return ResponseEntity.ok(orderRepository.save(order));
+        return ResponseEntity.ok(guestOrderService.placeOrder(request));
     }
 
     @GetMapping("/guest/{guestId}")
-    public ResponseEntity<List<Order>> getGuestOrderHistory(@PathVariable Long guestId) {
-        log.info("Fetching order history for guest: {}", guestId);
-        return ResponseEntity.ok(orderRepository.findByGuestIdOrderByCreatedAtDesc(guestId));
+    public ResponseEntity<Page<Order>> getGuestOrderHistory(
+            @PathVariable Long guestId,
+            @PageableDefault(size = 10) Pageable pageable) {
+        log.info("Fetching order history for guest: {}, page: {}", guestId, pageable.getPageNumber());
+        return ResponseEntity.ok(guestOrderService.getGuestOrderHistory(guestId, pageable));
     }
 
     @GetMapping("/{orderId}")
     public ResponseEntity<Order> getOrderById(@PathVariable Long orderId) {
-        return orderRepository.findById(orderId)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+        try {
+            return ResponseEntity.ok(guestOrderService.getOrderById(orderId));
+        } catch (RuntimeException e) {
+            return ResponseEntity.notFound().build();
+        }
     }
 }

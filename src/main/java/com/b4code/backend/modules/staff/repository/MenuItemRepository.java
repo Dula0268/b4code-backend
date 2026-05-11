@@ -8,6 +8,7 @@ import java.util.List;
 
 @Repository
 public interface MenuItemRepository extends JpaRepository<MenuItem, Long> {
+    org.springframework.data.domain.Page<MenuItem> findByPropertyId(Long propertyId, org.springframework.data.domain.Pageable pageable);
     List<MenuItem> findByPropertyId(Long propertyId);
     List<MenuItem> findByPropertyIdAndCategory(Long propertyId, String category);
     void deleteByPropertyIdAndCategory(Long propertyId, String category);
