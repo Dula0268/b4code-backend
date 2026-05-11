@@ -20,6 +20,28 @@ public class EmailService {
     private String fromEmail;
 
     @Async
+    public void sendVerificationOTPEmail(String toEmail, String guestName, String otp) {
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+
+            helper.setFrom(fromEmail, "Prime Stay");
+            helper.setTo(toEmail);
+            helper.setSubject("Verify Your Prime Stay Account");
+
+            String htmlContent = buildVerificationOTPHtml(guestName, otp);
+            helper.setText(htmlContent, true);
+
+            log.info("[EMAIL] Attempting to send OTP email to {}...", toEmail);
+            mailSender.send(message);
+            log.info("[OTP DEBUG] Verification OTP for {} is: {}", toEmail, otp);
+            log.info("[EMAIL] Verification OTP email successfully sent to: {}", toEmail);
+        } catch (Exception e) {
+            log.error("[EMAIL ERROR] Failed to send verification OTP email to {}: {}", toEmail, e.getMessage(), e);
+        }
+    }
+
+    @Async
     public void sendPasswordResetEmail(String toEmail, String resetLink) {
         try {
             MimeMessage message = mailSender.createMimeMessage();
@@ -126,6 +148,59 @@ public class EmailService {
             </body>
             </html>
             """.formatted(guestName, propertyName, confirmationNumber, checkIn, checkOut, totalAmount);
+    }
+
+    private String buildVerificationOTPHtml(String guestName, String otp) {
+        return """
+            <!DOCTYPE html>
+            <html lang="en">
+            <head>
+              <meta charset="UTF-8" />
+              <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+            </head>
+            <body style="margin:0;padding:0;background:#f5f5f5;font-family:'Segoe UI',Arial,sans-serif;">
+              <table width="100%%" cellpadding="0" cellspacing="0" style="background:#f5f5f5;padding:40px 0;">
+                <tr>
+                  <td align="center">
+                    <table width="520" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08);">
+                      <!-- Header -->
+                      <tr>
+                        <td style="background:linear-gradient(135deg,#9a3300,#c44a00);padding:36px 40px;text-align:center;">
+                          <h1 style="margin:0;color:#ffffff;font-size:26px;font-weight:800;letter-spacing:-0.5px;">PRIME STAY</h1>
+                          <p style="margin:6px 0 0;color:rgba(255,255,255,0.8);font-size:13px;">Sri Lanka's Premier Hospitality Platform</p>
+                        </td>
+                      </tr>
+                      <!-- Body -->
+                      <tr>
+                        <td style="padding:40px;">
+                          <h2 style="margin:0 0 12px;color:#1d1d1d;font-size:22px;font-weight:700;">Verify Your Email</h2>
+                          <p style="margin:0 0 24px;color:#555555;font-size:15px;line-height:1.6;">
+                            Hello %s, thank you for joining Prime Stay. Please use the following One-Time Password (OTP) to verify your account. This code is valid for <strong>10 minutes</strong>.
+                          </p>
+                          
+                          <!-- OTP Card -->
+                          <div style="background:#fdfaf8;border:1px solid #f3e8e2;border-radius:12px;padding:32px;margin:0 0 28px;text-align:center;">
+                            <span style="color:#9a3300;font-size:36px;font-weight:800;letter-spacing:8px;font-family:monospace;">%s</span>
+                          </div>
+                          
+                          <p style="margin:0 0 28px;color:#555555;font-size:14px;line-height:1.6;">
+                            If you did not create an account with us, you can safely ignore this email.
+                          </p>
+                          
+                          <hr style="border:none;border-top:1px solid #eeeeee;margin:0 0 24px;"/>
+                          
+                          <p style="margin:0;color:#aaaaaa;font-size:12px;line-height:1.6;text-align:center;">
+                            &copy; 2025 Prime Stay Sri Lanka. All rights reserved.
+                          </p>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+            </body>
+            </html>
+            """.formatted(guestName, otp);
     }
 
     private String buildPasswordResetHtml(String resetLink) {
