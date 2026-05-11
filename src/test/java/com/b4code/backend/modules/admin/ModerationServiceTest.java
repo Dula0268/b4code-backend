@@ -34,18 +34,22 @@ import static org.mockito.Mockito.*;
  * Unit tests for ModerationServiceImpl.
  *
  * HOW TO RUN:
- *   cd "Backend/b4code-backend"
- *   ./mvnw test -Dtest=ModerationServiceTest
- *   (or run all: ./mvnw test)
+ * cd "Backend/b4code-backend"
+ * ./mvnw test -Dtest=ModerationServiceTest
+ * (or run all: ./mvnw test)
  */
 @ExtendWith(MockitoExtension.class)
 class ModerationServiceTest {
 
-    @Mock FlaggedReviewRepository reviewRepository;
-    @Mock ModerationHistoryRepository historyRepository;
-    @Mock DisputeRepository disputeRepository;
+    @Mock
+    FlaggedReviewRepository reviewRepository;
+    @Mock
+    ModerationHistoryRepository historyRepository;
+    @Mock
+    DisputeRepository disputeRepository;
 
-    @InjectMocks ModerationServiceImpl service;
+    @InjectMocks
+    ModerationServiceImpl service;
 
     private FlaggedReview flaggedReview;
 
@@ -121,7 +125,7 @@ class ModerationServiceTest {
 
         var result = service.getFlaggedReviews(ReviewStatus.FLAGGED, null, null, null, 0, 10);
         assertThat(result.getContent()).hasSize(1);
-        assertThat(result.getContent().get(0).getStatus()).isEqualTo("FLAGGED");
+        assertThat(result.getContent().get(0).getStatus()).isEqualTo("Flagged");
     }
 
     // ─── getPendingReviewCount ───────────────────────────────────────────────────
