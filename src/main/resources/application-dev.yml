@@ -5,6 +5,11 @@ spring:
     password: ${DB_PASSWORD:b4codepass}
     driver-class-name: org.postgresql.Driver
 
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
+
   jpa:
     hibernate:
       ddl-auto: update
