@@ -1,13 +1,14 @@
 package com.b4code.backend.modules.guest.rest;
 
-import com.b4code.backend.modules.staff.entity.MenuItem;
-import com.b4code.backend.modules.staff.repository.MenuItemRepository;
+import com.b4code.backend.modules.guest.dto.MenuItemDto;
+import com.b4code.backend.modules.guest.service.GuestMenuService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/guest/order")
@@ -16,21 +17,18 @@ import java.util.List;
 @CrossOrigin(origins = "*")
 public class GuestMenuController {
 
-    private final MenuItemRepository menuItemRepository;
+    private final GuestMenuService guestMenuService;
 
     @GetMapping("/menu")
-    public ResponseEntity<List<MenuItem>> getGuestMenu(
+    public ResponseEntity<Page<MenuItemDto>> getGuestMenu(
             @RequestParam Long propertyId,
             @RequestParam(required = false) Long tableId,
-            @RequestParam(required = false) String roomNumber) {
+            @RequestParam(required = false) String roomNumber,
+            @PageableDefault(size = 20) Pageable pageable) {
         
-        log.info("Guest fetching menu for property: {}, table: {}, room: {}", propertyId, tableId, roomNumber);
+        log.info("Guest fetching menu for property: {}, table: {}, room: {}, page: {}", 
+                propertyId, tableId, roomNumber, pageable.getPageNumber());
         
-        // For now, we just return all items for the property.
-        // In the future, we could filter by availability or specific menu versions for tables/rooms.
-        List<MenuItem> items = menuItemRepository.findByPropertyId(propertyId);
-        
-        log.debug("Found {} items for property {}", items.size(), propertyId);
-        return ResponseEntity.ok(items);
+        return ResponseEntity.ok(guestMenuService.getMenuForProperty(propertyId, pageable));
     }
 }
