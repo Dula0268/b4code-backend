@@ -12,10 +12,7 @@ import com.b4code.backend.modules.admin.dao.FlaggedReviewRepository;
 import com.b4code.backend.modules.admin.dao.DisputeRepository;
 import com.b4code.backend.modules.admin.enums.ReviewStatus;
 import com.b4code.backend.modules.admin.enums.DisputeStatus;
-
-import com.b4code.backend.modules.admin.models.Transaction;
-import com.b4code.backend.modules.admin.models.Refund;
-import com.b4code.backend.modules.admin.models.Payout;
+import com.b4code.backend.modules.admin.enums.PropertyStatus;
 import com.b4code.backend.modules.admin.models.Property;
 import com.b4code.backend.modules.admin.dao.PropertyRepository;
 import com.b4code.backend.modules.staff.entity.MenuItem;
@@ -25,7 +22,6 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 import org.springframework.boot.CommandLineRunner;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
@@ -37,47 +33,54 @@ public class DataSeeder implements CommandLineRunner {
     private final FlaggedReviewRepository flaggedReviewRepository;
     private final DisputeRepository disputeRepository;
     private final MenuItemRepository menuItemRepository;
+    private final PropertyRepository propertyRepository;
     private final PasswordEncoder passwordEncoder;
-    private final TransactionRepository transactionRepository;
-    private final RefundRepository refundRepository;
-    private final PayoutRepository payoutRepository;
-    private final PropertyRepository propertyRepository;
-    private final JdbcTemplate jdbcTemplate;
 
     public DataSeeder(UserRepository userRepository,
-            AdminUserRepository adminUserRepository,
-            FlaggedReviewRepository flaggedReviewRepository,
-            DisputeRepository disputeRepository,
-            MenuItemRepository menuItemRepository,
-            PasswordEncoder passwordEncoder) {
-
-    private final PropertyRepository propertyRepository;
-
-    public DataSeeder(UserRepository userRepository,
-            AdminUserRepository adminUserRepository,
-            FlaggedReviewRepository flaggedReviewRepository,
-            DisputeRepository disputeRepository,
-            MenuItemRepository menuItemRepository,
-            PasswordEncoder passwordEncoder,
-            PropertyRepository propertyRepository) {
+                      AdminUserRepository adminUserRepository,
+                      FlaggedReviewRepository flaggedReviewRepository,
+                      DisputeRepository disputeRepository,
+                      MenuItemRepository menuItemRepository,
+                      PropertyRepository propertyRepository,
+                      PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
         this.adminUserRepository = adminUserRepository;
         this.flaggedReviewRepository = flaggedReviewRepository;
         this.disputeRepository = disputeRepository;
         this.menuItemRepository = menuItemRepository;
+        this.propertyRepository = propertyRepository;
         this.passwordEncoder = passwordEncoder;
-        this.transactionRepository = transactionRepository;
-        this.refundRepository = refundRepository;
-        this.payoutRepository = payoutRepository;
-        this.propertyRepository = propertyRepository;
-        this.jdbcTemplate = jdbcTemplate;
-        this.propertyRepository = propertyRepository;
     }
 
     @Override
     public void run(String... args) {
 
-        // ✅ Ensure admin always exists
+        // 1. Seed Properties first so we have IDs to link to
+        if (propertyRepository.count() == 0) {
+            Property p1 = new Property();
+            p1.setName("Sunset Villa");
+            p1.setPvId("PV-1001");
+            p1.setOwnerName("Alex Owner");
+            p1.setOwnerId(1L);
+            p1.setStatus(PropertyStatus.APPROVED);
+            p1.setSubmittedAt(LocalDateTime.now());
+            p1.setAddress("123 Sunset Blvd, Miami, FL");
+            propertyRepository.save(p1);
+
+            Property p2 = new Property();
+            p2.setName("Ocean Breeze");
+            p2.setPvId("PV-1002");
+            p2.setOwnerName("Alex Owner");
+            p2.setOwnerId(1L);
+            p2.setStatus(PropertyStatus.APPROVED);
+            p2.setSubmittedAt(LocalDateTime.now());
+            p2.setAddress("456 Ocean Dr, Miami, FL");
+            propertyRepository.save(p2);
+
+            System.out.println("✅ Test properties seeded");
+        }
+
+        // 2. Ensure admin always exists
         userRepository.findByEmail("admin@primestay.com").ifPresentOrElse(
                 admin -> {
                     if (admin.getRole() != User.Role.ADMIN) {
@@ -99,10 +102,8 @@ public class DataSeeder implements CommandLineRunner {
                 });
 
         // 3. Seed other users
-        seedUserIfMissing("guest@primestay.com", "guest123", "John", "Doe", User.Role.GUEST, null,
-                User.UserStatus.ACTIVE);
-        seedUserIfMissing("guest1@primestay.com", "guest123", "Alice", "Guest", User.Role.GUEST, 1L,
-                User.UserStatus.ACTIVE);
+        seedUserIfMissing("guest@primestay.com", "guest123", "John", "Doe", User.Role.GUEST, null, User.UserStatus.ACTIVE);
+        seedUserIfMissing("guest1@primestay.com", "guest123", "Alice", "Guest", User.Role.GUEST, 1L, User.UserStatus.ACTIVE);
 
         // Ensure guest1 has propertyId = 1 if already seeded
         userRepository.findByEmail("guest1@primestay.com").ifPresent(u -> {
@@ -113,14 +114,12 @@ public class DataSeeder implements CommandLineRunner {
             }
         });
 
-        seedUserIfMissing("owner@primestay.com", "owner123", "Alex", "Owner", User.Role.OWNER, null,
-                User.UserStatus.ACTIVE);
+        seedUserIfMissing("owner@primestay.com", "owner123", "Alex", "Owner", User.Role.OWNER, null, User.UserStatus.ACTIVE);
 
         // ✅ Specific Staff Login (Linked to Property 1 and APPROVED)
-        seedUserIfMissing("staff@primestay.com", "staff123", "Mike", "Staff", User.Role.STAFF, 1L,
-                User.UserStatus.APPROVED);
+        seedUserIfMissing("staff@primestay.com", "staff123", "Mike", "Staff", User.Role.STAFF, 1L, User.UserStatus.APPROVED);
 
-        // ✅ Admin users table
+        // 4. Admin users table
         if (adminUserRepository.count() == 0) {
             seedAdminUser("Sarah", "Jenkins", "sarah.j@primestay.com", UserRole.OWNER, UserStatus.ACTIVE);
             seedAdminUser("Mike", "Ross", "mike.ross@primestay.com", UserRole.STAFF, UserStatus.ACTIVE);
@@ -133,7 +132,7 @@ public class DataSeeder implements CommandLineRunner {
             System.out.println("✅ Sample admin_users seeded (8 records)");
         }
 
-        // ✅ Seed Flagged Reviews
+        // 5. Seed Flagged Reviews
         if (flaggedReviewRepository.count() == 0) {
             seedFlaggedReview(101L, "Oceanview Villa", 201L, "Alice Smith", "AS", "blue",
                     "The place was a total mess and not as described. Bugs everywhere!", 1.5, "Inappropriate Content",
@@ -146,7 +145,7 @@ public class DataSeeder implements CommandLineRunner {
             System.out.println("✅ Flagged reviews seeded");
         }
 
-        // ✅ Seed Disputes
+        // 6. Seed Disputes
         if (disputeRepository.count() == 0) {
             seedDispute("DSP-1001", 201L, "Alice Smith", 101L, "Oceanview Villa", "BKG-9901",
                     "Host cancelled last minute, requesting full refund.", new BigDecimal("15000.00"), "LKR",
@@ -157,7 +156,7 @@ public class DataSeeder implements CommandLineRunner {
             System.out.println("✅ Disputes seeded");
         }
 
-        // ✅ Seed/Update Menu Items for Property 1
+        // 7. Seed/Update Menu Items for Property 1
         seedOrUpdateMenuItem(1L, "Classic Margherita Pizza", "Main",
                 "Fresh mozzarella, basil, and tomato sauce on a thin crust.", new BigDecimal("2500.00"),
                 java.util.List.of(
@@ -172,8 +171,7 @@ public class DataSeeder implements CommandLineRunner {
                         "https://res.cloudinary.com/dfydjkjw8/image/upload/v1778485194/t6e27scjzdoufdwqfvga.jpg"));
         seedOrUpdateMenuItem(1L, "Watalappam", "Dessert",
                 "Traditional Sri Lankan coconut custard pudding with jaggery.", new BigDecimal("850.00"),
-                java.util.List
-                        .of("https://res.cloudinary.com/dfydjkjw8/image/upload/v1778485193/quifhrtj1wg0mjgb5pya.jpg"));
+                java.util.List.of("https://res.cloudinary.com/dfydjkjw8/image/upload/v1778485193/quifhrtj1wg0mjgb5pya.jpg"));
         seedOrUpdateMenuItem(1L, "Fresh King Coconut", "Drink", "Chilled natural king coconut water.",
                 new BigDecimal("450.00"),
                 java.util.List.of(
@@ -182,13 +180,15 @@ public class DataSeeder implements CommandLineRunner {
         System.out.println("✅ Menu items synced for Property 1");
     }
 
-    private void seedUserIfMissing(String email, String password, String first, String last, User.Role role) {
+    private void seedUserIfMissing(String email, String password, String first, String last, User.Role role, Long propertyId, User.UserStatus status) {
         userRepository.findByEmail(email).ifPresentOrElse(
                 user -> {
-                    if (user.getRole() != role) {
+                    if (user.getRole() != role || (propertyId != null && !propertyId.equals(user.getPropertyId())) || (status != null && user.getStatus() != status)) {
                         user.setRole(role);
+                        user.setPropertyId(propertyId);
+                        if (status != null) user.setStatus(status);
                         userRepository.save(user);
-                        System.out.println("✅ Forcefully updated " + email + " to " + role + " role");
+                        System.out.println("✅ Updated " + email + " to " + role + " role");
                     }
                 },
                 () -> {
@@ -198,9 +198,10 @@ public class DataSeeder implements CommandLineRunner {
                     user.setFirstName(first);
                     user.setLastName(last);
                     user.setRole(role);
-                    user.setStatus(User.UserStatus.ACTIVE);
+                    user.setPropertyId(propertyId);
+                    user.setStatus(status != null ? status : User.UserStatus.ACTIVE);
                     userRepository.save(user);
-                    System.out.println("✅ Default " + role + " user created: " + email);
+                    System.out.println("✅ Seeded user: " + email);
                 });
     }
 

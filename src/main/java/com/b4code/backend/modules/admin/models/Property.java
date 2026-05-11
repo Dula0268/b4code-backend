@@ -33,6 +33,12 @@ public class Property {
     private Long ownerId;              
 
     private String ownerName;          
+    private String city;
+    private String destination;
+    private String propertyType;
+    private Boolean published = false;
+    private Double averageRating;
+    private Integer reviewCount;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
