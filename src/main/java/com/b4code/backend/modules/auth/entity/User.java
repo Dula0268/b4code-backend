@@ -34,6 +34,9 @@ public class User {
 
     @Column
     private Long propertyId;
+    
+    @Column
+    private Long roomId;
 
     @Column(name = "avatar_url")
     private String avatarUrl;

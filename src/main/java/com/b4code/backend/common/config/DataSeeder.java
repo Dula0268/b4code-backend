@@ -10,16 +10,17 @@ import com.b4code.backend.modules.admin.models.FlaggedReview;
 import com.b4code.backend.modules.admin.models.Dispute;
 import com.b4code.backend.modules.admin.dao.FlaggedReviewRepository;
 import com.b4code.backend.modules.admin.dao.DisputeRepository;
+import com.b4code.backend.modules.admin.dao.PropertyRepository;
 import com.b4code.backend.modules.admin.enums.ReviewStatus;
 import com.b4code.backend.modules.admin.enums.DisputeStatus;
 import com.b4code.backend.modules.admin.enums.PropertyStatus;
 import com.b4code.backend.modules.admin.models.Property;
-import com.b4code.backend.modules.admin.dao.PropertyRepository;
 import com.b4code.backend.modules.staff.entity.MenuItem;
 import com.b4code.backend.modules.staff.repository.MenuItemRepository;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -110,14 +111,15 @@ public class DataSeeder implements CommandLineRunner {
             if (u.getPropertyId() == null || u.getPropertyId() != 1L) {
                 u.setPropertyId(1L);
                 userRepository.save(u);
-                System.out.println("Updated guest1 propertyId to 1");
+                System.out.println("✅ Updated guest1 propertyId to 1");
             }
         });
 
         seedUserIfMissing("owner@primestay.com", "owner123", "Alex", "Owner", User.Role.OWNER, null, User.UserStatus.ACTIVE);
 
-        // ✅ Specific Staff Login (Linked to Property 1 and APPROVED)
+        // ✅ Specific Staff Logins (Linked to Property 1 and 2)
         seedUserIfMissing("staff@primestay.com", "staff123", "Mike", "Staff", User.Role.STAFF, 1L, User.UserStatus.APPROVED);
+        seedUserIfMissing("staff2@primestay.com", "staff123", "Jane", "Staff", User.Role.STAFF, 2L, User.UserStatus.APPROVED);
 
         // 4. Admin users table
         if (adminUserRepository.count() == 0) {
@@ -159,28 +161,29 @@ public class DataSeeder implements CommandLineRunner {
         // 7. Seed/Update Menu Items for Property 1
         seedOrUpdateMenuItem(1L, "Classic Margherita Pizza", "Main",
                 "Fresh mozzarella, basil, and tomato sauce on a thin crust.", new BigDecimal("2500.00"),
-                java.util.List.of(
+                List.of(
                         "https://res.cloudinary.com/dfydjkjw8/image/upload/v1778485194/pro3e5jrllljbttvqsni.jpg",
                         "https://res.cloudinary.com/dfydjkjw8/image/upload/v1778485195/v0tkfbvbokimxyjblsgc.jpg",
                         "https://res.cloudinary.com/dfydjkjw8/image/upload/v1778485038/iknjlwvyxlusvpa6npex.jpg"));
         seedOrUpdateMenuItem(1L, "Sri Lankan Rice & Curry", "Main",
                 "Authentic village-style rice and curry with chicken and assorted vegetables.",
                 new BigDecimal("1800.00"),
-                java.util.List.of(
+                List.of(
                         "https://res.cloudinary.com/dfydjkjw8/image/upload/v1778485192/tsjra56wpkcjjsralkdt.jpg",
                         "https://res.cloudinary.com/dfydjkjw8/image/upload/v1778485194/t6e27scjzdoufdwqfvga.jpg"));
         seedOrUpdateMenuItem(1L, "Watalappam", "Dessert",
                 "Traditional Sri Lankan coconut custard pudding with jaggery.", new BigDecimal("850.00"),
-                java.util.List.of("https://res.cloudinary.com/dfydjkjw8/image/upload/v1778485193/quifhrtj1wg0mjgb5pya.jpg"));
+                List.of("https://res.cloudinary.com/dfydjkjw8/image/upload/v1778485193/quifhrtj1wg0mjgb5pya.jpg"));
         seedOrUpdateMenuItem(1L, "Fresh King Coconut", "Drink", "Chilled natural king coconut water.",
                 new BigDecimal("450.00"),
-                java.util.List.of(
+                List.of(
                         "https://res.cloudinary.com/dfydjkjw8/image/upload/v1778485190/fjoolp2br10pqp56u2t3.jpg",
                         "https://res.cloudinary.com/dfydjkjw8/image/upload/v1778485191/lk3whcfcoanysx611dnu.jpg"));
         System.out.println("✅ Menu items synced for Property 1");
     }
 
-    private void seedUserIfMissing(String email, String password, String first, String last, User.Role role, Long propertyId, User.UserStatus status) {
+    private void seedUserIfMissing(String email, String password, String first, String last, User.Role role,
+            Long propertyId, User.UserStatus status) {
         userRepository.findByEmail(email).ifPresentOrElse(
                 user -> {
                     if (user.getRole() != role || (propertyId != null && !propertyId.equals(user.getPropertyId())) || (status != null && user.getStatus() != status)) {
@@ -257,7 +260,7 @@ public class DataSeeder implements CommandLineRunner {
     }
 
     private void seedOrUpdateMenuItem(Long propertyId, String name, String category, String description,
-            BigDecimal price, java.util.List<String> imageUrls) {
+            BigDecimal price, List<String> imageUrls) {
         menuItemRepository.findByName(name).ifPresentOrElse(
                 item -> {
                     item.setCategory(category);
