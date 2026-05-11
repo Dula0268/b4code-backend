@@ -51,7 +51,6 @@ public class DataSeeder implements CommandLineRunner {
         this.menuItemRepository = menuItemRepository;
         this.passwordEncoder = passwordEncoder;
     }
-
     @Override
     public void run(String... args) {
 
@@ -146,14 +145,26 @@ public class DataSeeder implements CommandLineRunner {
             System.out.println("✅ Disputes seeded");
         }
 
-        // ✅ Seed Menu Items for Property 1
-        if (menuItemRepository.count() == 0) {
-            seedMenuItem(1L, "Classic Margherita Pizza", "Main", "Fresh mozzarella, basil, and tomato sauce on a thin crust.", new BigDecimal("2500.00"));
-            seedMenuItem(1L, "Sri Lankan Rice & Curry", "Main", "Authentic village-style rice and curry with chicken and assorted vegetables.", new BigDecimal("1800.00"));
-            seedMenuItem(1L, "Watalappam", "Dessert", "Traditional Sri Lankan coconut custard pudding with jaggery.", new BigDecimal("850.00"));
-            seedMenuItem(1L, "Fresh King Coconut", "Drink", "Chilled natural king coconut water.", new BigDecimal("450.00"));
-            System.out.println("✅ Menu items seeded for Property 1");
-        }
+        // ✅ Seed/Update Menu Items for Property 1
+        seedOrUpdateMenuItem(1L, "Classic Margherita Pizza", "Main", "Fresh mozzarella, basil, and tomato sauce on a thin crust.", new BigDecimal("2500.00"), 
+            java.util.List.of(
+                "https://res.cloudinary.com/dfydjkjw8/image/upload/v1778485194/pro3e5jrllljbttvqsni.jpg",
+                "https://res.cloudinary.com/dfydjkjw8/image/upload/v1778485195/v0tkfbvbokimxyjblsgc.jpg",
+                "https://res.cloudinary.com/dfydjkjw8/image/upload/v1778485038/iknjlwvyxlusvpa6npex.jpg"
+            ));
+        seedOrUpdateMenuItem(1L, "Sri Lankan Rice & Curry", "Main", "Authentic village-style rice and curry with chicken and assorted vegetables.", new BigDecimal("1800.00"), 
+            java.util.List.of(
+                "https://res.cloudinary.com/dfydjkjw8/image/upload/v1778485192/tsjra56wpkcjjsralkdt.jpg",
+                "https://res.cloudinary.com/dfydjkjw8/image/upload/v1778485194/t6e27scjzdoufdwqfvga.jpg"
+            ));
+        seedOrUpdateMenuItem(1L, "Watalappam", "Dessert", "Traditional Sri Lankan coconut custard pudding with jaggery.", new BigDecimal("850.00"), 
+            java.util.List.of("https://res.cloudinary.com/dfydjkjw8/image/upload/v1778485193/quifhrtj1wg0mjgb5pya.jpg"));
+        seedOrUpdateMenuItem(1L, "Fresh King Coconut", "Drink", "Chilled natural king coconut water.", new BigDecimal("450.00"), 
+            java.util.List.of(
+                "https://res.cloudinary.com/dfydjkjw8/image/upload/v1778485190/fjoolp2br10pqp56u2t3.jpg",
+                "https://res.cloudinary.com/dfydjkjw8/image/upload/v1778485191/lk3whcfcoanysx611dnu.jpg"
+            ));
+        System.out.println("✅ Menu items synced for Property 1");
     }
 
     private void seedUserIfMissing(String email, String password, String first, String last, User.Role role, Long propertyId, User.UserStatus status) {
@@ -229,14 +240,26 @@ public class DataSeeder implements CommandLineRunner {
         disputeRepository.save(dispute);
     }
 
-    private void seedMenuItem(Long propertyId, String name, String category, String description, BigDecimal price) {
-        MenuItem item = new MenuItem();
-        item.setPropertyId(propertyId);
-        item.setName(name);
-        item.setCategory(category);
-        item.setDescription(description);
-        item.setPrice(price);
-        item.setIsAvailable(true);
-        menuItemRepository.save(item);
+    private void seedOrUpdateMenuItem(Long propertyId, String name, String category, String description, BigDecimal price, java.util.List<String> imageUrls) {
+        menuItemRepository.findByName(name).ifPresentOrElse(
+            item -> {
+                item.setCategory(category);
+                item.setDescription(description);
+                item.setPrice(price);
+                item.setImageUrls(imageUrls);
+                menuItemRepository.save(item);
+            },
+            () -> {
+                MenuItem item = new MenuItem();
+                item.setPropertyId(propertyId);
+                item.setName(name);
+                item.setCategory(category);
+                item.setDescription(description);
+                item.setPrice(price);
+                item.setIsAvailable(true);
+                item.setImageUrls(imageUrls);
+                menuItemRepository.save(item);
+            }
+        );
     }
 }
