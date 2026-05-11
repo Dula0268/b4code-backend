@@ -15,6 +15,8 @@ import com.b4code.backend.modules.admin.enums.ReviewStatus;
 import com.b4code.backend.modules.admin.enums.DisputeStatus;
 import com.b4code.backend.modules.admin.enums.PropertyStatus;
 import com.b4code.backend.modules.admin.models.Property;
+import com.b4code.backend.modules.staff.entity.MenuItem;
+import com.b4code.backend.modules.staff.repository.MenuItemRepository;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -31,20 +33,22 @@ public class DataSeeder implements CommandLineRunner {
     private final PropertyRepository propertyRepository;
     private final FlaggedReviewRepository flaggedReviewRepository;
     private final DisputeRepository disputeRepository;
+    private final MenuItemRepository menuItemRepository;
     private final PasswordEncoder passwordEncoder;
 
-    // Manual constructor to avoid Lombok @RequiredArgsConstructor issues
     public DataSeeder(UserRepository userRepository,
             AdminUserRepository adminUserRepository,
             PropertyRepository propertyRepository,
             FlaggedReviewRepository flaggedReviewRepository,
             DisputeRepository disputeRepository,
+            MenuItemRepository menuItemRepository,
             PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
         this.adminUserRepository = adminUserRepository;
         this.propertyRepository = propertyRepository;
         this.flaggedReviewRepository = flaggedReviewRepository;
         this.disputeRepository = disputeRepository;
+        this.menuItemRepository = menuItemRepository;
         this.passwordEncoder = passwordEncoder;
     }
 
@@ -98,6 +102,17 @@ public class DataSeeder implements CommandLineRunner {
 
         // 3. Seed other users
         seedUserIfMissing("guest@primestay.com", "guest123", "John", "Doe", User.Role.GUEST, null, User.UserStatus.ACTIVE);
+        seedUserIfMissing("guest1@primestay.com", "guest123", "Alice", "Guest", User.Role.GUEST, 1L, User.UserStatus.ACTIVE);
+        
+        // Ensure guest1 has propertyId = 1 if already seeded
+        userRepository.findByEmail("guest1@primestay.com").ifPresent(u -> {
+            if (u.getPropertyId() == null || u.getPropertyId() != 1L) {
+                u.setPropertyId(1L);
+                userRepository.save(u);
+                System.out.println("Updated guest1 propertyId to 1");
+            }
+        });
+
         seedUserIfMissing("owner@primestay.com", "owner123", "Alex", "Owner", User.Role.OWNER, null, User.UserStatus.ACTIVE);
         
         // ✅ Specific Staff Login (Linked to Property 1 and APPROVED)
@@ -129,6 +144,15 @@ public class DataSeeder implements CommandLineRunner {
             seedDispute("DSP-1001", 201L, "Alice Smith", 101L, "Oceanview Villa", "BKG-9901", "Host cancelled last minute, requesting full refund.", new BigDecimal("15000.00"), "LKR", "2026-06-01 to 2026-06-05", "Strict", 5, DisputeStatus.OPEN);
             seedDispute("DSP-1002", 204L, "David Brown", 104L, "Desert Oasis", "BKG-9902", "Property amenities missing (no pool as advertised).", new BigDecimal("5000.00"), "LKR", "2026-05-10 to 2026-05-12", "Moderate", 3, DisputeStatus.OPEN);
             System.out.println("✅ Disputes seeded");
+        }
+
+        // ✅ Seed Menu Items for Property 1
+        if (menuItemRepository.count() == 0) {
+            seedMenuItem(1L, "Classic Margherita Pizza", "Main", "Fresh mozzarella, basil, and tomato sauce on a thin crust.", new BigDecimal("2500.00"));
+            seedMenuItem(1L, "Sri Lankan Rice & Curry", "Main", "Authentic village-style rice and curry with chicken and assorted vegetables.", new BigDecimal("1800.00"));
+            seedMenuItem(1L, "Watalappam", "Dessert", "Traditional Sri Lankan coconut custard pudding with jaggery.", new BigDecimal("850.00"));
+            seedMenuItem(1L, "Fresh King Coconut", "Drink", "Chilled natural king coconut water.", new BigDecimal("450.00"));
+            System.out.println("✅ Menu items seeded for Property 1");
         }
     }
 
@@ -203,5 +227,16 @@ public class DataSeeder implements CommandLineRunner {
         dispute.setStatus(status);
         dispute.setOpenedAt(LocalDateTime.now().minusDays(2));
         disputeRepository.save(dispute);
+    }
+
+    private void seedMenuItem(Long propertyId, String name, String category, String description, BigDecimal price) {
+        MenuItem item = new MenuItem();
+        item.setPropertyId(propertyId);
+        item.setName(name);
+        item.setCategory(category);
+        item.setDescription(description);
+        item.setPrice(price);
+        item.setIsAvailable(true);
+        menuItemRepository.save(item);
     }
 }
