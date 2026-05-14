@@ -2,15 +2,11 @@ package com.b4code.backend.modules.owner.service;
 
 import com.b4code.backend.modules.owner.dto.PropertyDto.*;
 import com.b4code.backend.modules.owner.entity.OwnerProperty;
-import com.b4code.backend.modules.owner.entity.PropertyMedia;
 import com.b4code.backend.modules.owner.repository.OwnerPropertyRepository;
 import com.b4code.backend.modules.owner.repository.PropertyMediaRepository;
 import com.b4code.backend.modules.owner.repository.RoomRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 

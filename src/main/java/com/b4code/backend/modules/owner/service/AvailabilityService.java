@@ -4,7 +4,6 @@ import com.b4code.backend.modules.owner.dto.AvailabilityDto.*;
 import com.b4code.backend.modules.owner.entity.RoomAvailability;
 import com.b4code.backend.modules.owner.repository.OwnerPropertyRepository;
 import com.b4code.backend.modules.owner.repository.RoomAvailabilityRepository;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
