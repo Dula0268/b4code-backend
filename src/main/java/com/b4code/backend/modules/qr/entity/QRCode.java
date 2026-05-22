@@ -44,8 +44,9 @@ public class QRCode {
     @Column(length = 255)
     private String location;
 
+    @Enumerated(EnumType.STRING)
     @Column(length = 100)
-    private String type;
+    private QRType type;
     
     @Column(columnDefinition = "TEXT")
     private String qrImageData;

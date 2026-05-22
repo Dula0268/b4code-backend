@@ -40,12 +40,14 @@ public class QRCodeController {
     }
     
     @GetMapping("/{id}")
+    @Operation(summary = "Get QR code details by ID")
     public ResponseEntity<QRCodeResponse> getQRCode(@PathVariable Long id) {
         QRCodeResponse qrCode = qrCodeService.getQRCodeById(id);
         return ResponseEntity.ok(qrCode);
     }
     
     @PutMapping("/{id}")
+    @Operation(summary = "Update QR code details", description = "Updates fields like roomNumber, tableNumber, or location")
     public ResponseEntity<QRCodeResponse> updateQRCode(
             @PathVariable Long id,
             @RequestBody Map<String, Object> updates) {
@@ -61,6 +63,7 @@ public class QRCodeController {
     }
     
     @GetMapping("/value/{qrCodeValue}")
+    @Operation(summary = "Find QR code by its unique string value", description = "Used when a guest scans a QR code to identify the location")
     public ResponseEntity<?> getQRCodeByValue(@PathVariable String qrCodeValue) {
         return qrCodeService.getQRCodeByValue(qrCodeValue)
                 .map(ResponseEntity::ok)
@@ -68,18 +71,21 @@ public class QRCodeController {
     }
     
     @GetMapping("/property/{propertyId}")
+    @Operation(summary = "Get all QR codes for a property (non-paginated)")
     public ResponseEntity<List<QRCodeResponse>> getQRCodesByProperty(@PathVariable Long propertyId) {
         List<QRCodeResponse> qrCodes = qrCodeService.getQRCodesByProperty(propertyId);
         return ResponseEntity.ok(qrCodes);
     }
     
     @GetMapping("/order/{orderId}")
+    @Operation(summary = "Get QR codes associated with an order")
     public ResponseEntity<List<QRCodeResponse>> getQRCodesByOrder(@PathVariable Long orderId) {
         List<QRCodeResponse> qrCodes = qrCodeService.getQRCodesByOrder(orderId);
         return ResponseEntity.ok(qrCodes);
     }
     
     @GetMapping("/property/{propertyId}/status/{status}")
+    @Operation(summary = "Filter QR codes by property and status")
     public ResponseEntity<List<QRCodeResponse>> getQRCodesByPropertyAndStatus(
             @PathVariable Long propertyId,
             @PathVariable String status) {
@@ -89,6 +95,7 @@ public class QRCodeController {
     }
     
     @PatchMapping("/{id}/status")
+    @Operation(summary = "Update QR code status directly")
     public ResponseEntity<QRCodeResponse> updateQRCodeStatus(
             @PathVariable Long id,
             @RequestParam String status) {
@@ -98,18 +105,21 @@ public class QRCodeController {
     }
     
     @PatchMapping("/{id}/scan")
+    @Operation(summary = "Mark a QR code as scanned", description = "Increments scan count or updates last scanned timestamp")
     public ResponseEntity<QRCodeResponse> markQRCodeAsScanned(@PathVariable Long id) {
         QRCodeResponse updated = qrCodeService.markQRCodeAsScanned(id);
         return ResponseEntity.ok(updated);
     }
     
     @DeleteMapping("/{id}")
+    @Operation(summary = "Delete a QR code")
     public ResponseEntity<Void> deleteQRCode(@PathVariable Long id) {
         qrCodeService.deleteQRCode(id);
         return ResponseEntity.noContent().build();
     }
     
     @DeleteMapping("/order/{orderId}")
+    @Operation(summary = "Delete all QR codes for an order")
     public ResponseEntity<Void> deleteQRCodesByOrder(@PathVariable Long orderId) {
         qrCodeService.deleteQRCodesByOrder(orderId);
         return ResponseEntity.noContent().build();

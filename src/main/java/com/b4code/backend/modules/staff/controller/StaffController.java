@@ -21,7 +21,7 @@ import java.util.Optional;
 @RestController
 @RequestMapping("/api/staff")
 @RequiredArgsConstructor
-@Tag(name = "Staff: Property & Context", description = "Endpoints for staff property assignments and context selection")
+@Tag(name = "Staff: Property & Context", description = "Endpoints for staff property assignments and session management")
 public class StaffController {
 
     private final StaffPropertyRepository staffPropertyRepository;
@@ -56,6 +56,8 @@ public class StaffController {
 
     // Assign a property to a staff member (Admin only)
     @PostMapping("/properties")
+    @Operation(summary = "Assign a property to a staff member", description = "Admin only endpoint to authorize a staff member for a property")
+    @ApiResponse(responseCode = "200", description = "Property assigned successfully")
     public ResponseEntity<StaffProperty> assignProperty(@RequestBody StaffProperty staffProperty) {
         StaffProperty saved = staffPropertyRepository.save(staffProperty);
         return ResponseEntity.ok(saved);
@@ -82,6 +84,8 @@ public class StaffController {
 
     // Remove a property from a staff member (Admin only)
     @DeleteMapping("/properties/{staffId}/{propertyId}")
+    @Operation(summary = "Remove property assignment", description = "Admin only endpoint to deauthorize a staff member from a property")
+    @ApiResponse(responseCode = "240", description = "Assignment removed")
     public ResponseEntity<Void> removeProperty(
             @PathVariable Long staffId,
             @PathVariable Long propertyId) {

@@ -166,7 +166,14 @@ public class QRCodeServiceImpl implements QRCodeService {
         if (updates.containsKey("description")) qrCode.setDescription((String) updates.get("description"));
         if (updates.containsKey("name")) qrCode.setName((String) updates.get("name"));
         if (updates.containsKey("location")) qrCode.setLocation((String) updates.get("location"));
-        if (updates.containsKey("type")) qrCode.setType((String) updates.get("type"));
+        if (updates.containsKey("type")) {
+            Object typeValue = updates.get("type");
+            if (typeValue instanceof com.b4code.backend.modules.qr.entity.QRType) {
+                qrCode.setType((com.b4code.backend.modules.qr.entity.QRType) typeValue);
+            } else if (typeValue instanceof String) {
+                qrCode.setType(com.b4code.backend.modules.qr.entity.QRType.valueOf((String) typeValue));
+            }
+        }
         if (updates.containsKey("status")) qrCode.setStatus((String) updates.get("status"));
         if (updates.containsKey("qrImageData")) qrCode.setQrImageData((String) updates.get("qrImageData"));
         if (updates.containsKey("propertyId")) qrCode.setPropertyId(toLong(updates.get("propertyId")));

@@ -20,7 +20,7 @@ public class QRCodeResponse {
     private String status;
     private String name;
     private String location;
-    private String type;
+    private com.b4code.backend.modules.qr.entity.QRType type;
     private String qrImageData;
     private String qrImageUrl;
     private LocalDateTime createdAt;
