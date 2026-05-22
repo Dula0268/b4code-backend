@@ -1,7 +1,7 @@
 package com.b4code.backend.service;
 
-import com.b4code.backend.modules.admin.dto.AuditLogDto;
-import com.b4code.backend.modules.admin.dto.AuditLogPageDto;
+import com.b4code.backend.dto.AuditLogDto;
+import com.b4code.backend.dto.AuditLogPageDto;
 
 public interface AuditLogService {
     AuditLogPageDto getAuditLogs(String role, String search, int page, int size);

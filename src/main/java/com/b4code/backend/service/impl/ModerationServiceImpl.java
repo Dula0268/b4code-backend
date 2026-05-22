@@ -1,9 +1,9 @@
 package com.b4code.backend.service.impl;
 
 import com.b4code.backend.dao.*;
-import com.b4code.backend.modules.admin.dto.*;
+import com.b4code.backend.dto.*;
 import com.b4code.backend.models.enums.*;
-import com.b4code.backend.modules.admin.exceptions.CustomException;
+import com.b4code.backend.exceptions.CustomException;
 import com.b4code.backend.models.*;
 import com.b4code.backend.service.ModerationService;
 import lombok.RequiredArgsConstructor;

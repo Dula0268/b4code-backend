@@ -1,12 +1,12 @@
 package com.b4code.backend.service.impl;
 
 import com.b4code.backend.dao.PropertyRepository;
-import com.b4code.backend.modules.admin.dto.PropertyDto;
-import com.b4code.backend.modules.admin.dto.PropertyPageDto;
-import com.b4code.backend.modules.admin.dto.PropertyRejectionDto;
-import com.b4code.backend.modules.admin.dto.PropertySimpleDto;
+import com.b4code.backend.dto.PropertyDto;
+import com.b4code.backend.dto.PropertyPageDto;
+import com.b4code.backend.dto.PropertyRejectionDto;
+import com.b4code.backend.dto.PropertySimpleDto;
 import com.b4code.backend.models.enums.PropertyStatus;
-import com.b4code.backend.modules.admin.exceptions.CustomException;
+import com.b4code.backend.exceptions.CustomException;
 import com.b4code.backend.models.Property;
 import com.b4code.backend.service.PropertyService;
 import lombok.RequiredArgsConstructor;

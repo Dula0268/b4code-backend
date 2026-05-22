@@ -15,28 +15,31 @@ import java.util.Optional;
 @Repository
 public interface AdminUserRepository extends JpaRepository<AdminUser, Long> {
 
-    Optional<AdminUser> findByEmailAndDeletedFalse(String email);
+        Optional<AdminUser> findByEmailAndDeletedFalse(String email);
 
-    Optional<AdminUser> findByIdAndDeletedFalse(Long id);
+        Optional<AdminUser> findByIdAndDeletedFalse(Long id);
 
-    @Query("""
-            SELECT u FROM AdminUser u
-            WHERE u.deleted = false
-              AND (
-                    :search IS NULL OR :search = ''
-                    OR LOWER(u.firstName)  LIKE LOWER(CONCAT('%', :search, '%'))
-                    OR LOWER(u.lastName)   LIKE LOWER(CONCAT('%', :search, '%'))
-                    OR LOWER(u.email)      LIKE LOWER(CONCAT('%', :search, '%'))
-                  )
-              AND (:role   IS NULL OR u.role   = :role)
-              AND (:status IS NULL OR u.status = :status)
-            """)
-    Page<AdminUser> findAllWithFilters(
-            @Param("search") String search,
-            @Param("role")   UserRole role,
-            @Param("status") UserStatus status,
-            Pageable pageable
-    );
+        @Query("""
+                        SELECT u FROM AdminUser u
+                        WHERE u.deleted = false
+                          AND (
+                                :search IS NULL OR :search = ''
+                                OR LOWER(u.firstName)  LIKE LOWER(CONCAT('%', :search, '%'))
+                                OR LOWER(u.lastName)   LIKE LOWER(CONCAT('%', :search, '%'))
+                                OR LOWER(u.email)      LIKE LOWER(CONCAT('%', :search, '%'))
+                              )
+                          AND (:role   IS NULL OR u.role   = :role)
+                          AND (:status IS NULL OR u.status = :status)
+                        """)
+        Page<AdminUser> findAllWithFilters(
+                        @Param("search") String search,
+                        @Param("role") UserRole role,
+                        @Param("status") UserStatus status,
+                        Pageable pageable);
 
-    boolean existsByEmailAndDeletedFalse(String email);
+        boolean existsByEmailAndDeletedFalse(String email);
+
+        default boolean existsByEmail(String email) {
+                return existsByEmailAndDeletedFalse(email);
+        }
 }

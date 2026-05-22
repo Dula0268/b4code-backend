@@ -15,16 +15,18 @@ import java.math.BigDecimal;
 public interface DisputeRepository extends JpaRepository<Dispute, Long> {
 
     @Query("""
-        SELECT d FROM Dispute d
-        WHERE (CAST(:status AS string) IS NULL OR d.status = :status)
-          AND (CAST(:search AS string) IS NULL OR :search = '' OR
-               LOWER(d.guestName) LIKE LOWER(CONCAT('%',:search,'%')) OR
-               LOWER(d.propertyName) LIKE LOWER(CONCAT('%',:search,'%')) OR
-               LOWER(d.disputeId) LIKE LOWER(CONCAT('%',:search,'%')))
-        ORDER BY d.openedAt DESC
-        """)
+            SELECT d FROM Dispute d
+            WHERE (CAST(:status AS string) IS NULL OR d.status = :status)
+              AND (CAST(:search AS string) IS NULL OR :search = '' OR
+                   LOWER(d.guestName) LIKE LOWER(CONCAT('%',:search,'%')) OR
+                   LOWER(d.propertyName) LIKE LOWER(CONCAT('%',:search,'%')) OR
+                   LOWER(d.disputeId) LIKE LOWER(CONCAT('%',:search,'%')))
+            ORDER BY d.openedAt DESC
+            """)
     Page<Dispute> findAllWithFilters(
             @Param("status") DisputeStatus status,
             @Param("search") String search,
             Pageable pageable);
+
+    long countByStatusNot(DisputeStatus status);
 }

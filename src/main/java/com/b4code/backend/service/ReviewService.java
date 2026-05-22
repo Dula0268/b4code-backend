@@ -1,7 +1,7 @@
 package com.b4code.backend.service;
 
-import com.b4code.backend.modules.guest.dto.ReviewDTO.*;
-import com.b4code.backend.modules.guest.exceptions.ResourceNotFoundException;
+import com.b4code.backend.dto.ReviewDTO.*;
+import com.b4code.backend.exceptions.ResourceNotFoundException;
 import com.b4code.backend.models.Booking;
 import com.b4code.backend.models.Property;
 import com.b4code.backend.models.Review;

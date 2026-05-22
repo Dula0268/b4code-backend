@@ -20,78 +20,77 @@ public interface PropertyRepository extends JpaRepository<Property, Long> {
 
     /**
      * Paginated search for published properties with optional filters.
-     * Filters by destination, guests, price range, rating, property types, and date availability.
+     * Filters by destination, guests, price range, rating, property types, and date
+     * availability.
      */
     @Query("""
-        SELECT DISTINCT p FROM Property p
-        JOIN Room r ON r.property = p
-        WHERE p.published = true
-          AND (LOWER(p.destination) LIKE LOWER(CONCAT('%', :destination, '%'))
-               OR LOWER(p.city) LIKE LOWER(CONCAT('%', :destination, '%'))
-               OR LOWER(p.name) LIKE LOWER(CONCAT('%', :destination, '%'))
-               OR LOWER(p.address) LIKE LOWER(CONCAT('%', :destination, '%')))
-          AND r.maxOccupancy >= :guests
-          AND r.available = true
-          AND r.pricePerNight >= :minPrice
-          AND r.pricePerNight <= :maxPrice
-          AND p.averageRating >= :minRating
-          AND p.propertyType IN :propertyTypes
-          AND (
-                :checkIn IS NULL OR :checkOut IS NULL OR NOT EXISTS (
-                    SELECT b FROM Booking b
-                    WHERE b.room = r
-                        AND b.status NOT IN ('CANCELLED')
-                        AND b.checkIn  < :checkOut
-                        AND b.checkOut > :checkIn
-                )
-          )
-    """)
+                SELECT DISTINCT p FROM Property p
+                JOIN Room r ON r.property = p
+                WHERE p.published = true
+                  AND (LOWER(p.destination) LIKE LOWER(CONCAT('%', :destination, '%'))
+                       OR LOWER(p.city) LIKE LOWER(CONCAT('%', :destination, '%'))
+                       OR LOWER(p.name) LIKE LOWER(CONCAT('%', :destination, '%'))
+                       OR LOWER(p.address) LIKE LOWER(CONCAT('%', :destination, '%')))
+                  AND r.maxOccupancy >= :guests
+                  AND r.available = true
+                  AND r.pricePerNight >= :minPrice
+                  AND r.pricePerNight <= :maxPrice
+                  AND p.averageRating >= :minRating
+                  AND p.propertyType IN :propertyTypes
+                  AND (
+                        :checkIn IS NULL OR :checkOut IS NULL OR NOT EXISTS (
+                            SELECT b FROM Booking b
+                            WHERE b.room = r
+                                AND b.status NOT IN ('CANCELLED')
+                                AND b.checkIn  < :checkOut
+                                AND b.checkOut > :checkIn
+                        )
+                  )
+            """)
     Page<Property> searchAvailableProperties(
-        @Param("destination") String destination,
-        @Param("checkIn")     LocalDate checkIn,
-        @Param("checkOut")    LocalDate checkOut,
-        @Param("guests")      Integer guests,
-        @Param("minPrice")    BigDecimal minPrice,
-        @Param("maxPrice")    BigDecimal maxPrice,
-        @Param("minRating")   Double minRating,
-        @Param("propertyTypes") List<String> propertyTypes,
-        Pageable pageable
-    );
+            @Param("destination") String destination,
+            @Param("checkIn") LocalDate checkIn,
+            @Param("checkOut") LocalDate checkOut,
+            @Param("guests") Integer guests,
+            @Param("minPrice") BigDecimal minPrice,
+            @Param("maxPrice") BigDecimal maxPrice,
+            @Param("minRating") Double minRating,
+            @Param("propertyTypes") List<String> propertyTypes,
+            Pageable pageable);
 
     /**
      * Non-paginated version used internally (e.g., for property detail).
      */
     @Query("""
-        SELECT DISTINCT p FROM Property p
-        JOIN Room r ON r.property = p
-        WHERE p.published = true
-          AND (LOWER(p.destination) LIKE LOWER(CONCAT('%', :destination, '%'))
-               OR LOWER(p.city) LIKE LOWER(CONCAT('%', :destination, '%'))
-               OR LOWER(p.name) LIKE LOWER(CONCAT('%', :destination, '%')))
-          AND r.maxOccupancy >= :guests
-          AND r.available = true
-          AND r.pricePerNight >= :minPrice
-          AND r.pricePerNight <= :maxPrice
-          AND p.averageRating >= :minRating
-          AND (
-                :checkIn IS NULL OR :checkOut IS NULL OR NOT EXISTS (
-                    SELECT b FROM Booking b
-                    WHERE b.room = r
-                        AND b.status NOT IN ('CANCELLED')
-                        AND b.checkIn  < :checkOut
-                        AND b.checkOut > :checkIn
-                )
-          )
-    """)
+                SELECT DISTINCT p FROM Property p
+                JOIN Room r ON r.property = p
+                WHERE p.published = true
+                  AND (LOWER(p.destination) LIKE LOWER(CONCAT('%', :destination, '%'))
+                       OR LOWER(p.city) LIKE LOWER(CONCAT('%', :destination, '%'))
+                       OR LOWER(p.name) LIKE LOWER(CONCAT('%', :destination, '%')))
+                  AND r.maxOccupancy >= :guests
+                  AND r.available = true
+                  AND r.pricePerNight >= :minPrice
+                  AND r.pricePerNight <= :maxPrice
+                  AND p.averageRating >= :minRating
+                  AND (
+                        :checkIn IS NULL OR :checkOut IS NULL OR NOT EXISTS (
+                            SELECT b FROM Booking b
+                            WHERE b.room = r
+                                AND b.status NOT IN ('CANCELLED')
+                                AND b.checkIn  < :checkOut
+                                AND b.checkOut > :checkIn
+                        )
+                  )
+            """)
     List<Property> searchAvailablePropertiesList(
-        @Param("destination") String destination,
-        @Param("checkIn")     LocalDate checkIn,
-        @Param("checkOut")    LocalDate checkOut,
-        @Param("guests")      Integer guests,
-        @Param("minPrice")    BigDecimal minPrice,
-        @Param("maxPrice")    BigDecimal maxPrice,
-        @Param("minRating")   Double minRating
-    );
+            @Param("destination") String destination,
+            @Param("checkIn") LocalDate checkIn,
+            @Param("checkOut") LocalDate checkOut,
+            @Param("guests") Integer guests,
+            @Param("minPrice") BigDecimal minPrice,
+            @Param("maxPrice") BigDecimal maxPrice,
+            @Param("minRating") Double minRating);
 
     @Query("SELECT DISTINCT p.propertyType FROM Property p WHERE p.published = true ORDER BY p.propertyType")
     List<String> findDistinctPropertyTypes();
@@ -102,7 +101,8 @@ public interface PropertyRepository extends JpaRepository<Property, Long> {
     // ─── Admin Management Methods (from admin module) ────────────────────
 
     /**
-     * Admin query to filter properties with verification (PV-*) by status and search.
+     * Admin query to filter properties with verification (PV-*) by status and
+     * search.
      */
     @Query("""
             SELECT p FROM Property p
@@ -118,8 +118,7 @@ public interface PropertyRepository extends JpaRepository<Property, Long> {
     Page<Property> findAllWithFilters(
             @Param("status") PropertyStatus status,
             @Param("search") String search,
-            Pageable pageable
-    );
+            Pageable pageable);
 
     @Query("SELECT p FROM Property p WHERE p.pvId LIKE 'PV-%' AND p.status IN :statuses ORDER BY p.submittedAt DESC LIMIT 5")
     List<Property> findTop5ByStatusInOrderBySubmittedAtDesc(@Param("statuses") List<PropertyStatus> statuses);
@@ -131,4 +130,15 @@ public interface PropertyRepository extends JpaRepository<Property, Long> {
     long countByPvIdIsNotNull();
 
     long countByPvIdStartingWith(String prefix);
+
+    @Query("SELECT p.propertyType, COUNT(p) FROM Property p WHERE p.published = true GROUP BY p.propertyType")
+    List<Object[]> countByPropertyType();
+
+    @Query("SELECT MIN(r.pricePerNight) FROM Room r WHERE r.property.published = true")
+    BigDecimal findMinPrice();
+
+    @Query("SELECT MAX(r.pricePerNight) FROM Room r WHERE r.property.published = true")
+    BigDecimal findMaxPrice();
+
+    long countByPublishedTrue();
 }

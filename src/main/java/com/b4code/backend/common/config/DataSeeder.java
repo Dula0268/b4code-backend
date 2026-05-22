@@ -1,30 +1,15 @@
 package com.b4code.backend.common.config;
 
-import com.b4code.backend.modules.auth.entity.User;
-import com.b4code.backend.modules.auth.repository.UserRepository;
-import com.b4code.backend.modules.admin.models.AdminUser;
-import com.b4code.backend.modules.admin.dao.AdminUserRepository;
-import com.b4code.backend.modules.admin.enums.UserRole;
-import com.b4code.backend.modules.admin.enums.UserStatus;
-import com.b4code.backend.modules.admin.models.FlaggedReview;
-import com.b4code.backend.modules.admin.models.Dispute;
-import com.b4code.backend.modules.admin.dao.FlaggedReviewRepository;
-import com.b4code.backend.modules.admin.dao.DisputeRepository;
-import com.b4code.backend.modules.admin.dao.PropertyRepository;
-import com.b4code.backend.modules.admin.enums.ReviewStatus;
-import com.b4code.backend.modules.admin.enums.DisputeStatus;
-import com.b4code.backend.modules.admin.enums.PropertyStatus;
-import com.b4code.backend.modules.admin.models.Property;
-import com.b4code.backend.modules.staff.entity.MenuItem;
-import com.b4code.backend.modules.staff.repository.MenuItemRepository;
+import com.b4code.backend.dao.*;
+import com.b4code.backend.models.*;
+import com.b4code.backend.models.enums.*;
+import org.springframework.boot.CommandLineRunner;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
-
-import org.springframework.boot.CommandLineRunner;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.stereotype.Component;
 
 @Component
 public class DataSeeder implements CommandLineRunner {
@@ -38,12 +23,12 @@ public class DataSeeder implements CommandLineRunner {
     private final PasswordEncoder passwordEncoder;
 
     public DataSeeder(UserRepository userRepository,
-                      AdminUserRepository adminUserRepository,
-                      FlaggedReviewRepository flaggedReviewRepository,
-                      DisputeRepository disputeRepository,
-                      MenuItemRepository menuItemRepository,
-                      PropertyRepository propertyRepository,
-                      PasswordEncoder passwordEncoder) {
+            AdminUserRepository adminUserRepository,
+            FlaggedReviewRepository flaggedReviewRepository,
+            DisputeRepository disputeRepository,
+            MenuItemRepository menuItemRepository,
+            PropertyRepository propertyRepository,
+            PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
         this.adminUserRepository = adminUserRepository;
         this.flaggedReviewRepository = flaggedReviewRepository;
@@ -103,8 +88,10 @@ public class DataSeeder implements CommandLineRunner {
                 });
 
         // 3. Seed other users
-        seedUserIfMissing("guest@primestay.com", "guest123", "John", "Doe", User.Role.GUEST, null, User.UserStatus.ACTIVE);
-        seedUserIfMissing("guest1@primestay.com", "guest123", "Alice", "Guest", User.Role.GUEST, 1L, User.UserStatus.ACTIVE);
+        seedUserIfMissing("guest@primestay.com", "guest123", "John", "Doe", User.Role.GUEST, null,
+                User.UserStatus.ACTIVE);
+        seedUserIfMissing("guest1@primestay.com", "guest123", "Alice", "Guest", User.Role.GUEST, 1L,
+                User.UserStatus.ACTIVE);
 
         // Ensure guest1 has propertyId = 1 if already seeded
         userRepository.findByEmail("guest1@primestay.com").ifPresent(u -> {
@@ -115,11 +102,14 @@ public class DataSeeder implements CommandLineRunner {
             }
         });
 
-        seedUserIfMissing("owner@primestay.com", "owner123", "Alex", "Owner", User.Role.OWNER, null, User.UserStatus.ACTIVE);
+        seedUserIfMissing("owner@primestay.com", "owner123", "Alex", "Owner", User.Role.OWNER, null,
+                User.UserStatus.ACTIVE);
 
         // ✅ Specific Staff Logins (Linked to Property 1 and 2)
-        seedUserIfMissing("staff@primestay.com", "staff123", "Mike", "Staff", User.Role.STAFF, 1L, User.UserStatus.APPROVED);
-        seedUserIfMissing("staff2@primestay.com", "staff123", "Jane", "Staff", User.Role.STAFF, 2L, User.UserStatus.APPROVED);
+        seedUserIfMissing("staff@primestay.com", "staff123", "Mike", "Staff", User.Role.STAFF, 1L,
+                User.UserStatus.APPROVED);
+        seedUserIfMissing("staff2@primestay.com", "staff123", "Jane", "Staff", User.Role.STAFF, 2L,
+                User.UserStatus.APPROVED);
 
         // 4. Admin users table
         if (adminUserRepository.count() == 0) {
@@ -186,10 +176,12 @@ public class DataSeeder implements CommandLineRunner {
             Long propertyId, User.UserStatus status) {
         userRepository.findByEmail(email).ifPresentOrElse(
                 user -> {
-                    if (user.getRole() != role || (propertyId != null && !propertyId.equals(user.getPropertyId())) || (status != null && user.getStatus() != status)) {
+                    if (user.getRole() != role || (propertyId != null && !propertyId.equals(user.getPropertyId()))
+                            || (status != null && user.getStatus() != status)) {
                         user.setRole(role);
                         user.setPropertyId(propertyId);
-                        if (status != null) user.setStatus(status);
+                        if (status != null)
+                            user.setStatus(status);
                         userRepository.save(user);
                         System.out.println("✅ Updated " + email + " to " + role + " role");
                     }

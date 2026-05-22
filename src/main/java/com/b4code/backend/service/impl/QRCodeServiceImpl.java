@@ -1,9 +1,9 @@
 package com.b4code.backend.service.impl;
 
-import com.b4code.backend.modules.qr.dto.QRCodeGenerateRequest;
-import com.b4code.backend.modules.qr.dto.QRCodeResponse;
+import com.b4code.backend.dto.QRCodeGenerateRequest;
+import com.b4code.backend.dto.QRCodeResponse;
 import com.b4code.backend.models.QRCode;
-import com.b4code.backend.modules.qr.repository.QRCodeRepository;
+import com.b4code.backend.dao.QRCodeRepository;
 import com.b4code.backend.service.QRCodeService;
 import com.google.zxing.BarcodeFormat;
 import com.google.zxing.WriterException;

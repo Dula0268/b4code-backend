@@ -5,7 +5,7 @@ import com.b4code.backend.dto.UserPageDto;
 import com.b4code.backend.dto.UserStatusUpdateDto;
 import com.b4code.backend.models.enums.UserRole;
 import com.b4code.backend.models.enums.UserStatus;
-import com.b4code.backend.service.UserService;
+import com.b4code.backend.service.AdminUserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -24,7 +24,7 @@ import org.springframework.web.bind.annotation.*;
 @Tag(name = "Admin — User Management", description = "Endpoints to manage platform users")
 public class AdminUserController {
 
-    private final UserService userService;
+    private final AdminUserService userService;
 
     // ── GET ALL USERS ─────────────────────────────────────────────────────────
 
@@ -43,9 +43,10 @@ public class AdminUserController {
             @Parameter(description = "Records per page") @RequestParam(defaultValue = "6") int size) {
         log.info("GET /api/admin/users — search='{}', role={}, status={}, page={}, size={}", search, role, status, page,
                 size);
-        
+
         // Safety guard: Ensure page index is never negative
-        if (page < 0) page = 0;
+        if (page < 0)
+            page = 0;
 
         UserPageDto result = userService.getAllUsers(search, role, status, page, size);
         return ResponseEntity.ok(result);
@@ -146,7 +147,3 @@ public class AdminUserController {
         }
     }
 }
-
-
-
-

@@ -1,6 +1,6 @@
 package com.b4code.backend.rest;
 
-import com.b4code.backend.dto.*;
+import com.b4code.backend.dto.MessageDTO.*;
 import com.b4code.backend.service.MessagingService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -50,7 +50,3 @@ public class MessagingController {
         return ResponseEntity.noContent().build();
     }
 }
-
-
-
-

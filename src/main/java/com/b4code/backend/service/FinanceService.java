@@ -1,6 +1,6 @@
 package com.b4code.backend.service;
 
-import com.b4code.backend.modules.admin.dto.*;
+import com.b4code.backend.dto.*;
 import com.b4code.backend.models.enums.PayoutStatus;
 import com.b4code.backend.models.enums.RefundStatus;
 import com.b4code.backend.models.enums.TransactionType;

@@ -1,8 +1,8 @@
 package com.b4code.backend.service;
 
-import com.b4code.backend.modules.admin.dto.DashboardKpiDto;
-import com.b4code.backend.modules.admin.dto.RecentVerificationDto;
-import com.b4code.backend.modules.admin.dto.RevenueTrendPointDto;
+import com.b4code.backend.dto.DashboardKpiDto;
+import com.b4code.backend.dto.RecentVerificationDto;
+import com.b4code.backend.dto.RevenueTrendPointDto;
 
 import java.util.List;
 

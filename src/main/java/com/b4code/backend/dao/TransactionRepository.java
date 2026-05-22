@@ -50,4 +50,8 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
       ORDER BY EXTRACT(MONTH FROM t.created_at)
       """, nativeQuery = true)
   java.util.List<Object[]> getMonthlyRevenue();
+
+  default java.util.List<Object[]> getMonthlyRevenueTrend() {
+    return getMonthlyRevenue();
+  }
 }

@@ -3,7 +3,7 @@ package com.b4code.backend.service.impl;
 import com.b4code.backend.dao.AdminUserRepository;
 import com.b4code.backend.dao.PropertyRepository;
 import com.b4code.backend.dao.TransactionRepository;
-import com.b4code.backend.modules.admin.dto.*;
+import com.b4code.backend.dto.*;
 import com.b4code.backend.service.AnalyticsService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

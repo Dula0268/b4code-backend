@@ -1,8 +1,8 @@
 package com.b4code.backend.service;
 
-import com.b4code.backend.modules.admin.dto.UserDto;
-import com.b4code.backend.modules.admin.dto.UserPageDto;
-import com.b4code.backend.modules.admin.dto.UserStatusUpdateDto;
+import com.b4code.backend.dto.UserDto;
+import com.b4code.backend.dto.UserPageDto;
+import com.b4code.backend.dto.UserStatusUpdateDto;
 import com.b4code.backend.models.enums.UserRole;
 import com.b4code.backend.models.enums.UserStatus;
 

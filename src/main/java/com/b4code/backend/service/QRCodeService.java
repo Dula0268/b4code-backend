@@ -1,7 +1,7 @@
 package com.b4code.backend.service;
 
-import com.b4code.backend.modules.qr.dto.QRCodeGenerateRequest;
-import com.b4code.backend.modules.qr.dto.QRCodeResponse;
+import com.b4code.backend.dto.QRCodeGenerateRequest;
+import com.b4code.backend.dto.QRCodeResponse;
 import com.b4code.backend.models.QRCode;
 import org.springframework.data.domain.Page;
 import java.util.List;

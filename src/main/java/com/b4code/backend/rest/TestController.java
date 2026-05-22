@@ -1,4 +1,4 @@
-package com.b4code.backend.config;
+package com.b4code.backend.rest;
 
 import com.b4code.backend.dao.UserRepository;
 import org.springframework.context.annotation.Profile;

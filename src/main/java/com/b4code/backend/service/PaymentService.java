@@ -1,10 +1,10 @@
 package com.b4code.backend.service;
 
-import com.b4code.backend.modules.payment.dto.PayHereRequest;
-import com.b4code.backend.modules.payment.dto.PaymentRequest;
-import com.b4code.backend.modules.payment.dto.PaymentResponse;
+import com.b4code.backend.dto.PayHereRequest;
+import com.b4code.backend.dto.PaymentRequest;
+import com.b4code.backend.dto.PaymentResponse;
 import com.b4code.backend.models.Payment;
-import com.b4code.backend.modules.payment.repository.PaymentRepository;
+import com.b4code.backend.dao.PaymentRepository;
 import com.b4code.backend.dao.BookingRepository;
 import com.b4code.backend.models.Booking;
 import lombok.RequiredArgsConstructor;

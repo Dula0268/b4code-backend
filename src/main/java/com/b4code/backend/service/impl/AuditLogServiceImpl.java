@@ -1,8 +1,8 @@
 package com.b4code.backend.service.impl;
 
 import com.b4code.backend.dao.AuditLogRepository;
-import com.b4code.backend.modules.admin.dto.AuditLogDto;
-import com.b4code.backend.modules.admin.dto.AuditLogPageDto;
+import com.b4code.backend.dto.AuditLogDto;
+import com.b4code.backend.dto.AuditLogPageDto;
 import com.b4code.backend.models.AuditLog;
 import com.b4code.backend.service.AuditLogService;
 import lombok.RequiredArgsConstructor;

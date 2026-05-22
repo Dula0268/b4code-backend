@@ -1,18 +1,18 @@
 package com.b4code.backend.service;
 
-import com.b4code.backend.modules.admin.dao.AuditLogRepository;
-import com.b4code.backend.modules.admin.exceptions.CustomException;
+import com.b4code.backend.dao.AuditLogRepository;
+import com.b4code.backend.exceptions.CustomException;
 import com.b4code.backend.models.AuditLog;
-import com.b4code.backend.security.JwtUtil;
-import com.b4code.backend.modules.auth.dto.AuthResponse;
-import com.b4code.backend.modules.auth.dto.LoginRequest;
-import com.b4code.backend.modules.auth.dto.RegisterRequest;
-import com.b4code.backend.modules.auth.dto.UserProfileDto;
+import com.b4code.backend.common.security.JwtUtil;
+import com.b4code.backend.dto.AuthResponse;
+import com.b4code.backend.dto.LoginRequest;
+import com.b4code.backend.dto.RegisterRequest;
+import com.b4code.backend.dto.UserProfileDto;
 import com.b4code.backend.models.PasswordResetToken;
 import com.b4code.backend.models.User;
-import com.b4code.backend.modules.auth.repository.PasswordResetTokenRepository;
-import com.b4code.backend.modules.auth.repository.UserRepository;
-import com.b4code.backend.modules.auth.repository.VerificationOTPRepository;
+import com.b4code.backend.dao.PasswordResetTokenRepository;
+import com.b4code.backend.dao.UserRepository;
+import com.b4code.backend.dao.VerificationOTPRepository;
 import com.b4code.backend.models.VerificationOTP;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -70,11 +70,11 @@ public class AuthService {
             role = User.Role.GUEST;
         }
         user.setRole(role);
-        
+
         if (role == User.Role.STAFF && request.getPropertyId() != null) {
             user.setPropertyId(request.getPropertyId());
         }
-        
+
         // Everyone starts as PENDING until email is verified via OTP
         user.setStatus(User.UserStatus.PENDING);
 
@@ -82,10 +82,10 @@ public class AuthService {
 
         // ── Generate 6-digit OTP ──
         String otpCode = String.format("%06d", new java.util.Random().nextInt(999999));
-        
+
         // Remove any old OTP for this user if it exists
         verificationOTPRepository.findByUser(user).ifPresent(verificationOTPRepository::delete);
-        
+
         VerificationOTP otp = new VerificationOTP(otpCode, user, 10); // 10 minutes expiry
         verificationOTPRepository.save(otp);
 
@@ -111,8 +111,7 @@ public class AuthService {
                 user.getLastName(),
                 user.getPhone(),
                 user.getAvatarUrl(),
-                user.getNationalIdUrl()
-        );
+                user.getNationalIdUrl());
 
         return new AuthResponse(token, refreshToken, user.getEmail(),
                 user.getRole().name(), user.getId(), user.getStatus().name(), user.getPropertyId(), profile);
@@ -174,8 +173,7 @@ public class AuthService {
                 user.getLastName(),
                 user.getPhone(),
                 user.getAvatarUrl(),
-                user.getNationalIdUrl()
-        );
+                user.getNationalIdUrl());
 
         return new AuthResponse(
                 token,
@@ -220,7 +218,8 @@ public class AuthService {
     public void resetPassword(String token, String newPassword) {
 
         PasswordResetToken resetToken = passwordResetTokenRepository.findByToken(token)
-                .orElseThrow(() -> new CustomException("Invalid or expired password reset token", HttpStatus.BAD_REQUEST));
+                .orElseThrow(
+                        () -> new CustomException("Invalid or expired password reset token", HttpStatus.BAD_REQUEST));
 
         if (resetToken.isExpired()) {
             passwordResetTokenRepository.delete(resetToken);
@@ -253,7 +252,8 @@ public class AuthService {
                 .orElseThrow(() -> new CustomException("User not found", HttpStatus.NOT_FOUND));
 
         VerificationOTP otp = verificationOTPRepository.findByUser(user)
-                .orElseThrow(() -> new CustomException("No verification code found for this user", HttpStatus.BAD_REQUEST));
+                .orElseThrow(
+                        () -> new CustomException("No verification code found for this user", HttpStatus.BAD_REQUEST));
 
         if (otp.isExpired()) {
             verificationOTPRepository.delete(otp);
@@ -267,7 +267,8 @@ public class AuthService {
         // Logic for role-based activation
         if (user.getRole() == User.Role.STAFF) {
             // Staff members verified their email, but still need Owner approval
-            // So we keep them as PENDING, but we can mark their email as verified if we had a flag.
+            // So we keep them as PENDING, but we can mark their email as verified if we had
+            // a flag.
             // For now, they stay PENDING so they can't login yet.
             user.setStatus(User.UserStatus.PENDING);
         } else {

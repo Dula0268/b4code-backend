@@ -1,12 +1,12 @@
 package com.b4code.backend.service;
 
-import com.b4code.backend.modules.guest.dto.SearchDTO.*;
+import com.b4code.backend.dto.SearchDTO.*;
 import com.b4code.backend.models.Property;
 import com.b4code.backend.models.Room;
 import com.b4code.backend.models.Review;
 import com.b4code.backend.dao.PropertyRepository;
 import com.b4code.backend.dao.ReviewRepository;
-import com.b4code.backend.modules.guest.exceptions.ResourceNotFoundException;
+import com.b4code.backend.exceptions.ResourceNotFoundException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;

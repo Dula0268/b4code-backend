@@ -13,14 +13,14 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/admin/analytics")
-@CrossOrigin(origins = {"http://localhost:3000", "http://localhost:5173"})
+@CrossOrigin(origins = { "http://localhost:3000", "http://localhost:5173" })
 @RequiredArgsConstructor
 @Tag(name = "Admin — Analytics", description = "Platform-wide analytics data")
 public class AnalyticsController {
 
     private final AnalyticsService analyticsService;
 
-    // ── GET platform overview 
+    // ── GET platform overview
     @GetMapping("/platform")
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Platform analytics — gross booking value, net revenue, occupancy, ADR, RevPAR")
@@ -28,7 +28,7 @@ public class AnalyticsController {
         return ResponseEntity.ok(analyticsService.getPlatformAnalytics());
     }
 
-    // ── GET stat cards 
+    // ── GET stat cards
     @GetMapping("/platform-summary")
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Platform summary — lead time, cancellations, bookings, users, listings, commission")
@@ -52,7 +52,3 @@ public class AnalyticsController {
         return ResponseEntity.ok(analyticsService.getBookingsChart());
     }
 }
-
-
-
-

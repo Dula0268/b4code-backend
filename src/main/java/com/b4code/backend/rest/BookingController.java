@@ -1,6 +1,6 @@
 package com.b4code.backend.rest;
 
-import com.b4code.backend.dto.*;
+import com.b4code.backend.dto.BookingDto.*;
 import com.b4code.backend.service.BookingService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -21,7 +21,7 @@ public class BookingController {
     private final BookingService bookingService;
 
     /**
-    * GET /api/guest/bookings/price-preview
+     * GET /api/guest/bookings/price-preview
      * Returns price breakdown before confirming.
      */
     @GetMapping("/price-preview")
@@ -32,12 +32,11 @@ public class BookingController {
             @RequestParam(required = false) String promoCode) {
 
         return ResponseEntity.ok(
-            bookingService.getPrice(roomId, checkIn, checkOut, promoCode)
-        );
+                bookingService.getPrice(roomId, checkIn, checkOut, promoCode));
     }
 
     /**
-    * POST /api/guest/bookings
+     * POST /api/guest/bookings
      * Create a new booking.
      */
     @PostMapping
@@ -49,7 +48,7 @@ public class BookingController {
     }
 
     /**
-    * GET /api/guest/bookings/confirmation/{confirmationNumber}
+     * GET /api/guest/bookings/confirmation/{confirmationNumber}
      * Retrieve booking by confirmation number (shown on confirmation screen).
      */
     @GetMapping("/confirmation/{confirmationNumber}")
@@ -57,12 +56,11 @@ public class BookingController {
             @PathVariable String confirmationNumber) {
 
         return ResponseEntity.ok(
-            bookingService.getByConfirmationNumber(confirmationNumber)
-        );
+                bookingService.getByConfirmationNumber(confirmationNumber));
     }
 
     /**
-    * GET /api/guest/bookings/guest
+     * GET /api/guest/bookings/guest
      * Get all bookings for a guest by email.
      */
     @GetMapping("/guest")
@@ -73,7 +71,7 @@ public class BookingController {
     }
 
     /**
-    * PATCH /api/guest/bookings/{id}/cancel
+     * PATCH /api/guest/bookings/{id}/cancel
      * Cancel a booking.
      */
     @PatchMapping("/{id}/cancel")
@@ -85,7 +83,7 @@ public class BookingController {
     }
 
     /**
-    * PATCH /api/guest/bookings/{id}/complete
+     * PATCH /api/guest/bookings/{id}/complete
      * Mark a booking as completed.
      */
     @PatchMapping("/{id}/complete")
@@ -96,7 +94,7 @@ public class BookingController {
     }
 
     /**
-    * PUT /api/guest/bookings/{id}
+     * PUT /api/guest/bookings/{id}
      * Modify an existing booking.
      */
     @PutMapping("/{id}")
@@ -107,15 +105,11 @@ public class BookingController {
         return ResponseEntity.ok(bookingService.modifyBooking(id, request));
     }
 
-    @ExceptionHandler({com.b4code.backend.modules.guest.exceptions.RoomNotAvailableException.class, IllegalArgumentException.class, IllegalStateException.class})
+    @ExceptionHandler({ com.b4code.backend.exceptions.RoomNotAvailableException.class, IllegalArgumentException.class,
+            IllegalStateException.class })
     public ResponseEntity<java.util.Map<String, String>> handleBookingValidations(Exception ex) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(java.util.Map.of(
-            "error", "Bad Request",
-            "message", ex.getMessage()
-        ));
+                "error", "Bad Request",
+                "message", ex.getMessage()));
     }
 }
-
-
-
-

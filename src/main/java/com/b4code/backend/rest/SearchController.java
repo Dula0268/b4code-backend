@@ -1,6 +1,6 @@
 package com.b4code.backend.rest;
 
-import com.b4code.backend.dto.*;
+import com.b4code.backend.dto.SearchDTO.*;
 import com.b4code.backend.service.SearchService;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
@@ -75,14 +75,13 @@ public class SearchController {
     /**
      * Global exception handler for this controller.
      */
-    @ExceptionHandler(com.b4code.backend.modules.guest.exceptions.ResourceNotFoundException.class)
+    @ExceptionHandler(com.b4code.backend.exceptions.ResourceNotFoundException.class)
     public ResponseEntity<Map<String, String>> handleNotFound(
-            com.b4code.backend.modules.guest.exceptions.ResourceNotFoundException ex) {
+            com.b4code.backend.exceptions.ResourceNotFoundException ex) {
         log.warn("Resource not found: {}", ex.getMessage());
         return ResponseEntity.status(404).body(Map.of(
                 "error", "Not Found",
-                "message", ex.getMessage()
-        ));
+                "message", ex.getMessage()));
     }
 
     @ExceptionHandler(Exception.class)
@@ -90,11 +89,6 @@ public class SearchController {
         log.error("Unexpected error in SearchController", ex);
         return ResponseEntity.status(500).body(Map.of(
                 "error", "Internal Server Error",
-                "message", "An unexpected error occurred"
-        ));
+                "message", "An unexpected error occurred"));
     }
 }
-
-
-
-

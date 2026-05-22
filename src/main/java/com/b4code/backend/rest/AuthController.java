@@ -46,7 +46,3 @@ public class AuthController {
         return ResponseEntity.ok("Email verified successfully.");
     }
 }
-
-
-
-

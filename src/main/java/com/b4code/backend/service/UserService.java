@@ -1,11 +1,11 @@
 package com.b4code.backend.service;
 
 import com.b4code.backend.models.User;
-import com.b4code.backend.modules.auth.repository.UserRepository;
-import com.b4code.backend.modules.user.dto.ChangePasswordRequest;
-import com.b4code.backend.modules.user.dto.UpdateProfileRequest;
-import com.b4code.backend.modules.user.dto.UpdateRoleRequest;
-import com.b4code.backend.modules.user.dto.UserResponse;
+import com.b4code.backend.dao.UserRepository;
+import com.b4code.backend.dto.ChangePasswordRequest;
+import com.b4code.backend.dto.UpdateProfileRequest;
+import com.b4code.backend.dto.UpdateRoleRequest;
+import com.b4code.backend.dto.UserResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 

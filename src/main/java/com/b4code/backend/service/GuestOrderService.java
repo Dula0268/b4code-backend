@@ -2,7 +2,7 @@ package com.b4code.backend.service;
 
 import com.b4code.backend.models.Order;
 import com.b4code.backend.models.OrderItem;
-import com.b4code.backend.modules.guest.dto.OrderRequest;
+import com.b4code.backend.dto.OrderRequest;
 import com.b4code.backend.dao.MenuItemRepository;
 import com.b4code.backend.dao.OrderRepository;
 import lombok.RequiredArgsConstructor;

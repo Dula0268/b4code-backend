@@ -1,11 +1,11 @@
 package com.b4code.backend.service.impl;
 
-import com.b4code.backend.modules.admin.dto.UserDto;
-import com.b4code.backend.modules.admin.dto.UserPageDto;
-import com.b4code.backend.modules.admin.dto.UserStatusUpdateDto;
+import com.b4code.backend.dto.UserDto;
+import com.b4code.backend.dto.UserPageDto;
+import com.b4code.backend.dto.UserStatusUpdateDto;
 import com.b4code.backend.models.enums.UserRole;
 import com.b4code.backend.models.enums.UserStatus;
-import com.b4code.backend.modules.admin.exceptions.CustomException;
+import com.b4code.backend.exceptions.CustomException;
 import com.b4code.backend.models.AdminUser;
 import com.b4code.backend.dao.AdminUserRepository;
 import com.b4code.backend.service.AdminUserService;
@@ -142,10 +142,10 @@ public class AdminUserServiceImpl implements AdminUserService {
         log.info("Deleting user id={}", id);
 
         AdminUser user = findActiveUserOrThrow(id);
-        user.setStatus(UserStatus.DELETED);
+        user.setDeleted(true);
         userRepository.save(user);
 
-        log.info("User id={} marked as DELETED", id);
+        log.info("User id={} marked as deleted", id);
     }
 
     // ── PRIVATE HELPERS ────────────────────────────────────────────────────────

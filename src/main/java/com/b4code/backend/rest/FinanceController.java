@@ -19,7 +19,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/admin/finance")
-@CrossOrigin(origins = {"http://localhost:3000", "http://localhost:5173"})
+@CrossOrigin(origins = { "http://localhost:3000", "http://localhost:5173" })
 @Slf4j
 @RequiredArgsConstructor
 @Tag(name = "Admin — Finance", description = "Manage transactions, refunds and payouts")
@@ -53,9 +53,9 @@ public class FinanceController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime from,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime to,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size
-    ) {
-        if (page < 0) page = 0;
+            @RequestParam(defaultValue = "10") int size) {
+        if (page < 0)
+            page = 0;
         return ResponseEntity.ok(financeService.getAllTransactions(search, type, from, to, page, size));
     }
 
@@ -75,9 +75,9 @@ public class FinanceController {
             @RequestParam(required = false, defaultValue = "") String search,
             @RequestParam(required = false) RefundStatus status,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size
-    ) {
-        if (page < 0) page = 0;
+            @RequestParam(defaultValue = "10") int size) {
+        if (page < 0)
+            page = 0;
         return ResponseEntity.ok(financeService.getAllRefunds(search, status, page, size));
     }
 
@@ -96,8 +96,7 @@ public class FinanceController {
     @Operation(summary = "Reject a refund request")
     public ResponseEntity<RefundDto> rejectRefund(
             @PathVariable Long id,
-            @RequestBody RefundRejectRequest request
-    ) {
+            @RequestBody RefundRejectRequest request) {
         log.info("PUT /api/admin/finance/refunds/{}/reject", id);
         return ResponseEntity.ok(financeService.rejectRefund(id, request.adminNote()));
     }
@@ -110,9 +109,9 @@ public class FinanceController {
             @RequestParam(required = false, defaultValue = "") String search,
             @RequestParam(required = false) PayoutStatus status,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size
-    ) {
-        if (page < 0) page = 0;
+            @RequestParam(defaultValue = "10") int size) {
+        if (page < 0)
+            page = 0;
         return ResponseEntity.ok(financeService.getAllPayouts(search, status, page, size));
     }
 
@@ -122,17 +121,15 @@ public class FinanceController {
     @Operation(summary = "Mark a payout as processed")
     public ResponseEntity<PayoutDto> processPayout(
             @PathVariable Long id,
-            @RequestBody PayoutProcessRequest request
-    ) {
+            @RequestBody PayoutProcessRequest request) {
         log.info("PUT /api/admin/finance/payouts/{}/process — ref='{}'", id, request.bankReference());
         return ResponseEntity.ok(financeService.processPayout(id, request.bankReference()));
     }
 
     // ── Request body records
-    public record RefundRejectRequest(String adminNote) {}
-    public record PayoutProcessRequest(String bankReference) {}
+    public record RefundRejectRequest(String adminNote) {
+    }
+
+    public record PayoutProcessRequest(String bankReference) {
+    }
 }
-
-
-
-

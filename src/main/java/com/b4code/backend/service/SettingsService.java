@@ -1,6 +1,6 @@
 package com.b4code.backend.service;
 
-import com.b4code.backend.modules.admin.dto.RolePermissionsDto;
+import com.b4code.backend.dto.RolePermissionsDto;
 
 import java.util.Map;
 

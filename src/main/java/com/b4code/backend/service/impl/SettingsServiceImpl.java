@@ -1,9 +1,9 @@
 package com.b4code.backend.service.impl;
 
-import com.b4code.backend.modules.admin.common.annotation.Auditable;
+import com.b4code.backend.common.annotation.Auditable;
 import com.b4code.backend.dao.RolePermissionRepository;
-import com.b4code.backend.modules.admin.dto.PermissionDto;
-import com.b4code.backend.modules.admin.dto.RolePermissionsDto;
+import com.b4code.backend.dto.PermissionDto;
+import com.b4code.backend.dto.RolePermissionsDto;
 import com.b4code.backend.models.RolePermission;
 import com.b4code.backend.service.SettingsService;
 import lombok.RequiredArgsConstructor;

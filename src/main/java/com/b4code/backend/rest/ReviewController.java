@@ -1,6 +1,6 @@
 package com.b4code.backend.rest;
 
-import com.b4code.backend.dto.*;
+import com.b4code.backend.dto.ReviewDTO.*;
 import com.b4code.backend.service.ReviewService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -54,7 +54,3 @@ public class ReviewController {
         return ResponseEntity.ok(response);
     }
 }
-
-
-
-
