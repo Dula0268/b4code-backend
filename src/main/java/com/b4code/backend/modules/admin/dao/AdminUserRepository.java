@@ -1,8 +1,8 @@
 package com.b4code.backend.modules.admin.dao;
 
-import com.b4code.backend.modules.admin.enums.UserRole;
-import com.b4code.backend.modules.admin.enums.UserStatus;
-import com.b4code.backend.modules.admin.models.AdminUser;
+import com.b4code.backend.models.enums.UserRole;
+import com.b4code.backend.models.enums.UserStatus;
+import com.b4code.backend.models.AdminUser;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;

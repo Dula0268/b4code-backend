@@ -2,9 +2,9 @@ package com.b4code.backend.modules.guest.service;
 
 import com.b4code.backend.modules.guest.dto.ReviewDTO.*;
 import com.b4code.backend.modules.guest.exceptions.ResourceNotFoundException;
-import com.b4code.backend.modules.guest.models.Booking;
-import com.b4code.backend.modules.guest.models.Property;
-import com.b4code.backend.modules.guest.models.Review;
+import com.b4code.backend.models.Booking;
+import com.b4code.backend.models.Property;
+import com.b4code.backend.models.Review;
 import com.b4code.backend.modules.guest.dao.BookingRepository;
 import com.b4code.backend.modules.guest.dao.PropertyRepository;
 import com.b4code.backend.modules.guest.dao.ReviewRepository;

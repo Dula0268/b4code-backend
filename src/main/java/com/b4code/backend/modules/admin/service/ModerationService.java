@@ -1,9 +1,9 @@
 package com.b4code.backend.modules.admin.service;
 
 import com.b4code.backend.modules.admin.dto.*;
-import com.b4code.backend.modules.admin.enums.DisputeStatus;
-import com.b4code.backend.modules.admin.enums.ModerationAction;
-import com.b4code.backend.modules.admin.enums.ReviewStatus;
+import com.b4code.backend.models.enums.DisputeStatus;
+import com.b4code.backend.models.enums.ModerationAction;
+import com.b4code.backend.models.enums.ReviewStatus;
 import org.springframework.data.domain.Page;
 
 import java.time.LocalDateTime;

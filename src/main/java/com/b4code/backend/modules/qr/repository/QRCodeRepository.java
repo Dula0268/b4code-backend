@@ -1,6 +1,6 @@
 package com.b4code.backend.modules.qr.repository;
 
-import com.b4code.backend.modules.qr.entity.QRCode;
+import com.b4code.backend.models.QRCode;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 

@@ -1,7 +1,7 @@
 package com.b4code.backend.modules.admin.dao;
 
-import com.b4code.backend.modules.admin.enums.ReviewStatus;
-import com.b4code.backend.modules.admin.models.FlaggedReview;
+import com.b4code.backend.models.enums.ReviewStatus;
+import com.b4code.backend.models.FlaggedReview;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;

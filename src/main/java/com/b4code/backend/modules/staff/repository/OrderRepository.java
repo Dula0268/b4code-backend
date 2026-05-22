@@ -1,6 +1,6 @@
 package com.b4code.backend.modules.staff.repository;
 
-import com.b4code.backend.modules.staff.entity.Order;
+import com.b4code.backend.models.Order;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 

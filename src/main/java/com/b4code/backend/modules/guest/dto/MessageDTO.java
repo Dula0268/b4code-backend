@@ -1,6 +1,6 @@
 package com.b4code.backend.modules.guest.dto;
 
-import com.b4code.backend.modules.guest.models.Message.SenderType;
+import com.b4code.backend.models.Message.SenderType;
 import jakarta.validation.constraints.*;
 import lombok.*;
 import java.time.LocalDateTime;

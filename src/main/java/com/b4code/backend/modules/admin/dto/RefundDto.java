@@ -1,7 +1,7 @@
 package com.b4code.backend.modules.admin.dto;
 
-import com.b4code.backend.modules.admin.enums.RefundStatus;
-import com.b4code.backend.modules.admin.models.Refund;
+import com.b4code.backend.models.enums.RefundStatus;
+import com.b4code.backend.models.Refund;
 import lombok.*;
 
 import java.math.BigDecimal;

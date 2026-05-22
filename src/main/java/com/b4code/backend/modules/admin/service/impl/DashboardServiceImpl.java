@@ -3,7 +3,7 @@ package com.b4code.backend.modules.admin.service.impl;
 import com.b4code.backend.modules.admin.dao.PropertyRepository;
 import com.b4code.backend.modules.admin.dao.TransactionRepository;
 import com.b4code.backend.modules.admin.dto.*;
-import com.b4code.backend.modules.admin.enums.PropertyStatus;
+import com.b4code.backend.models.enums.PropertyStatus;
 import com.b4code.backend.modules.admin.service.DashboardService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

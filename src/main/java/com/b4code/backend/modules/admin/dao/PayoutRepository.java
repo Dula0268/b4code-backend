@@ -1,7 +1,7 @@
 package com.b4code.backend.modules.admin.dao;
 
-import com.b4code.backend.modules.admin.enums.PayoutStatus;
-import com.b4code.backend.modules.admin.models.Payout;
+import com.b4code.backend.models.enums.PayoutStatus;
+import com.b4code.backend.models.Payout;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;

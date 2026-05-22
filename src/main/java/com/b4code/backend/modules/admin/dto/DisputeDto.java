@@ -1,7 +1,7 @@
 package com.b4code.backend.modules.admin.dto;
 
-import com.b4code.backend.modules.admin.enums.DisputeStatus;
-import com.b4code.backend.modules.admin.models.Dispute;
+import com.b4code.backend.models.enums.DisputeStatus;
+import com.b4code.backend.models.Dispute;
 import lombok.*;
 
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder

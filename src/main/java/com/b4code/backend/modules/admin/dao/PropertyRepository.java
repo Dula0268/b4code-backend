@@ -1,7 +1,7 @@
 package com.b4code.backend.modules.admin.dao;
 
-import com.b4code.backend.modules.admin.enums.PropertyStatus;
-import com.b4code.backend.modules.admin.models.Property;
+import com.b4code.backend.models.enums.PropertyStatus;
+import com.b4code.backend.models.Property;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;

@@ -2,8 +2,8 @@ package com.b4code.backend.modules.guest.service;
 
 import com.b4code.backend.modules.guest.dto.MessageDTO.*;
 import com.b4code.backend.modules.guest.exceptions.ResourceNotFoundException;
-import com.b4code.backend.modules.guest.models.Booking;
-import com.b4code.backend.modules.guest.models.Message;
+import com.b4code.backend.models.Booking;
+import com.b4code.backend.models.Message;
 import com.b4code.backend.modules.guest.dao.BookingRepository;
 import com.b4code.backend.modules.guest.dao.MessageRepository;
 import lombok.RequiredArgsConstructor;

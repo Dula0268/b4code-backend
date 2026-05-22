@@ -1,6 +1,6 @@
 package com.b4code.backend.modules.admin.dao;
 
-import com.b4code.backend.modules.admin.models.RolePermission;
+import com.b4code.backend.models.RolePermission;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 

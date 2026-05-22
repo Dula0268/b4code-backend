@@ -1,6 +1,6 @@
 package com.b4code.backend.modules.guest.models;
 
-import com.b4code.backend.modules.admin.enums.PropertyStatus;
+import com.b4code.backend.models.enums.PropertyStatus;
 import jakarta.persistence.*;
 import lombok.*;
 import java.math.BigDecimal;

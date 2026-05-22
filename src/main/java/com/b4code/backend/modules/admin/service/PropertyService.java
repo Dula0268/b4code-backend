@@ -4,7 +4,7 @@ import com.b4code.backend.modules.admin.dto.PropertyDto;
 import com.b4code.backend.modules.admin.dto.PropertyPageDto;
 import com.b4code.backend.modules.admin.dto.PropertyRejectionDto;
 import com.b4code.backend.modules.admin.dto.PropertySimpleDto;
-import com.b4code.backend.modules.admin.enums.PropertyStatus;
+import com.b4code.backend.models.enums.PropertyStatus;
 import java.util.List;
 
 public interface PropertyService {

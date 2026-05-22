@@ -1,9 +1,9 @@
 package com.b4code.backend.modules.admin.rest;
 
 import com.b4code.backend.modules.admin.dto.*;
-import com.b4code.backend.modules.admin.enums.DisputeStatus;
-import com.b4code.backend.modules.admin.enums.ModerationAction;
-import com.b4code.backend.modules.admin.enums.ReviewStatus;
+import com.b4code.backend.models.enums.DisputeStatus;
+import com.b4code.backend.models.enums.ModerationAction;
+import com.b4code.backend.models.enums.ReviewStatus;
 import com.b4code.backend.modules.admin.service.ModerationService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;

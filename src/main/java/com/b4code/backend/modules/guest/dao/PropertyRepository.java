@@ -1,6 +1,6 @@
 package com.b4code.backend.modules.guest.dao;
 
-import com.b4code.backend.modules.guest.models.Property;
+import com.b4code.backend.models.Property;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;

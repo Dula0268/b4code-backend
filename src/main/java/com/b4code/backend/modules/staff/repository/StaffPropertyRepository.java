@@ -1,6 +1,6 @@
 package com.b4code.backend.modules.staff.repository;
 
-import com.b4code.backend.modules.staff.entity.StaffProperty;
+import com.b4code.backend.models.StaffProperty;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;

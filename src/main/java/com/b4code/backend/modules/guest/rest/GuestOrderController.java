@@ -1,6 +1,6 @@
 package com.b4code.backend.modules.guest.rest;
 
-import com.b4code.backend.modules.staff.entity.Order;
+import com.b4code.backend.models.Order;
 import com.b4code.backend.modules.guest.service.GuestOrderService;
 import com.b4code.backend.modules.guest.dto.OrderRequest;
 import lombok.RequiredArgsConstructor;

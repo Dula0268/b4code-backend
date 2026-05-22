@@ -1,6 +1,6 @@
 package com.b4code.backend.modules.user.service;
 
-import com.b4code.backend.modules.auth.entity.User;
+import com.b4code.backend.models.User;
 import com.b4code.backend.modules.auth.repository.UserRepository;
 import com.b4code.backend.modules.user.dto.ChangePasswordRequest;
 import com.b4code.backend.modules.user.dto.UpdateProfileRequest;

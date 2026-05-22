@@ -1,8 +1,8 @@
 package com.b4code.backend.modules.staff.controller;
 
-import com.b4code.backend.modules.staff.entity.StaffProperty;
+import com.b4code.backend.models.StaffProperty;
 import com.b4code.backend.modules.staff.repository.StaffPropertyRepository;
-import com.b4code.backend.modules.admin.models.Property;
+import com.b4code.backend.models.Property;
 import com.b4code.backend.modules.admin.dao.PropertyRepository;
 import com.b4code.backend.modules.qr.service.QRCodeService;
 import com.b4code.backend.modules.qr.dto.QRCodeResponse;

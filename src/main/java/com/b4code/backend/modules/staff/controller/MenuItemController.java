@@ -1,6 +1,6 @@
 package com.b4code.backend.modules.staff.controller;
 
-import com.b4code.backend.modules.staff.entity.MenuItem;
+import com.b4code.backend.models.MenuItem;
 import com.b4code.backend.modules.staff.repository.MenuItemRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

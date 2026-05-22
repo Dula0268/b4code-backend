@@ -1,8 +1,8 @@
 package com.b4code.backend.modules.admin.dto;
 
-import com.b4code.backend.modules.admin.enums.UserRole;
-import com.b4code.backend.modules.admin.enums.UserStatus;
-import com.b4code.backend.modules.admin.models.AdminUser;
+import com.b4code.backend.models.enums.UserRole;
+import com.b4code.backend.models.enums.UserStatus;
+import com.b4code.backend.models.AdminUser;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.AllArgsConstructor;
 import lombok.Builder;

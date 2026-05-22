@@ -1,6 +1,6 @@
 package com.b4code.backend.modules.admin.dto;
 
-import com.b4code.backend.modules.admin.models.AuditLog;
+import com.b4code.backend.models.AuditLog;
 import lombok.*;
 
 import java.time.format.DateTimeFormatter;

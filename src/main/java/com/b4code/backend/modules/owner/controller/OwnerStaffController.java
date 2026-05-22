@@ -1,6 +1,6 @@
 package com.b4code.backend.modules.owner.controller;
 
-import com.b4code.backend.modules.auth.entity.User;
+import com.b4code.backend.models.User;
 import com.b4code.backend.modules.owner.service.OwnerStaffService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;

@@ -1,6 +1,6 @@
 package com.b4code.backend.modules.user.dto;
 
-import com.b4code.backend.modules.auth.entity.User;
+import com.b4code.backend.models.User;
 import lombok.Getter;
 import lombok.Setter;
 

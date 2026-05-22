@@ -1,9 +1,9 @@
 package com.b4code.backend.modules.admin.rest;
 
 import com.b4code.backend.modules.admin.dto.*;
-import com.b4code.backend.modules.admin.enums.PayoutStatus;
-import com.b4code.backend.modules.admin.enums.RefundStatus;
-import com.b4code.backend.modules.admin.enums.TransactionType;
+import com.b4code.backend.models.enums.PayoutStatus;
+import com.b4code.backend.models.enums.RefundStatus;
+import com.b4code.backend.models.enums.TransactionType;
 import com.b4code.backend.modules.admin.service.FinanceService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;

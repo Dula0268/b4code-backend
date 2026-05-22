@@ -4,7 +4,7 @@ import com.b4code.backend.modules.admin.common.annotation.Auditable;
 import com.b4code.backend.modules.admin.dao.RolePermissionRepository;
 import com.b4code.backend.modules.admin.dto.PermissionDto;
 import com.b4code.backend.modules.admin.dto.RolePermissionsDto;
-import com.b4code.backend.modules.admin.models.RolePermission;
+import com.b4code.backend.models.RolePermission;
 import com.b4code.backend.modules.admin.service.SettingsService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

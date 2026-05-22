@@ -1,6 +1,6 @@
 package com.b4code.backend.modules.admin.models;
 
-import com.b4code.backend.modules.admin.enums.PayoutStatus;
+import com.b4code.backend.models.enums.PayoutStatus;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;

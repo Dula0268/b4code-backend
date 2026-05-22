@@ -1,7 +1,7 @@
 package com.b4code.backend.modules.admin.dao;
 
-import com.b4code.backend.modules.admin.enums.DisputeStatus;
-import com.b4code.backend.modules.admin.models.Dispute;
+import com.b4code.backend.models.enums.DisputeStatus;
+import com.b4code.backend.models.Dispute;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;

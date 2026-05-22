@@ -1,7 +1,7 @@
 package com.b4code.backend.modules.guest.config;
 
 import com.b4code.backend.modules.guest.dao.*;
-import com.b4code.backend.modules.guest.models.*;
+import com.b4code.backend.models.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;

@@ -1,7 +1,7 @@
 package com.b4code.backend.modules.guest.dao;
 
-import com.b4code.backend.modules.guest.models.MessageTemplate;
-import com.b4code.backend.modules.guest.models.MessageTemplate.TemplateType;
+import com.b4code.backend.models.MessageTemplate;
+import com.b4code.backend.models.MessageTemplate.TemplateType;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 

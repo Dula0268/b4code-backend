@@ -1,7 +1,7 @@
 package com.b4code.backend.modules.auth.repository;
 
-import com.b4code.backend.modules.auth.entity.User;
-import com.b4code.backend.modules.auth.entity.VerificationOTP;
+import com.b4code.backend.models.User;
+import com.b4code.backend.models.VerificationOTP;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 

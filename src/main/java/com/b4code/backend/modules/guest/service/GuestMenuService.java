@@ -1,7 +1,7 @@
 package com.b4code.backend.modules.guest.service;
 
 import com.b4code.backend.modules.guest.dto.MenuItemDto;
-import com.b4code.backend.modules.staff.entity.MenuItem;
+import com.b4code.backend.models.MenuItem;
 import com.b4code.backend.modules.staff.repository.MenuItemRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;

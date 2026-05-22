@@ -1,9 +1,9 @@
 package com.b4code.backend.modules.admin.service;
 
 import com.b4code.backend.modules.admin.dto.*;
-import com.b4code.backend.modules.admin.enums.PayoutStatus;
-import com.b4code.backend.modules.admin.enums.RefundStatus;
-import com.b4code.backend.modules.admin.enums.TransactionType;
+import com.b4code.backend.models.enums.PayoutStatus;
+import com.b4code.backend.models.enums.RefundStatus;
+import com.b4code.backend.models.enums.TransactionType;
 
 import java.time.LocalDateTime;
 import java.util.List;

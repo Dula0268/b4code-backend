@@ -1,6 +1,6 @@
 package com.b4code.backend.modules.payment.repository;
 
-import com.b4code.backend.modules.payment.entity.Payment;
+import com.b4code.backend.models.Payment;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 

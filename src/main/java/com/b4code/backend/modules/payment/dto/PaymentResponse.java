@@ -1,6 +1,6 @@
 package com.b4code.backend.modules.payment.dto;
 
-import com.b4code.backend.modules.payment.entity.Payment;
+import com.b4code.backend.models.Payment;
 import lombok.Getter;
 import lombok.Setter;
 

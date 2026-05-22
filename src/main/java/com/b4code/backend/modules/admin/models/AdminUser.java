@@ -1,7 +1,7 @@
 package com.b4code.backend.modules.admin.models;
 
-import com.b4code.backend.modules.admin.enums.UserRole;
-import com.b4code.backend.modules.admin.enums.UserStatus;
+import com.b4code.backend.models.enums.UserRole;
+import com.b4code.backend.models.enums.UserStatus;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;

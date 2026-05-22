@@ -1,6 +1,6 @@
 package com.b4code.backend.modules.owner.service;
 
-import com.b4code.backend.modules.auth.entity.User;
+import com.b4code.backend.models.User;
 import java.util.List;
 
 public interface OwnerStaffService {

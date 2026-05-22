@@ -1,7 +1,7 @@
 package com.b4code.backend.modules.admin.dto;
 
-import com.b4code.backend.modules.admin.enums.PropertyStatus;
-import com.b4code.backend.modules.admin.models.Property;
+import com.b4code.backend.models.enums.PropertyStatus;
+import com.b4code.backend.models.Property;
 import lombok.*;
 
 import java.time.format.DateTimeFormatter;

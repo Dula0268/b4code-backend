@@ -1,7 +1,7 @@
 package com.b4code.backend.modules.admin.dto;
 
-import com.b4code.backend.modules.admin.enums.TransactionType;
-import com.b4code.backend.modules.admin.models.Transaction;
+import com.b4code.backend.models.enums.TransactionType;
+import com.b4code.backend.models.Transaction;
 import lombok.*;
 
 import java.math.BigDecimal;

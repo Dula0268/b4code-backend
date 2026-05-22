@@ -3,7 +3,7 @@ package com.b4code.backend.modules.admin.rest;
 import com.b4code.backend.modules.admin.dto.PropertyDto;
 import com.b4code.backend.modules.admin.dto.PropertyPageDto;
 import com.b4code.backend.modules.admin.dto.PropertyRejectionDto;
-import com.b4code.backend.modules.admin.enums.PropertyStatus;
+import com.b4code.backend.models.enums.PropertyStatus;
 import com.b4code.backend.modules.admin.service.PropertyService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;

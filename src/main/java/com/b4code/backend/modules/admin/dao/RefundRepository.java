@@ -1,7 +1,7 @@
 package com.b4code.backend.modules.admin.dao;
 
-import com.b4code.backend.modules.admin.enums.RefundStatus;
-import com.b4code.backend.modules.admin.models.Refund;
+import com.b4code.backend.models.enums.RefundStatus;
+import com.b4code.backend.models.Refund;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;

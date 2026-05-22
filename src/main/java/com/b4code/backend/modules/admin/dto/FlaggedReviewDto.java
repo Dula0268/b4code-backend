@@ -1,7 +1,7 @@
 package com.b4code.backend.modules.admin.dto;
 
-import com.b4code.backend.modules.admin.enums.ReviewStatus;
-import com.b4code.backend.modules.admin.models.FlaggedReview;
+import com.b4code.backend.models.enums.ReviewStatus;
+import com.b4code.backend.models.FlaggedReview;
 import lombok.*;
 
 import java.time.format.DateTimeFormatter;

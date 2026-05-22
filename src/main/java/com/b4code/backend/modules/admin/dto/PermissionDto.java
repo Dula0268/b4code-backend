@@ -1,6 +1,6 @@
 package com.b4code.backend.modules.admin.dto;
 
-import com.b4code.backend.modules.admin.models.RolePermission;
+import com.b4code.backend.models.RolePermission;
 import lombok.*;
 
 @Getter

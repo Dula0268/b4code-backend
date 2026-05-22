@@ -1,8 +1,8 @@
 package com.b4code.backend.modules.owner.service.impl;
 
 import com.b4code.backend.modules.admin.dao.PropertyRepository;
-import com.b4code.backend.modules.admin.models.Property;
-import com.b4code.backend.modules.auth.entity.User;
+import com.b4code.backend.models.Property;
+import com.b4code.backend.models.User;
 import com.b4code.backend.modules.auth.repository.UserRepository;
 import com.b4code.backend.modules.owner.service.OwnerStaffService;
 import com.b4code.backend.modules.admin.exceptions.CustomException;

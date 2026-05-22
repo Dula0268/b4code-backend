@@ -1,6 +1,6 @@
 package com.b4code.backend.modules.staff.repository;
 
-import com.b4code.backend.modules.staff.entity.MenuItem;
+import com.b4code.backend.models.MenuItem;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;

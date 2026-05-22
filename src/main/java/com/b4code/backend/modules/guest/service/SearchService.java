@@ -1,9 +1,9 @@
 package com.b4code.backend.modules.guest.service;
 
 import com.b4code.backend.modules.guest.dto.SearchDTO.*;
-import com.b4code.backend.modules.guest.models.Property;
-import com.b4code.backend.modules.guest.models.Room;
-import com.b4code.backend.modules.guest.models.Review;
+import com.b4code.backend.models.Property;
+import com.b4code.backend.models.Room;
+import com.b4code.backend.models.Review;
 import com.b4code.backend.modules.guest.dao.PropertyRepository;
 import com.b4code.backend.modules.guest.dao.ReviewRepository;
 import com.b4code.backend.modules.guest.exceptions.ResourceNotFoundException;
