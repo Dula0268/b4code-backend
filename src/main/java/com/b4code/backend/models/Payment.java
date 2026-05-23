@@ -8,7 +8,7 @@ import org.hibernate.annotations.CreationTimestamp;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "payments")
+@Table(name = "payments", schema = "admin")
 @Getter
 @Setter
 public class Payment {

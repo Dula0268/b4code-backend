@@ -11,7 +11,7 @@ import org.hibernate.annotations.UpdateTimestamp;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "admin_users")
+@Table(name = "admin_users", schema = "admin")
 @Getter
 @Setter
 public class AdminUser {

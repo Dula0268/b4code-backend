@@ -10,7 +10,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@Table(name = "menu_items")
+@Table(name = "menu_items", schema = "staff")
 @Getter
 @Setter
 @NoArgsConstructor
@@ -40,7 +40,7 @@ public class MenuItem {
     private Boolean isAvailable = true;
 
     @ElementCollection(fetch = FetchType.EAGER)
-    @CollectionTable(name = "menu_item_images", joinColumns = @JoinColumn(name = "menu_item_id"))
+    @CollectionTable(name = "menu_item_images", schema = "staff", joinColumns = @JoinColumn(name = "menu_item_id"))
     @Column(name = "image_url")
     private List<String> imageUrls = new ArrayList<>();
 }

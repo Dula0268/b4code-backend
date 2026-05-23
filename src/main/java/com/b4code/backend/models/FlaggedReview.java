@@ -10,7 +10,7 @@ import org.hibernate.annotations.UpdateTimestamp;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "flagged_reviews")
+@Table(name = "flagged_reviews", schema = "admin")
 @Getter
 @Setter
 public class FlaggedReview {
