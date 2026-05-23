@@ -8,7 +8,7 @@ import lombok.Setter;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "verification_otps", schema = "auth")
+@Table(name = "verification_otps", schema = "app_auth")
 @Getter
 @Setter
 @NoArgsConstructor
