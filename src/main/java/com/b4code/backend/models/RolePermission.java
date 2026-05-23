@@ -5,7 +5,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 @Entity
-@Table(name = "role_permissions", schema = "auth", uniqueConstraints = {
+@Table(name = "role_permissions", schema = "app_auth", uniqueConstraints = {
     @UniqueConstraint(columnNames = {"role_name", "permission_key"})
 })
 @Getter
