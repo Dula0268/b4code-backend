@@ -99,34 +99,44 @@ public class DataSeeder implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
-        // ============ EXISTING DATASEEDER LOGIC ============
-        
-        // 1. Seed Properties first so we have IDs to link to
-        if (propertyRepository.count() == 0) {
-            Property p1 = new Property();
-            p1.setName("Sunset Villa");
-            p1.setPvId("PV-1001");
-            p1.setOwnerName("Alex Owner");
-            p1.setOwnerId(1L);
-            p1.setStatus(PropertyStatus.APPROVED);
-            p1.setSubmittedAt(LocalDateTime.now());
-            p1.setAddress("123 Sunset Blvd, Miami, FL");
-            propertyRepository.save(p1);
+        seedCoreProperties();
+        seedCoreUsers();
+        seedAdminUsers();
+        seedFlaggedReviews();
+        seedDisputes();
+        seedMenuItems();
+        seedGuestData();
+    }
 
-            Property p2 = new Property();
-            p2.setName("Ocean Breeze");
-            p2.setPvId("PV-1002");
-            p2.setOwnerName("Alex Owner");
-            p2.setOwnerId(1L);
-            p2.setStatus(PropertyStatus.APPROVED);
-            p2.setSubmittedAt(LocalDateTime.now());
-            p2.setAddress("456 Ocean Dr, Miami, FL");
-            propertyRepository.save(p2);
-
-            System.out.println("✅ Test properties seeded");
+    private void seedCoreProperties() {
+        if (propertyRepository.count() > 0) {
+            return;
         }
 
-        // 2. Ensure admin always exists
+        Property p1 = new Property();
+        p1.setName("Sunset Villa");
+        p1.setPvId("PV-1001");
+        p1.setOwnerName("Alex Owner");
+        p1.setOwnerId(1L);
+        p1.setStatus(PropertyStatus.APPROVED);
+        p1.setSubmittedAt(LocalDateTime.now());
+        p1.setAddress("123 Sunset Blvd, Miami, FL");
+        propertyRepository.save(p1);
+
+        Property p2 = new Property();
+        p2.setName("Ocean Breeze");
+        p2.setPvId("PV-1002");
+        p2.setOwnerName("Alex Owner");
+        p2.setOwnerId(1L);
+        p2.setStatus(PropertyStatus.APPROVED);
+        p2.setSubmittedAt(LocalDateTime.now());
+        p2.setAddress("456 Ocean Dr, Miami, FL");
+        propertyRepository.save(p2);
+
+        System.out.println("✅ Test properties seeded");
+    }
+
+    private void seedCoreUsers() {
         userRepository.findByEmail("admin@primestay.com").ifPresentOrElse(
                 admin -> {
                     if (admin.getRole() != User.Role.ADMIN) {
@@ -147,13 +157,11 @@ public class DataSeeder implements CommandLineRunner {
                     System.out.println("✅ Admin user created");
                 });
 
-        // 3. Seed other users
         seedUserIfMissing("guest@primestay.com", "guest123", "John", "Doe", User.Role.GUEST, null,
                 User.UserStatus.ACTIVE);
         seedUserIfMissing("guest1@primestay.com", "guest123", "Alice", "Guest", User.Role.GUEST, 1L,
                 User.UserStatus.ACTIVE);
 
-        // Ensure guest1 has propertyId = 1 if already seeded
         userRepository.findByEmail("guest1@primestay.com").ifPresent(u -> {
             if (u.getPropertyId() == null || u.getPropertyId() != 1L) {
                 u.setPropertyId(1L);
@@ -165,50 +173,59 @@ public class DataSeeder implements CommandLineRunner {
         seedUserIfMissing("owner@primestay.com", "owner123", "Alex", "Owner", User.Role.OWNER, null,
                 User.UserStatus.ACTIVE);
 
-        // ✅ Specific Staff Logins (Linked to Property 1 and 2)
         seedUserIfMissing("staff@primestay.com", "staff123", "Mike", "Staff", User.Role.STAFF, 1L,
                 User.UserStatus.APPROVED);
         seedUserIfMissing("staff2@primestay.com", "staff123", "Jane", "Staff", User.Role.STAFF, 2L,
                 User.UserStatus.APPROVED);
+    }
 
-        // 4. Admin users table
-        if (adminUserRepository.count() == 0) {
-            seedAdminUser("Sarah", "Jenkins", "sarah.j@primestay.com", UserRole.OWNER, UserStatus.ACTIVE);
-            seedAdminUser("Mike", "Ross", "mike.ross@primestay.com", UserRole.STAFF, UserStatus.ACTIVE);
-            seedAdminUser("John", "Doe", "john.d@gmail.com", UserRole.STAFF, UserStatus.SUSPENDED);
-            seedAdminUser("Emily", "Chen", "emily.chen@primestay.com", UserRole.OWNER, UserStatus.ACTIVE);
-            seedAdminUser("Aisha", "Kumar", "aisha.k@primestay.com", UserRole.STAFF, UserStatus.ACTIVE);
-            seedAdminUser("Nina", "Patel", "nina.patel@primestay.com", UserRole.OWNER, UserStatus.ACTIVE);
-            seedAdminUser("Daniel", "Osei", "daniel.o@primestay.com", UserRole.STAFF, UserStatus.ACTIVE);
-            seedAdminUser("Priya", "Sharma", "priya.s@primestay.com", UserRole.OWNER, UserStatus.SUSPENDED);
-            System.out.println("✅ Sample admin_users seeded (8 records)");
+    private void seedAdminUsers() {
+        if (adminUserRepository.count() > 0) {
+            return;
         }
 
-        // 5. Seed Flagged Reviews
-        if (flaggedReviewRepository.count() == 0) {
-            seedFlaggedReview(101L, "Oceanview Villa", 201L, "Alice Smith", "AS", "blue",
-                    "The place was a total mess and not as described. Bugs everywhere!", 1.5, "Inappropriate Content",
-                    ReviewStatus.FLAGGED);
-            seedFlaggedReview(102L, "Mountain Retreat", 202L, "Bob Jones", "BJ", "green",
-                    "Host demanded extra cash upon arrival. Very shady.", 2.0, "Policy Violation",
-                    ReviewStatus.FLAGGED);
-            seedFlaggedReview(103L, "City Center Apartment", 203L, "Carol White", "CW", "purple",
-                    "Great place, but the neighbors were a bit loud.", 4.0, "Spam", ReviewStatus.FLAGGED);
-            System.out.println("✅ Flagged reviews seeded");
+        seedAdminUser("Sarah", "Jenkins", "sarah.j@primestay.com", UserRole.OWNER, UserStatus.ACTIVE);
+        seedAdminUser("Mike", "Ross", "mike.ross@primestay.com", UserRole.STAFF, UserStatus.ACTIVE);
+        seedAdminUser("John", "Doe", "john.d@gmail.com", UserRole.STAFF, UserStatus.SUSPENDED);
+        seedAdminUser("Emily", "Chen", "emily.chen@primestay.com", UserRole.OWNER, UserStatus.ACTIVE);
+        seedAdminUser("Aisha", "Kumar", "aisha.k@primestay.com", UserRole.STAFF, UserStatus.ACTIVE);
+        seedAdminUser("Nina", "Patel", "nina.patel@primestay.com", UserRole.OWNER, UserStatus.ACTIVE);
+        seedAdminUser("Daniel", "Osei", "daniel.o@primestay.com", UserRole.STAFF, UserStatus.ACTIVE);
+        seedAdminUser("Priya", "Sharma", "priya.s@primestay.com", UserRole.OWNER, UserStatus.SUSPENDED);
+        System.out.println("✅ Sample admin_users seeded (8 records)");
+    }
+
+    private void seedFlaggedReviews() {
+        if (flaggedReviewRepository.count() > 0) {
+            return;
         }
 
-        // 6. Seed Disputes
-        if (disputeRepository.count() == 0) {
-            seedDispute("DSP-1001", 201L, "Alice Smith", 101L, "Oceanview Villa", "BKG-9901",
-                    "Host cancelled last minute, requesting full refund.", new BigDecimal("15000.00"), "LKR",
-                    "2026-06-01 to 2026-06-05", "Strict", 5, DisputeStatus.OPEN);
-            seedDispute("DSP-1002", 204L, "David Brown", 104L, "Desert Oasis", "BKG-9902",
-                    "Property amenities missing (no pool as advertised).", new BigDecimal("5000.00"), "LKR",
-                    "2026-05-10 to 2026-05-12", "Moderate", 3, DisputeStatus.OPEN);
-            System.out.println("✅ Disputes seeded");
+        seedFlaggedReview(101L, "Oceanview Villa", 201L, "Alice Smith", "AS", "blue",
+                "The place was a total mess and not as described. Bugs everywhere!", 1.5, "Inappropriate Content",
+                ReviewStatus.FLAGGED);
+        seedFlaggedReview(102L, "Mountain Retreat", 202L, "Bob Jones", "BJ", "green",
+                "Host demanded extra cash upon arrival. Very shady.", 2.0, "Policy Violation",
+                ReviewStatus.FLAGGED);
+        seedFlaggedReview(103L, "City Center Apartment", 203L, "Carol White", "CW", "purple",
+                "Great place, but the neighbors were a bit loud.", 4.0, "Spam", ReviewStatus.FLAGGED);
+        System.out.println("✅ Flagged reviews seeded");
+    }
+
+    private void seedDisputes() {
+        if (disputeRepository.count() > 0) {
+            return;
         }
 
-        // 7. Seed/Update Menu Items for Property 1
+        seedDispute("DSP-1001", 201L, "Alice Smith", 101L, "Oceanview Villa", "BKG-9901",
+                "Host cancelled last minute, requesting full refund.", new BigDecimal("15000.00"), "LKR",
+                "2026-06-01 to 2026-06-05", "Strict", 5, DisputeStatus.OPEN);
+        seedDispute("DSP-1002", 204L, "David Brown", 104L, "Desert Oasis", "BKG-9902",
+                "Property amenities missing (no pool as advertised).", new BigDecimal("5000.00"), "LKR",
+                "2026-05-10 to 2026-05-12", "Moderate", 3, DisputeStatus.OPEN);
+        System.out.println("✅ Disputes seeded");
+    }
+
+    private void seedMenuItems() {
         seedOrUpdateMenuItem(1L, "Classic Margherita Pizza", "Main",
                 "Fresh mozzarella, basil, and tomato sauce on a thin crust.", new BigDecimal("2500.00"),
                 List.of(
@@ -230,41 +247,43 @@ public class DataSeeder implements CommandLineRunner {
                         "https://res.cloudinary.com/dfydjkjw8/image/upload/v1778485190/fjoolp2br10pqp56u2t3.jpg",
                         "https://res.cloudinary.com/dfydjkjw8/image/upload/v1778485191/lk3whcfcoanysx611dnu.jpg"));
         System.out.println("✅ Menu items synced for Property 1");
+    }
 
-        // ============ GUEST DATA SEEDER LOGIC ============
+    private void seedGuestData() {
         long publishedCount = propertyRepository.countByPublishedTrue();
         log.info("📊 Current published properties: {}", publishedCount);
 
-        // If we don't have exactly our 12 properties OR the first one isn't ID 1, wipe
-        // and re-seed
         boolean idMismatch = propertyRepository.findAll().stream()
                 .filter(p -> "Colombo Sky Residency".equals(p.getName()))
                 .findFirst()
                 .map(p -> p.getId() != 1)
                 .orElse(publishedCount > 0);
 
-        if (publishedCount != 12 || idMismatch) {
-            log.info("🧹 Wiping old guest data for a clean start (Count: {}, ID Mismatch: {})...", publishedCount,
-                    idMismatch);
-
-            // Use TRUNCATE with RESTART IDENTITY to ensure IDs start at 1
-            jdbcTemplate.execute(
-                    "TRUNCATE TABLE guest.reviews, guest.bookings, owner.rooms, guest.promo_codes, owner.properties, guest.messages, guest.message_templates RESTART IDENTITY CASCADE");
-
-            log.info("🌱 Seeding 12 guest properties with Cloudinary images...");
-            seedAllProperties();
-            log.info("✅ Property seeding complete");
-
-            log.info("🌱 Seeding reviews and bookings...");
-            seedReviews();
-            log.info("✅ Review seeding complete");
-
-            log.info("🌱 Seeding promo codes...");
-            seedPromoCodes();
-            log.info("✅ Promo code seeding complete");
-        } else {
+        if (publishedCount == 12 && !idMismatch) {
             log.info("✅ Guest data already correctly seeded (12 properties)");
+            return;
         }
+
+        log.info("🧹 Wiping old guest data for a clean start (Count: {}, ID Mismatch: {})...", publishedCount,
+                idMismatch);
+        wipeGuestData();
+
+        log.info("🌱 Seeding 12 guest properties with Cloudinary images...");
+        seedAllProperties();
+        log.info("✅ Property seeding complete");
+
+        log.info("🌱 Seeding reviews and bookings...");
+        seedReviews();
+        log.info("✅ Review seeding complete");
+
+        log.info("🌱 Seeding promo codes...");
+        seedPromoCodes();
+        log.info("✅ Promo code seeding complete");
+    }
+
+    private void wipeGuestData() {
+        jdbcTemplate.execute(
+                "TRUNCATE TABLE guest.reviews, guest.bookings, owner.rooms, guest.promo_codes, owner.properties, guest.messages, guest.message_templates RESTART IDENTITY CASCADE");
     }
 
     private void seedUserIfMissing(String email, String password, String first, String last, User.Role role,
