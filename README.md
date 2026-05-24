@@ -57,6 +57,21 @@ docker-compose up -d
 
 > Note: The database explicitly runs on port **5433** to prevent colliding with any native Postgres installations you may have on port `5432`.
 
+### Shared Aiven Postgres (Team DB)
+
+If your team uses a shared Aiven Postgres instance instead of the local Docker DB, set these environment variables in a local `.env` file (do not commit secrets):
+
+```
+DB_HOST=pg-xxxxxxxx.your-region.aivencloud.com
+DB_PORT=28261
+DB_NAME=defaultdb
+DB_USER=avnadmin
+DB_PASSWORD=your_password_here
+DB_SSLMODE=require
+```
+
+The app reads `.env` automatically via Spring config import. Restart the backend after updating the values.
+
 ### 2. Run the Application
 
 Start the Spring Boot instance locally using the Maven wrapper. Ensure you are executing this command from the _project root directory_.
