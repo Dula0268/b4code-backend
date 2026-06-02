@@ -1,5 +1,7 @@
 package com.b4code.backend.models;
 
+import com.b4code.backend.models.enums.UserRole;
+import com.b4code.backend.models.enums.UserStatus;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -35,9 +37,6 @@ public class User {
     @Column
     private Long propertyId;
 
-    @Column
-    private Long roomId;
-
     @Column(name = "avatar_url")
     private String avatarUrl;
 
@@ -46,11 +45,16 @@ public class User {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private Role role;
+    private UserRole role;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private UserStatus status = UserStatus.ACTIVE;
+
+    private LocalDateTime lastLogin;
+
+    @Column(nullable = false)
+    private boolean deleted = false;
 
     @CreationTimestamp
     @Column(updatable = false)
@@ -59,11 +63,8 @@ public class User {
     @UpdateTimestamp
     private LocalDateTime updatedAt;
 
-    public enum Role {
-        GUEST, OWNER, ADMIN, STAFF
-    }
-
-    public enum UserStatus {
-        ACTIVE, PENDING, APPROVED, REJECTED, SUSPENDED
+    public String getFullName() {
+        return firstName + " " + lastName;
     }
 }
+

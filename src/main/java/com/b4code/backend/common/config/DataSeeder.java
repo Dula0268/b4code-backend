@@ -23,7 +23,6 @@ public class DataSeeder implements CommandLineRunner {
     private static final Logger log = LoggerFactory.getLogger(DataSeeder.class);
 
     private final UserRepository userRepository;
-    private final AdminUserRepository adminUserRepository;
     private final FlaggedReviewRepository flaggedReviewRepository;
     private final DisputeRepository disputeRepository;
     private final MenuItemRepository menuItemRepository;
@@ -72,7 +71,6 @@ public class DataSeeder implements CommandLineRunner {
     };
 
     public DataSeeder(UserRepository userRepository,
-            AdminUserRepository adminUserRepository,
             FlaggedReviewRepository flaggedReviewRepository,
             DisputeRepository disputeRepository,
             MenuItemRepository menuItemRepository,
@@ -84,7 +82,6 @@ public class DataSeeder implements CommandLineRunner {
             PasswordEncoder passwordEncoder,
             JdbcTemplate jdbcTemplate) {
         this.userRepository = userRepository;
-        this.adminUserRepository = adminUserRepository;
         this.flaggedReviewRepository = flaggedReviewRepository;
         this.disputeRepository = disputeRepository;
         this.menuItemRepository = menuItemRepository;
@@ -139,8 +136,8 @@ public class DataSeeder implements CommandLineRunner {
     private void seedCoreUsers() {
         userRepository.findByEmail("admin@primestay.com").ifPresentOrElse(
                 admin -> {
-                    if (admin.getRole() != User.Role.ADMIN) {
-                        admin.setRole(User.Role.ADMIN);
+                    if (admin.getRole() != UserRole.ADMIN) {
+                        admin.setRole(UserRole.ADMIN);
                         userRepository.save(admin);
                         System.out.println("✅ Updated admin role");
                     }
@@ -151,16 +148,16 @@ public class DataSeeder implements CommandLineRunner {
                     admin.setPasswordHash(passwordEncoder.encode("admin123"));
                     admin.setFirstName("System");
                     admin.setLastName("Admin");
-                    admin.setRole(User.Role.ADMIN);
-                    admin.setStatus(User.UserStatus.ACTIVE);
+                    admin.setRole(UserRole.ADMIN);
+                    admin.setStatus(UserStatus.ACTIVE);
                     userRepository.save(admin);
                     System.out.println("✅ Admin user created");
                 });
 
-        seedUserIfMissing("guest@primestay.com", "guest123", "John", "Doe", User.Role.GUEST, null,
-                User.UserStatus.ACTIVE);
-        seedUserIfMissing("guest1@primestay.com", "guest123", "Alice", "Guest", User.Role.GUEST, 1L,
-                User.UserStatus.ACTIVE);
+        seedUserIfMissing("guest@primestay.com", "guest123", "John", "Doe", UserRole.GUEST, null,
+                UserStatus.ACTIVE);
+        seedUserIfMissing("guest1@primestay.com", "guest123", "Alice", "Guest", UserRole.GUEST, 1L,
+                UserStatus.ACTIVE);
 
         userRepository.findByEmail("guest1@primestay.com").ifPresent(u -> {
             if (u.getPropertyId() == null || u.getPropertyId() != 1L) {
@@ -170,20 +167,16 @@ public class DataSeeder implements CommandLineRunner {
             }
         });
 
-        seedUserIfMissing("owner@primestay.com", "owner123", "Alex", "Owner", User.Role.OWNER, null,
-                User.UserStatus.ACTIVE);
+        seedUserIfMissing("owner@primestay.com", "owner123", "Alex", "Owner", UserRole.OWNER, null,
+                UserStatus.ACTIVE);
 
-        seedUserIfMissing("staff@primestay.com", "staff123", "Mike", "Staff", User.Role.STAFF, 1L,
-                User.UserStatus.APPROVED);
-        seedUserIfMissing("staff2@primestay.com", "staff123", "Jane", "Staff", User.Role.STAFF, 2L,
-                User.UserStatus.APPROVED);
+        seedUserIfMissing("staff@primestay.com", "staff123", "Mike", "Staff", UserRole.STAFF, 1L,
+                UserStatus.APPROVED);
+        seedUserIfMissing("staff2@primestay.com", "staff123", "Jane", "Staff", UserRole.STAFF, 2L,
+                UserStatus.APPROVED);
     }
 
     private void seedAdminUsers() {
-        if (adminUserRepository.count() > 0) {
-            return;
-        }
-
         seedAdminUser("Sarah", "Jenkins", "sarah.j@primestay.com", UserRole.OWNER, UserStatus.ACTIVE);
         seedAdminUser("Mike", "Ross", "mike.ross@primestay.com", UserRole.STAFF, UserStatus.ACTIVE);
         seedAdminUser("John", "Doe", "john.d@gmail.com", UserRole.STAFF, UserStatus.SUSPENDED);
@@ -286,8 +279,8 @@ public class DataSeeder implements CommandLineRunner {
                 "TRUNCATE TABLE guest.reviews, guest.bookings, owner.rooms, guest.promo_codes, owner.properties, guest.messages, guest.message_templates RESTART IDENTITY CASCADE");
     }
 
-    private void seedUserIfMissing(String email, String password, String first, String last, User.Role role,
-            Long propertyId, User.UserStatus status) {
+    private void seedUserIfMissing(String email, String password, String first, String last, UserRole role,
+            Long propertyId, UserStatus status) {
         userRepository.findByEmail(email).ifPresentOrElse(
                 user -> {
                     if (user.getRole() != role || (propertyId != null && !propertyId.equals(user.getPropertyId()))
@@ -308,21 +301,34 @@ public class DataSeeder implements CommandLineRunner {
                     user.setLastName(last);
                     user.setRole(role);
                     user.setPropertyId(propertyId);
-                    user.setStatus(status != null ? status : User.UserStatus.ACTIVE);
+                    user.setStatus(status != null ? status : UserStatus.ACTIVE);
                     userRepository.save(user);
                     System.out.println("✅ Seeded user: " + email);
                 });
     }
 
     private void seedAdminUser(String first, String last, String email, UserRole role, UserStatus status) {
-        AdminUser u = new AdminUser();
-        u.setFirstName(first);
-        u.setLastName(last);
-        u.setEmail(email);
-        u.setPasswordHash(passwordEncoder.encode("password123"));
-        u.setRole(role);
-        u.setStatus(status);
-        adminUserRepository.save(u);
+        userRepository.findByEmail(email).ifPresentOrElse(
+                user -> {
+                    if (user.getRole() != role || (status != null && user.getStatus() != status)) {
+                        user.setRole(role);
+                        if (status != null)
+                            user.setStatus(status);
+                        userRepository.save(user);
+                        System.out.println("✅ Updated admin user " + email + " to " + role + " role");
+                    }
+                },
+                () -> {
+                    User u = new User();
+                    u.setFirstName(first);
+                    u.setLastName(last);
+                    u.setEmail(email);
+                    u.setPasswordHash(passwordEncoder.encode("password123"));
+                    u.setRole(role);
+                    u.setStatus(status);
+                    userRepository.save(u);
+                    System.out.println("✅ Seeded admin user: " + email);
+                });
     }
 
     private void seedFlaggedReview(Long propertyId, String propertyName, Long guestId, String guestName,

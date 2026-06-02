@@ -1,6 +1,6 @@
 package com.b4code.backend.rest;
 
-import com.b4code.backend.models.User;
+import com.b4code.backend.dto.StaffPendingResponse;
 import com.b4code.backend.service.OwnerStaffService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -19,7 +19,7 @@ public class OwnerStaffController {
     private final OwnerStaffService ownerStaffService;
 
     @GetMapping("/pending")
-    public ResponseEntity<List<User>> getPendingStaff(Principal principal) {
+    public ResponseEntity<List<StaffPendingResponse>> getPendingStaff(Principal principal) {
         return ResponseEntity.ok(ownerStaffService.getPendingStaff(principal.getName()));
     }
 
@@ -35,6 +35,3 @@ public class OwnerStaffController {
         return ResponseEntity.ok().build();
     }
 }
-
-
-

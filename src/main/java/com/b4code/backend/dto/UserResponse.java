@@ -16,7 +16,6 @@ public class UserResponse {
     private String role;
     private String phone;
     private Long propertyId;
-    private Long roomId;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
@@ -36,8 +35,8 @@ public class UserResponse {
         response.setAvatarUrl(user.getAvatarUrl());
         response.setNationalIdUrl(user.getNationalIdUrl());
         response.setPropertyId(user.getPropertyId());
-        response.setRoomId(user.getRoomId());
         return response;
     }
 }
+
 

@@ -1,6 +1,6 @@
 package com.b4code.backend.service.impl;
 
-import com.b4code.backend.dao.AdminUserRepository;
+import com.b4code.backend.dao.UserRepository;
 import com.b4code.backend.dao.PropertyRepository;
 import com.b4code.backend.dao.TransactionRepository;
 import com.b4code.backend.dto.*;
@@ -22,7 +22,7 @@ public class AnalyticsServiceImpl implements AnalyticsService {
 
     private final TransactionRepository transactionRepository;
     private final PropertyRepository    propertyRepository;
-    private final AdminUserRepository   userRepository;
+    private final UserRepository   userRepository;
 
     private static final int COMMISSION_RATE = 20;  
 

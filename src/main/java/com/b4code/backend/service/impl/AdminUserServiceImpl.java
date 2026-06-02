@@ -6,8 +6,8 @@ import com.b4code.backend.dto.UserStatusUpdateDto;
 import com.b4code.backend.models.enums.UserRole;
 import com.b4code.backend.models.enums.UserStatus;
 import com.b4code.backend.exceptions.CustomException;
-import com.b4code.backend.models.AdminUser;
-import com.b4code.backend.dao.AdminUserRepository;
+import com.b4code.backend.models.User;
+import com.b4code.backend.dao.UserRepository;
 import com.b4code.backend.service.AdminUserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -27,7 +27,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class AdminUserServiceImpl implements AdminUserService {
 
-    private final AdminUserRepository userRepository;
+    private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
 
     // ── GET ALL USERS ──────────────────────────────────
@@ -42,7 +42,7 @@ public class AdminUserServiceImpl implements AdminUserService {
 
         String searchTerm = (search == null || search.isBlank()) ? null : search.trim();
 
-        Page<AdminUser> pageResult = userRepository.findAllWithFilters(searchTerm, role, status, pageable);
+        Page<User> pageResult = userRepository.findAllWithFilters(searchTerm, role, status, pageable);
 
         List<UserDto> content = pageResult.getContent()
                 .stream()
@@ -68,7 +68,7 @@ public class AdminUserServiceImpl implements AdminUserService {
     public UserDto getUserById(Long id) {
         log.debug("Fetching user by id={}", id);
 
-        AdminUser user = findActiveUserOrThrow(id);
+        User user = findActiveUserOrThrow(id);
         return UserDto.fromEntity(user);
     }
 
@@ -83,13 +83,15 @@ public class AdminUserServiceImpl implements AdminUserService {
             throw new CustomException("Email already in use", HttpStatus.CONFLICT);
         }
 
-        AdminUser user = new AdminUser();
+        User user = new User();
         user.setEmail(userDto.getEmail());
         user.setPasswordHash(passwordEncoder.encode(rawPassword));
+        user.setFirstName(userDto.getFirstName() != null ? userDto.getFirstName() : "");
+        user.setLastName(userDto.getLastName() != null ? userDto.getLastName() : "");
         user.setRole(userDto.getRole());
         user.setStatus(userDto.getStatus() != null ? userDto.getStatus() : UserStatus.ACTIVE);
 
-        AdminUser saved = userRepository.save(user);
+        User saved = userRepository.save(user);
         log.info("User created — id={}, email={}", saved.getId(), saved.getEmail());
         return UserDto.fromEntity(saved);
     }
@@ -101,7 +103,7 @@ public class AdminUserServiceImpl implements AdminUserService {
     public UserDto updateUser(Long id, UserDto userDto) {
         log.info("Updating user id={}", id);
 
-        AdminUser user = findActiveUserOrThrow(id);
+        User user = findActiveUserOrThrow(id);
 
         if (userDto.getEmail() != null && !userDto.getEmail().equals(user.getEmail())) {
             if (userRepository.existsByEmail(userDto.getEmail())) {
@@ -110,11 +112,18 @@ public class AdminUserServiceImpl implements AdminUserService {
             user.setEmail(userDto.getEmail());
         }
 
+        if (userDto.getFirstName() != null) {
+            user.setFirstName(userDto.getFirstName());
+        }
+        if (userDto.getLastName() != null) {
+            user.setLastName(userDto.getLastName());
+        }
+
         if (userDto.getRole() != null) {
             user.setRole(userDto.getRole());
         }
 
-        AdminUser saved = userRepository.save(user);
+        User saved = userRepository.save(user);
         log.info("User id={} updated", id);
         return UserDto.fromEntity(saved);
     }
@@ -126,10 +135,10 @@ public class AdminUserServiceImpl implements AdminUserService {
     public UserDto updateUserStatus(Long id, UserStatusUpdateDto statusUpdate) {
         log.info("Updating user id={} status to {}", id, statusUpdate.getStatus());
 
-        AdminUser user = findActiveUserOrThrow(id);
+        User user = findActiveUserOrThrow(id);
         user.setStatus(statusUpdate.getStatus());
 
-        AdminUser saved = userRepository.save(user);
+        User saved = userRepository.save(user);
         log.info("User id={} status updated to {}", id, statusUpdate.getStatus());
         return UserDto.fromEntity(saved);
     }
@@ -141,7 +150,7 @@ public class AdminUserServiceImpl implements AdminUserService {
     public void deleteUser(Long id) {
         log.info("Deleting user id={}", id);
 
-        AdminUser user = findActiveUserOrThrow(id);
+        User user = findActiveUserOrThrow(id);
         user.setDeleted(true);
         userRepository.save(user);
 
@@ -150,8 +159,9 @@ public class AdminUserServiceImpl implements AdminUserService {
 
     // ── PRIVATE HELPERS ────────────────────────────────────────────────────────
 
-    private AdminUser findActiveUserOrThrow(Long id) {
-        return userRepository.findById(id)
+    private User findActiveUserOrThrow(Long id) {
+        return userRepository.findByIdAndDeletedFalse(id)
                 .orElseThrow(() -> new CustomException("User not found", HttpStatus.NOT_FOUND));
     }
 }
+
