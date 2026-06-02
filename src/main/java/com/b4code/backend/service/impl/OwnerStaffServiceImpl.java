@@ -1,8 +1,11 @@
 package com.b4code.backend.service.impl;
 
 import com.b4code.backend.dao.PropertyRepository;
+import com.b4code.backend.dto.StaffPendingResponse;
 import com.b4code.backend.models.Property;
 import com.b4code.backend.models.User;
+import com.b4code.backend.models.enums.UserRole;
+import com.b4code.backend.models.enums.UserStatus;
 import com.b4code.backend.dao.UserRepository;
 import com.b4code.backend.service.OwnerStaffService;
 import com.b4code.backend.exceptions.CustomException;
@@ -11,6 +14,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -21,43 +25,63 @@ public class OwnerStaffServiceImpl implements OwnerStaffService {
     private final PropertyRepository propertyRepository;
 
     @Override
-    public List<User> getPendingStaff(String ownerEmail) {
+    public List<StaffPendingResponse> getPendingStaff(String ownerEmail) {
         User owner = userRepository.findByEmail(ownerEmail)
                 .orElseThrow(() -> new CustomException("Owner not found", HttpStatus.NOT_FOUND));
 
-        List<Long> propertyIds = propertyRepository.findByOwnerId(owner.getId()).stream()
-                .map(Property::getId)
-                .collect(Collectors.toList());
+        List<Property> ownerProperties = propertyRepository.findByOwnerId(owner.getId());
 
-        if (propertyIds.isEmpty()) {
+        if (ownerProperties.isEmpty()) {
             return List.of();
         }
 
-        return userRepository.findByPropertyIdInAndRoleAndStatus(
-                propertyIds, 
-                User.Role.STAFF, 
-                User.UserStatus.PENDING
+        // Build a lookup map: propertyId -> propertyName
+        Map<Long, String> propertyNameMap = ownerProperties.stream()
+                .collect(Collectors.toMap(Property::getId, Property::getName));
+
+        List<Long> propertyIds = ownerProperties.stream()
+                .map(Property::getId)
+                .collect(Collectors.toList());
+
+        List<User> pendingStaff = userRepository.findByPropertyIdInAndRoleAndStatusAndDeletedFalse(
+                propertyIds,
+                UserRole.STAFF,
+                UserStatus.PENDING
         );
+
+        return pendingStaff.stream()
+                .map(staff -> StaffPendingResponse.builder()
+                        .id(staff.getId())
+                        .email(staff.getEmail())
+                        .firstName(staff.getFirstName())
+                        .lastName(staff.getLastName())
+                        .phone(staff.getPhone())
+                        .propertyName(staff.getPropertyId() != null
+                                ? propertyNameMap.getOrDefault(staff.getPropertyId(), "Unknown Property")
+                                : "No Property Assigned")
+                        .status(staff.getStatus().name())
+                        .build())
+                .collect(Collectors.toList());
     }
 
     @Override
     public void approveStaff(String ownerEmail, Long staffId) {
-        updateStaffStatus(ownerEmail, staffId, User.UserStatus.APPROVED);
+        updateStaffStatus(ownerEmail, staffId, UserStatus.APPROVED);
     }
 
     @Override
     public void rejectStaff(String ownerEmail, Long staffId) {
-        updateStaffStatus(ownerEmail, staffId, User.UserStatus.REJECTED);
+        updateStaffStatus(ownerEmail, staffId, UserStatus.REJECTED);
     }
 
-    private void updateStaffStatus(String ownerEmail, Long staffId, User.UserStatus newStatus) {
+    private void updateStaffStatus(String ownerEmail, Long staffId, UserStatus newStatus) {
         User owner = userRepository.findByEmail(ownerEmail)
                 .orElseThrow(() -> new CustomException("Owner not found", HttpStatus.NOT_FOUND));
 
         User staff = userRepository.findById(staffId)
                 .orElseThrow(() -> new CustomException("Staff not found", HttpStatus.NOT_FOUND));
 
-        if (staff.getRole() != User.Role.STAFF) {
+        if (staff.getRole() != UserRole.STAFF) {
             throw new CustomException("User is not a staff member", HttpStatus.BAD_REQUEST);
         }
 
@@ -76,3 +100,4 @@ public class OwnerStaffServiceImpl implements OwnerStaffService {
         userRepository.save(staff);
     }
 }
+

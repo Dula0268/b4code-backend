@@ -10,6 +10,8 @@ import com.b4code.backend.dto.RegisterRequest;
 import com.b4code.backend.dto.UserProfileDto;
 import com.b4code.backend.models.PasswordResetToken;
 import com.b4code.backend.models.User;
+import com.b4code.backend.models.enums.UserRole;
+import com.b4code.backend.models.enums.UserStatus;
 import com.b4code.backend.dao.PasswordResetTokenRepository;
 import com.b4code.backend.dao.UserRepository;
 import com.b4code.backend.dao.VerificationOTPRepository;
@@ -61,22 +63,22 @@ public class AuthService {
 
         user.setPhone(request.getPhone());
 
-        User.Role role;
+        UserRole role;
         try {
             role = request.getRole() != null
-                    ? User.Role.valueOf(request.getRole().toUpperCase())
-                    : User.Role.GUEST;
+                    ? UserRole.valueOf(request.getRole().toUpperCase())
+                    : UserRole.GUEST;
         } catch (IllegalArgumentException e) {
-            role = User.Role.GUEST;
+            role = UserRole.GUEST;
         }
         user.setRole(role);
 
-        if (role == User.Role.STAFF && request.getPropertyId() != null) {
+        if (role == UserRole.STAFF && request.getPropertyId() != null) {
             user.setPropertyId(request.getPropertyId());
         }
 
         // Everyone starts as PENDING until email is verified via OTP
-        user.setStatus(User.UserStatus.PENDING);
+        user.setStatus(UserStatus.PENDING);
 
         userRepository.save(user);
 
@@ -144,13 +146,13 @@ public class AuthService {
         }
 
         // Block login for specific statuses
-        if (user.getStatus() == User.UserStatus.REJECTED) {
+        if (user.getStatus() == UserStatus.REJECTED) {
             throw new CustomException("Your account has been rejected. Please contact support.", HttpStatus.FORBIDDEN);
         }
-        if (user.getStatus() == User.UserStatus.SUSPENDED) {
+        if (user.getStatus() == UserStatus.SUSPENDED) {
             throw new CustomException("Your account has been suspended.", HttpStatus.FORBIDDEN);
         }
-        if (user.getStatus() == User.UserStatus.PENDING) {
+        if (user.getStatus() == UserStatus.PENDING) {
             throw new CustomException("Your account is still pending approval.", HttpStatus.FORBIDDEN);
         }
 
@@ -265,15 +267,15 @@ public class AuthService {
         }
 
         // Logic for role-based activation
-        if (user.getRole() == User.Role.STAFF) {
+        if (user.getRole() == UserRole.STAFF) {
             // Staff members verified their email, but still need Owner approval
             // So we keep them as PENDING, but we can mark their email as verified if we had
             // a flag.
             // For now, they stay PENDING so they can't login yet.
-            user.setStatus(User.UserStatus.PENDING);
+            user.setStatus(UserStatus.PENDING);
         } else {
             // Guests and Owners are activated immediately after OTP verification
-            user.setStatus(User.UserStatus.ACTIVE);
+            user.setStatus(UserStatus.ACTIVE);
         }
 
         userRepository.save(user);

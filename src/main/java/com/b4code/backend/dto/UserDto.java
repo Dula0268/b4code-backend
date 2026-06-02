@@ -2,7 +2,7 @@ package com.b4code.backend.dto;
 
 import com.b4code.backend.models.enums.UserRole;
 import com.b4code.backend.models.enums.UserStatus;
-import com.b4code.backend.models.AdminUser;
+import com.b4code.backend.models.User;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -29,7 +29,7 @@ public class UserDto {
     private LocalDateTime lastLogin;
     private LocalDateTime createdAt;
 
-    public static UserDto fromEntity(AdminUser user) {
+    public static UserDto fromEntity(User user) {
         return UserDto.builder()
                 .id(user.getId())
                 .firstName(user.getFirstName())
@@ -44,8 +44,8 @@ public class UserDto {
     }
 
     @JsonIgnore
-    public AdminUser toEntity() {
-        AdminUser user = new AdminUser();
+    public User toEntity() {
+        User user = new User();
         user.setFirstName(this.firstName);
         user.setLastName(this.lastName);
         user.setEmail(this.email);
@@ -54,4 +54,5 @@ public class UserDto {
         return user;
     }
 }
+
 

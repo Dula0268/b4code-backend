@@ -1,6 +1,7 @@
 package com.b4code.backend.service;
 
 import com.b4code.backend.models.User;
+import com.b4code.backend.models.enums.UserRole;
 import com.b4code.backend.dao.UserRepository;
 import com.b4code.backend.dto.ChangePasswordRequest;
 import com.b4code.backend.dto.UpdateProfileRequest;
@@ -44,7 +45,7 @@ public class UserService {
                 .orElseThrow(() -> new RuntimeException("User not found with id: " + id));
 
         try {
-            User.Role newRole = User.Role.valueOf(request.getRole().toUpperCase());
+            UserRole newRole = UserRole.valueOf(request.getRole().toUpperCase());
             user.setRole(newRole);
             userRepository.save(user);
         } catch (IllegalArgumentException e) {
