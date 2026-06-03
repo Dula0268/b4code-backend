@@ -53,7 +53,7 @@ public class User {
 
     private LocalDateTime lastLogin;
 
-    @Column(nullable = false)
+    @Column(nullable = false, columnDefinition = "boolean default false")
     private boolean deleted = false;
 
     @CreationTimestamp
