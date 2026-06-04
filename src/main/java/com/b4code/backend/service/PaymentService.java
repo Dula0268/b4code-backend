@@ -48,7 +48,7 @@ public class PaymentService {
         payment.setAmount(request.getAmount());
         payment.setCurrency(request.getCurrency() != null ? request.getCurrency() : "LKR");
         payment.setPaymentMethod(request.getPaymentMethod());
-        
+
         // Initial status logic
         if ("card".equalsIgnoreCase(request.getPaymentMethod())) {
             // For card payments, we start as PENDING and wait for notify_url callback
@@ -56,7 +56,7 @@ public class PaymentService {
         } else {
             payment.setStatus(Payment.PaymentStatus.PENDING);
         }
-        
+
         payment.setOrderId("ORDER-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase());
 
         if (request.getCardHolderName() != null) {
@@ -106,23 +106,22 @@ public class PaymentService {
                     payment.setCardHolderName(notify.getCard_holder_name());
                 if (notify.getCard_no() != null)
                     payment.setCardLastFour(notify.getCard_no());
-                
+
                 // Update linked booking status to CONFIRMED when payment succeeds
                 if (payment.getBookingId() != null) {
                     bookingRepository.findById(payment.getBookingId()).ifPresent(booking -> {
                         booking.setStatus(Booking.BookingStatus.CONFIRMED);
                         bookingRepository.save(booking);
-                        
+
                         // Send Confirmation Email
                         emailService.sendBookingConfirmationEmail(
-                            booking.getGuestEmail(),
-                            booking.getGuestName(),
-                            booking.getConfirmationNumber(),
-                            booking.getRoom().getProperty().getName(),
-                            booking.getCheckIn().toString(),
-                            booking.getCheckOut().toString(),
-                            booking.getTotalAmount().toString()
-                        );
+                                booking.getGuestEmail(),
+                                booking.getGuestName(),
+                                booking.getConfirmationNumber(),
+                                booking.getRoom().getProperty().getName(),
+                                booking.getCheckIn().toString(),
+                                booking.getCheckOut().toString(),
+                                booking.getTotalAmount().toString());
                     });
                 }
             }
@@ -171,7 +170,8 @@ public class PaymentService {
     private String generateHash(String orderId, Double amount, String currency) {
         try {
             String secretHash = md5(merchantSecret).toUpperCase();
-            String hashStr = merchantId + orderId + String.format(java.util.Locale.US, "%.2f", amount) + currency + secretHash;
+            String hashStr = merchantId + orderId + String.format(java.util.Locale.US, "%.2f", amount) + currency
+                    + secretHash;
             return md5(hashStr).toUpperCase();
         } catch (Exception e) {
             throw new RuntimeException("Error generating hash", e);
@@ -209,18 +209,18 @@ public class PaymentService {
                     "&return_url=" + java.net.URLEncoder.encode(finalReturnUrl, "UTF-8") +
                     "&cancel_url=" + java.net.URLEncoder.encode(cancelUrl, "UTF-8") +
                     "&notify_url=" + java.net.URLEncoder.encode("http://localhost:8080/api/payments/notify", "UTF-8") +
-                "&order_id=" + payment.getOrderId() +
-                "&items=PrimeStay+Booking" +
-                "&currency=" + payment.getCurrency() +
-                "&amount=" + String.format(java.util.Locale.US, "%.2f", payment.getAmount()) +
-                "&first_name=" + (request.getFirstName() != null ? request.getFirstName() : "Guest") +
-                "&last_name=" + (request.getLastName() != null ? request.getLastName() : "User") +
-                "&email=" + (request.getEmail() != null ? request.getEmail() : "") +
-                "&phone=" + (request.getPhone() != null ? request.getPhone() : "") +
-                "&address=Colombo" +
-                "&city=Colombo" +
-                "&country=Sri+Lanka" +
-                "&hash=" + hash;
+                    "&order_id=" + payment.getOrderId() +
+                    "&items=PrimeStay+Booking" +
+                    "&currency=" + payment.getCurrency() +
+                    "&amount=" + String.format(java.util.Locale.US, "%.2f", payment.getAmount()) +
+                    "&first_name=" + (request.getFirstName() != null ? request.getFirstName() : "Guest") +
+                    "&last_name=" + (request.getLastName() != null ? request.getLastName() : "User") +
+                    "&email=" + (request.getEmail() != null ? request.getEmail() : "") +
+                    "&phone=" + (request.getPhone() != null ? request.getPhone() : "") +
+                    "&address=Colombo" +
+                    "&city=Colombo" +
+                    "&country=Sri+Lanka" +
+                    "&hash=" + hash;
         } catch (Exception e) {
             throw new RuntimeException("Error encoding URLs", e);
         }

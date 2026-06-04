@@ -101,18 +101,18 @@ public interface PropertyRepository extends JpaRepository<Property, Long> {
     // ─── Admin Management Methods (from admin module) ────────────────────
 
     /**
-     * Admin query to filter properties with verification (PV-*) by status and
-     * search.
+     * Admin query to list ALL properties with optional status and search filters.
+     * Includes both PV-* (verification queue) and PROP-* (guest-seeded) properties.
      */
     @Query("""
             SELECT p FROM Property p
-            WHERE p.pvId LIKE 'PV-%'
-              AND (:status IS NULL OR p.status = :status)
+            WHERE (:status IS NULL OR p.status = :status)
               AND (
                     :search IS NULL OR :search = ''
                     OR LOWER(p.name)      LIKE LOWER(CONCAT('%', :search, '%'))
                     OR LOWER(p.pvId)      LIKE LOWER(CONCAT('%', :search, '%'))
                     OR LOWER(p.ownerName) LIKE LOWER(CONCAT('%', :search, '%'))
+                    OR LOWER(p.city)      LIKE LOWER(CONCAT('%', :search, '%'))
                   )
             """)
     Page<Property> findAllWithFilters(
