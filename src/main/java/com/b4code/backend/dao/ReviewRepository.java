@@ -14,9 +14,9 @@ import java.util.Optional;
 @Repository
 public interface ReviewRepository extends JpaRepository<Review, Long> {
 
-    Page<Review> findByPropertyIdOrderByCreatedAtDesc(Long propertyId, Pageable pageable);
+    Page<Review> findByPropertyIdOrderByIdDesc(Long propertyId, Pageable pageable);
 
-    List<Review> findByPropertyIdOrderByCreatedAtDesc(Long propertyId);
+    List<Review> findByPropertyIdOrderByIdDesc(Long propertyId);
 
     Optional<Review> findByBookingId(Long bookingId);
 

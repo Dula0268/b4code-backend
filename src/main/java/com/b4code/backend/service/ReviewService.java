@@ -84,7 +84,7 @@ public class ReviewService {
             .orElseThrow(() -> new ResourceNotFoundException("Property not found: " + propertyId));
 
         Pageable pageable = PageRequest.of(page, size);
-        Page<Review> reviewPage = reviewRepository.findByPropertyIdOrderByCreatedAtDesc(
+        Page<Review> reviewPage = reviewRepository.findByPropertyIdOrderByIdDesc(
             propertyId, pageable
         );
 
@@ -128,7 +128,7 @@ public class ReviewService {
             .overallRating(r.getOverallRating())
             .comment(r.getComment())
             .photoUrls(photos)
-            .createdAt(r.getCreatedAt())
+
             .build();
     }
 }

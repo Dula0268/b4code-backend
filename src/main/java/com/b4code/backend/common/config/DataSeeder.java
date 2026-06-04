@@ -106,11 +106,30 @@ public class DataSeeder implements CommandLineRunner {
     }
 
     private void seedGuestData() {
-        log.info("🧹 Wiping old guest and owner data for a clean start...");
-        jdbcTemplate.execute("TRUNCATE TABLE guest.bookings RESTART IDENTITY CASCADE");
-        jdbcTemplate.execute("TRUNCATE TABLE guest.reviews RESTART IDENTITY CASCADE");
+        log.info("🧹 Wipe old data to avoid unique constraint violations");
+        jdbcTemplate.execute("ALTER TABLE owner.rooms DROP COLUMN IF EXISTS name");
+        jdbcTemplate.execute("ALTER TABLE guest.bookings DROP COLUMN IF EXISTS created_at");
+        jdbcTemplate.execute("ALTER TABLE guest.bookings DROP COLUMN IF EXISTS updated_at");
+        jdbcTemplate.execute("ALTER TABLE guest.bookings DROP COLUMN IF EXISTS status");
+        jdbcTemplate.execute("ALTER TABLE guest.bookings DROP COLUMN IF EXISTS booking_status");
+        jdbcTemplate.execute("ALTER TABLE guest.reviews DROP COLUMN IF EXISTS created_at");
+        jdbcTemplate.execute("ALTER TABLE guest.reviews DROP COLUMN IF EXISTS updated_at");
+        jdbcTemplate.execute("ALTER TABLE owner.rooms DROP COLUMN IF EXISTS created_at");
+        jdbcTemplate.execute("ALTER TABLE owner.rooms DROP COLUMN IF EXISTS updated_at");
+        jdbcTemplate.execute("ALTER TABLE owner.properties DROP COLUMN IF EXISTS created_at");
+        jdbcTemplate.execute("ALTER TABLE owner.properties DROP COLUMN IF EXISTS updated_at");
+        jdbcTemplate.execute("ALTER TABLE owner.amenity DROP COLUMN IF EXISTS created_at");
+        jdbcTemplate.execute("ALTER TABLE owner.amenity DROP COLUMN IF EXISTS updated_at");
+        jdbcTemplate.execute("ALTER TABLE owner.images DROP COLUMN IF EXISTS created_at");
+        jdbcTemplate.execute("ALTER TABLE owner.images DROP COLUMN IF EXISTS updated_at");
+        
+        jdbcTemplate.execute("TRUNCATE TABLE app_auth.users RESTART IDENTITY CASCADE");
         jdbcTemplate.execute("TRUNCATE TABLE owner.properties RESTART IDENTITY CASCADE");
-
+        jdbcTemplate.execute("TRUNCATE TABLE guest.reviews RESTART IDENTITY CASCADE");
+        jdbcTemplate.execute("TRUNCATE TABLE guest.bookings RESTART IDENTITY CASCADE");
+        jdbcTemplate.execute("TRUNCATE TABLE owner.rooms RESTART IDENTITY CASCADE");
+        jdbcTemplate.execute("TRUNCATE TABLE owner.images RESTART IDENTITY CASCADE");
+        jdbcTemplate.execute("TRUNCATE TABLE owner.amenity RESTART IDENTITY CASCADE");
         log.info("🌱 Seeding 12 guest properties with 6 owners...");
         seedAllProperties();
         log.info("✅ Property seeding complete");
@@ -136,7 +155,16 @@ public class DataSeeder implements CommandLineRunner {
         }
 
         // We need a guest user for reviews
-        User guestUser = userRepository.findByEmail("guest@primestay.com").orElseThrow();
+        User guestUser = userRepository.findByEmail("guest@primestay.com").orElseGet(() -> {
+            User g = new User();
+            g.setEmail("guest@primestay.com");
+            g.setPasswordHash(passwordEncoder.encode("guest123"));
+            g.setFirstName("Guest");
+            g.setLastName("User");
+            g.setRole(UserRole.GUEST);
+            g.setStatus(UserStatus.ACTIVE);
+            return userRepository.save(g);
+        });
 
         String[] titles = {
             "Colombo Sky Residency", "Galle Fort Heritage Cottage", "Kandy Lake View Manor",

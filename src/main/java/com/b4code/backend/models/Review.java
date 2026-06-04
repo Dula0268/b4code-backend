@@ -36,11 +36,4 @@ public class Review {
 
     private String photoUrls;
 
-    @Column(nullable = false)
-    private LocalDateTime createdAt;
-
-    @PrePersist
-    protected void onCreate() {
-        this.createdAt = LocalDateTime.now();
-    }
 }

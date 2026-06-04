@@ -350,15 +350,13 @@ public class SearchService {
         }
 
         // Reviews from database
-        List<Review> dbReviews = reviewRepository.findByPropertyIdOrderByCreatedAtDesc(property.getId());
+        List<Review> dbReviews = reviewRepository.findByPropertyIdOrderByIdDesc(property.getId());
         List<ReviewDTO> reviewDTOs = dbReviews.stream().map(r -> ReviewDTO.builder()
                 .id(r.getId().toString())
                 .author(r.getGuest() != null ? r.getGuest().getFullName() : "Anonymous")
                 .avatarInitials(getInitials(r.getGuest() != null ? r.getGuest().getFullName() : "Anonymous"))
                 .avatarColor(getAvatarColor(r.getId()))
-                .date(r.getCreatedAt() != null
-                        ? r.getCreatedAt().format(DateTimeFormatter.ofPattern("MMM yyyy"))
-                        : "Recent")
+                .date("Recent")
                 .text(r.getComment() != null ? r.getComment() : "")
                 .rating(r.getOverallRating())
                 .build()
