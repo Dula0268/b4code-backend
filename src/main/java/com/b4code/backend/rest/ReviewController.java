@@ -41,16 +41,4 @@ public class ReviewController {
         return ResponseEntity.ok(reviewService.getPropertyReviews(propertyId, page, size));
     }
 
-    /**
-     * POST /api/v1/reviews/{reviewId}/owner-response
-     * Owner responds to a review.
-     */
-    @PostMapping("/{reviewId}/owner-response")
-    public ResponseEntity<ReviewResponse> addOwnerResponse(
-            @PathVariable Long reviewId,
-            @Valid @RequestBody OwnerResponseRequest request) {
-
-        ReviewResponse response = reviewService.addOwnerResponse(reviewId, request);
-        return ResponseEntity.ok(response);
-    }
 }

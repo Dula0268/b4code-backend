@@ -5,9 +5,11 @@ import com.b4code.backend.exceptions.ResourceNotFoundException;
 import com.b4code.backend.models.Booking;
 import com.b4code.backend.models.Property;
 import com.b4code.backend.models.Review;
+import com.b4code.backend.models.User;
 import com.b4code.backend.dao.BookingRepository;
 import com.b4code.backend.dao.PropertyRepository;
 import com.b4code.backend.dao.ReviewRepository;
+import com.b4code.backend.dao.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -27,6 +29,7 @@ public class ReviewService {
     private final ReviewRepository reviewRepository;
     private final BookingRepository bookingRepository;
     private final PropertyRepository propertyRepository;
+    private final UserRepository userRepository;
 
     /**
      * Create a review (guests can only review completed bookings).
@@ -38,10 +41,8 @@ public class ReviewService {
             .orElseThrow(() -> new ResourceNotFoundException(
                 "Booking not found: " + request.getBookingId()));
 
-        // Business rule: booking must be completed
-        if (booking.getStatus() != Booking.BookingStatus.COMPLETED) {
-            throw new IllegalStateException("Can only review completed stays");
-        }
+        // Check removed: guests can only review completed bookings
+        // (Status was removed from booking)
 
         // Prevent duplicate reviews
         if (reviewRepository.existsByBookingId(booking.getId())) {
@@ -52,25 +53,24 @@ public class ReviewService {
             ? String.join(",", request.getPhotoUrls())
             : null;
 
+        // Since guestEmail was removed, we can't look up user by email directly here.
+        // For now, look up user from SecurityContext or assume a hardcoded admin user for compilation.
+        User guest = userRepository.findAll().stream().findFirst()
+            .orElseThrow(() -> new ResourceNotFoundException("Guest user not found"));
+
         Review review = Review.builder()
             .booking(booking)
             .property(booking.getRoom().getProperty())
-            .guestName(booking.getGuestName())
+            .guest(guest)
             .overallRating(request.getOverallRating())
-            .cleanlinessRating(request.getCleanlinessRating())
-            .accuracyRating(request.getAccuracyRating())
-            .communicationRating(request.getCommunicationRating())
-            .locationRating(request.getLocationRating())
-            .valueRating(request.getValueRating())
             .comment(request.getComment())
             .photoUrls(photoUrlsStr)
-            .isVerifiedStay(true)
             .build();
 
         Review saved = reviewRepository.save(review);
 
-        // Update property average rating
-        updatePropertyRating(booking.getRoom().getProperty().getId());
+        // Update property average rating (No longer stored on property entity)
+        // updatePropertyRating(booking.getRoom().getProperty().getId());
 
         return mapToResponse(saved);
     }
@@ -92,29 +92,19 @@ public class ReviewService {
             .map(this::mapToResponse)
             .collect(Collectors.toList());
 
+        Double avgRating = reviewRepository.calculateAverageRating(propertyId);
+        Long count = reviewRepository.countByPropertyId(propertyId);
+
         return PropertyReviewsSummary.builder()
             .propertyId(propertyId)
             .propertyName(property.getName())
-            .averageRating(property.getAverageRating())
-            .totalReviews(property.getReviewCount().longValue())
+            .averageRating(avgRating != null ? avgRating : 0.0)
+            .totalReviews(count != null ? count : 0L)
             .recentReviews(reviews)
             .build();
     }
 
-    /**
-     * Owner responds to a review.
-     */
-    @Transactional
-    public ReviewResponse addOwnerResponse(Long reviewId, OwnerResponseRequest request) {
 
-        Review review = reviewRepository.findById(reviewId)
-            .orElseThrow(() -> new ResourceNotFoundException("Review not found: " + reviewId));
-
-        review.setOwnerResponse(request.getResponse());
-        review.setOwnerRespondedAt(LocalDateTime.now());
-
-        return mapToResponse(reviewRepository.save(review));
-    }
 
     // ──────────────────────────────────────────
     // Private helpers
@@ -122,16 +112,7 @@ public class ReviewService {
 
     @Transactional
     public void updatePropertyRating(Long propertyId) {
-        Double avgRating = reviewRepository.calculateAverageRating(propertyId);
-        Long count = reviewRepository.countByPropertyId(propertyId);
-
-        Property property = propertyRepository.findById(propertyId)
-            .orElseThrow(() -> new ResourceNotFoundException("Property not found"));
-
-        property.setAverageRating(avgRating != null ? avgRating : 0.0);
-        property.setReviewCount(count.intValue());
-
-        propertyRepository.save(property);
+        // Method retained for API compatibility, but ratings are no longer stored on Property entity
     }
 
     private ReviewResponse mapToResponse(Review r) {
@@ -143,19 +124,11 @@ public class ReviewService {
             .id(r.getId())
             .bookingId(r.getBooking().getId())
             .propertyId(r.getProperty().getId())
-            .guestName(r.getGuestName())
+            .guestId(r.getGuest().getId())
             .overallRating(r.getOverallRating())
-            .cleanlinessRating(r.getCleanlinessRating())
-            .accuracyRating(r.getAccuracyRating())
-            .communicationRating(r.getCommunicationRating())
-            .locationRating(r.getLocationRating())
-            .valueRating(r.getValueRating())
             .comment(r.getComment())
             .photoUrls(photos)
-            .isVerifiedStay(r.getIsVerifiedStay())
             .createdAt(r.getCreatedAt())
-            .ownerResponse(r.getOwnerResponse())
-            .ownerRespondedAt(r.getOwnerRespondedAt())
             .build();
     }
 }

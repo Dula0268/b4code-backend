@@ -20,33 +20,19 @@ public class Room {
     @JoinColumn(name = "property_id", nullable = false)
     private Property property;
 
-    @Column(nullable = false)
-    private String name;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "image_id")
+    private Image image;
 
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private String roomType;
-
+    private RoomType roomType;
     @Column(nullable = false)
     private Integer maxOccupancy;
 
-    private Integer sqft;
-
-    private String bedType;
+    @Enumerated(EnumType.STRING)
+    private BedType bedType;
 
     @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal pricePerNight;
-
-    @Column(precision = 10, scale = 2)
-    private BigDecimal originalPrice;
-
-    private String tag;
-
-    private String imageSrc;
-
-    private String features;
-
-    private String amenities;
-
-    @Builder.Default
-    private Boolean available = true;
 }

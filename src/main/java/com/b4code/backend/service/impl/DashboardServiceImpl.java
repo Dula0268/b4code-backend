@@ -82,9 +82,7 @@ public class DashboardServiceImpl implements DashboardService {
     public List<RecentVerificationDto> getRecentVerifications() {
         log.debug("Fetching recent verifications (cache miss)");
         return propertyRepository
-                .findTop5ByStatusInOrderBySubmittedAtDesc(
-                        List.of(PropertyStatus.PENDING, PropertyStatus.UNDER_REVIEW)
-                )
+                .findTop5ByOrderByIdDesc()
                 .stream()
                 .map(RecentVerificationDto::fromEntity)
                 .toList();

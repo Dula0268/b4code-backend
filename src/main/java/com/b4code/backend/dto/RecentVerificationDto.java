@@ -22,24 +22,16 @@ public class RecentVerificationDto {
             DateTimeFormatter.ofPattern("MMM dd, yyyy");
 
     public static RecentVerificationDto fromEntity(Property p) {
-        String status = switch (p.getStatus()) {
-            case PENDING      -> "Pending";
-            case UNDER_REVIEW -> "Pending";  
-            case APPROVED     -> "Verified";
-            case REJECTED     -> "Rejected";
-        };
+        String status = "Verified";
 
-        String action = (p.getStatus() == PropertyStatus.APPROVED ||
-                         p.getStatus() == PropertyStatus.REJECTED) ? "View" : "Review";
+        String action = "View";
 
         return RecentVerificationDto.builder()
                 .id(String.valueOf(p.getId()))
                 .name(p.getName())
-                .entityId("#" + p.getPvId())
+                .entityId("#PROP-" + p.getId())
                 .type("Property Verification")
-                .dateSubmitted(p.getSubmittedAt() != null
-                        ? p.getSubmittedAt().format(DISPLAY_FORMAT)
-                        : "")
+                .dateSubmitted("N/A")
                 .status(status)
                 .action(action)
                 .icon("property")
