@@ -110,9 +110,7 @@ public class AnalyticsServiceImpl implements AnalyticsService {
             String[] types = {"Suite", "Villa", "Penthouse", "Eco Cabin"};
             String type = types[(int)(id % types.length)];
             
-            String imageUrl = prop.getImageUrl() != null && !prop.getImageUrl().isEmpty() 
-                ? prop.getImageUrl() 
-                : "/images/placeholder-property.jpg";
+            String imageUrl = "/images/placeholder-property.jpg";
                 
             return RevParDto.builder()
                     .propertyId(prop.getId())

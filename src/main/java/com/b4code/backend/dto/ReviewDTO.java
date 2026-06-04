@@ -24,20 +24,7 @@ public class ReviewDTO {
         @Max(value = 5, message = "Rating must be between 1 and 5")
         private Integer overallRating;
 
-        @Min(1) @Max(5)
-        private Integer cleanlinessRating;
 
-        @Min(1) @Max(5)
-        private Integer accuracyRating;
-
-        @Min(1) @Max(5)
-        private Integer communicationRating;
-
-        @Min(1) @Max(5)
-        private Integer locationRating;
-
-        @Min(1) @Max(5)
-        private Integer valueRating;
 
         @Size(max = 2000, message = "Comment cannot exceed 2000 characters")
         private String comment;
@@ -56,19 +43,11 @@ public class ReviewDTO {
         private Long id;
         private Long bookingId;
         private Long propertyId;
-        private String guestName;
+        private Long guestId;
         private Integer overallRating;
-        private Integer cleanlinessRating;
-        private Integer accuracyRating;
-        private Integer communicationRating;
-        private Integer locationRating;
-        private Integer valueRating;
         private String comment;
         private List<String> photoUrls;
-        private Boolean isVerifiedStay;
         private LocalDateTime createdAt;
-        private String ownerResponse;
-        private LocalDateTime ownerRespondedAt;
     }
 
     // ──────────────────────────────────
@@ -86,17 +65,5 @@ public class ReviewDTO {
         private List<ReviewResponse> recentReviews;
     }
 
-    // ──────────────────────────────────
-    // Owner Response Request
-    // ──────────────────────────────────
-    @Data
-    @NoArgsConstructor
-    @AllArgsConstructor
-    public static class OwnerResponseRequest {
-
-        @NotBlank(message = "Response cannot be empty")
-        @Size(max = 1000, message = "Response cannot exceed 1000 characters")
-        private String response;
-    }
 }
 

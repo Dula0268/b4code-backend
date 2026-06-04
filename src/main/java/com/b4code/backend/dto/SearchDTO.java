@@ -30,6 +30,7 @@ public class SearchDTO {
         private Long id;
         private String title;
         private String location;
+        private String district;
         private String propertyType;
         private BigDecimal pricePerNight;
         private Integer maxGuests;
@@ -42,6 +43,7 @@ public class SearchDTO {
         private List<String> amenities;
         private Double lat;
         private Double lng;
+        private Integer matchingRoomsCount;
     }
 
     // ─── Property Detail ─────────────────────────────────────────────────
@@ -91,6 +93,16 @@ public class SearchDTO {
         private PriceRangeOption priceRange;
         private List<SortOption> sortOptions;
         private List<String> locations;
+        private List<LocationSuggestionDTO> locationSuggestions;
+    }
+
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Builder
+    public static class LocationSuggestionDTO {
+        private String name;
+        private String type; // "district" or "property"
     }
 
     @Data
@@ -163,7 +175,6 @@ public class SearchDTO {
         private String date;
         private String text;
         private Integer rating;
-        private String ownerReply;
     }
 
     @Data
