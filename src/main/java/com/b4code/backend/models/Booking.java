@@ -18,19 +18,6 @@ public class Booking {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "room_id", nullable = false)
-    private Room room;
-
-    @Column(nullable = false)
-    private String guestName;
-
-    @Column(nullable = false)
-    private String guestEmail;
-
-    @Column(nullable = false)
-    private String guestPhone;
-
     @Column(nullable = false)
     private LocalDate checkIn;
 
@@ -38,42 +25,33 @@ public class Booking {
     private LocalDate checkOut;
 
     @Column(nullable = false)
-    private Integer guestCount;
+    private Integer adults;
 
-    @Column(nullable = false, precision = 10, scale = 2)
-    private BigDecimal totalAmount;
+    @Column(nullable = false)
+    private Integer children;
 
-    @Column(nullable = false, precision = 10, scale = 2)
-    private BigDecimal taxAmount;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "room_id", nullable = false)
+    private Room room;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "property_id", nullable = false)
+    private Property property;
+
+    @OneToOne(mappedBy = "booking", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private Review review;
 
     private String promoCode;
-
-    @Column(nullable = false, precision = 10, scale = 2)
-    private BigDecimal discountAmount;
-
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private BookingStatus status;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private PaymentMethod paymentMethod;
 
-    private String confirmationNumber;
-    private String cancellationReason;
+    @Column(nullable = false, precision = 10, scale = 2)
+    private BigDecimal taxAmount;
 
-    @Column(nullable = false)
-    private LocalDateTime createdAt;
-
-    @PrePersist
-    protected void onCreate() {
-        this.createdAt = LocalDateTime.now();
-        if (this.status == null) this.status = BookingStatus.CONFIRMED;
-    }
-
-    public enum BookingStatus {
-        PENDING, CONFIRMED, CANCELLED, COMPLETED, NO_SHOW
-    }
+    @Column(nullable = false, precision = 10, scale = 2)
+    private BigDecimal totalAmount;
 
     public enum PaymentMethod {
         ONLINE_CARD, PAY_AT_PROPERTY

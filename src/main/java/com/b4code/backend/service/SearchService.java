@@ -21,6 +21,7 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
+import com.b4code.backend.dao.BookingRepository;
 
 @Service
 public class SearchService {
@@ -29,6 +30,7 @@ public class SearchService {
 
     private final PropertyRepository propertyRepository;
     private final ReviewRepository reviewRepository;
+    private final BookingRepository bookingRepository;
 
     // Icon mapping for property types
     private static final Map<String, String> PROPERTY_TYPE_ICONS = Map.of(
@@ -40,9 +42,10 @@ public class SearchService {
         "Cabin", "TreePine"
     );
 
-    public SearchService(PropertyRepository propertyRepository, ReviewRepository reviewRepository) {
+    public SearchService(PropertyRepository propertyRepository, ReviewRepository reviewRepository, BookingRepository bookingRepository) {
         this.propertyRepository = propertyRepository;
         this.reviewRepository = reviewRepository;
+        this.bookingRepository = bookingRepository;
     }
 
     // ─── Paginated Search ────────────────────────────────────────────────
@@ -53,19 +56,21 @@ public class SearchService {
             LocalDate checkIn,
             LocalDate checkOut,
             Integer guests,
+            Integer rooms,
             BigDecimal minPrice,
             BigDecimal maxPrice,
             Double minRating,
-            List<String> propertyTypes,
+            
             List<String> amenities,
             String sortBy,
             int page,
             int size) {
 
-        log.info("Search request: destination={}, guests={}, price=[{}-{}], rating>={}, types={}, sort={}, page={}, size={}",
-                destination, guests, minPrice, maxPrice, minRating, propertyTypes, sortBy, page, size);
+        log.info("Search request: destination={}, guests={}, rooms={}, price=[{}-{}], rating>={}, types={}, sort={}, page={}, size={}",
+                destination, guests, rooms, minPrice, maxPrice, minRating, sortBy, page, size);
 
         int guestsVal = guests != null ? guests : 1;
+        int roomsVal = rooms != null ? rooms : 1;
 
         // Build sort — price sorts are done in-memory since they cross a JOIN
         Sort sort = buildSort(sortBy);
@@ -79,16 +84,17 @@ public class SearchService {
         BigDecimal safeMinPrice = minPrice != null ? minPrice : BigDecimal.ZERO;
         BigDecimal safeMaxPrice = maxPrice != null ? maxPrice : new BigDecimal("10000000");
         Double safeMinRating = minRating != null ? minRating : 0.0;
-        List<String> types = (propertyTypes != null && !propertyTypes.isEmpty()) ? propertyTypes : java.util.Arrays.asList("Villa", "Hotel", "Guesthouse", "Apartment");
+        
 
         Page<Property> propertyPage = propertyRepository.searchAvailableProperties(
-                safeDestination, checkIn, checkOut, guestsVal,
-                safeMinPrice, safeMaxPrice, safeMinRating, types, pageable);
+                safeDestination, checkIn, checkOut, roomsVal,
+                safeMinPrice, safeMaxPrice, pageable);
 
         // Filter by amenities in-memory (amenities stored as comma-separated string)
         List<PropertySearchResult> allResults = propertyPage.getContent().stream()
                 .filter(p -> matchesAmenities(p, amenities))
-                .map(p -> mapToPropertySearchResult(p, guestsVal))
+                .map(p -> mapToPropertySearchResult(p, guestsVal, checkIn, checkOut))
+                .filter(p -> p.getMatchingRoomsCount() >= roomsVal) // Double check room count
                 .collect(Collectors.toList());
 
         // Apply in-memory price sorting if needed
@@ -138,10 +144,6 @@ public class SearchService {
         Property property = propertyRepository.findById(propertyId)
                 .orElseThrow(() -> new ResourceNotFoundException("Property not found: " + propertyId));
 
-        if (!property.getPublished()) {
-            throw new ResourceNotFoundException("Property not found: " + propertyId);
-        }
-
         return mapToPropertyDetailResult(property);
     }
 
@@ -152,33 +154,37 @@ public class SearchService {
         log.info("Fetching dynamic filter options");
 
         // Property Types with counts
-        List<Object[]> typeCounts = propertyRepository.countByPropertyType();
-        List<PropertyTypeOption> typeOptions = typeCounts.stream()
-                .map(row -> PropertyTypeOption.builder()
-                        .value((String) row[0])
-                        .label((String) row[0])
-                        .icon(PROPERTY_TYPE_ICONS.getOrDefault((String) row[0], "Home"))
-                        .count((Long) row[1])
-                        .build())
-                .sorted(Comparator.comparing(PropertyTypeOption::getLabel))
-                .collect(Collectors.toList());
+        
 
         // Amenities - collect all distinct amenities from all published properties
-        List<Property> allPublished = propertyRepository.findAll().stream()
-                .filter(Property::getPublished)
-                .collect(Collectors.toList());
+        List<Property> allPublished = propertyRepository.findAll();
 
         Set<String> amenitySet = new TreeSet<>();
+        Set<String> distinctDistricts = new TreeSet<>();
+        Set<String> distinctPropertyNames = new TreeSet<>();
+
         for (Property p : allPublished) {
             if (p.getAmenities() != null && !p.getAmenities().isEmpty()) {
-                for (String am : p.getAmenities().split(",")) {
-                    String[] parts = am.trim().split(":");
-                    String label = parts.length == 2 ? parts[1].trim() : parts[0].trim();
-                    if (!label.isEmpty()) {
-                        amenitySet.add(label);
+                for (com.b4code.backend.models.Amenity am : p.getAmenities()) {
+                    if (am.getName() != null && !am.getName().isEmpty()) {
+                        amenitySet.add(am.getName());
                     }
                 }
             }
+            if (p.getCity() != null && !p.getCity().isBlank()) {
+                distinctDistricts.add(p.getCity());
+            }
+            if (p.getName() != null && !p.getName().isBlank()) {
+                distinctPropertyNames.add(p.getName());
+            }
+        }
+
+        List<LocationSuggestionDTO> locationSuggestions = new ArrayList<>();
+        for (String d : distinctDistricts) {
+            locationSuggestions.add(new LocationSuggestionDTO(d, "district"));
+        }
+        for (String p : distinctPropertyNames) {
+            locationSuggestions.add(new LocationSuggestionDTO(p, "property"));
         }
 
         // Price range
@@ -214,12 +220,13 @@ public class SearchService {
         List<String> locations = propertyRepository.findDistinctCities();
 
         return FilterOptionsResponse.builder()
-                .propertyTypes(typeOptions)
+                .propertyTypes(new ArrayList<>())
                 .amenities(new ArrayList<>(amenitySet))
                 .ratingOptions(ratingOptions)
                 .priceRange(priceRange)
                 .sortOptions(sortOptions)
                 .locations(locations)
+                .locationSuggestions(locationSuggestions)
                 .build();
     }
 
@@ -238,74 +245,107 @@ public class SearchService {
 
     private boolean matchesAmenities(Property property, List<String> amenities) {
         if (amenities == null || amenities.isEmpty()) return true;
-        if (property.getAmenities() == null || property.getAmenities().isEmpty()) return false;
 
-        String amenitiesLower = property.getAmenities().toLowerCase();
-        return amenities.stream().allMatch(am -> amenitiesLower.contains(am.toLowerCase()));
+        String amenitiesLower = property.getAmenities() != null 
+            ? property.getAmenities().stream().map(a -> a.getName().toLowerCase()).collect(Collectors.joining(","))
+            : "";
+
+        return amenities.stream().allMatch(am -> {
+            String amLower = am.toLowerCase();
+            System.out.println("Checking amenity: " + amLower + " for property " + property.getName());
+            
+            // Handle special advanced filter toggles
+            if (amLower.equals("free cancellation")) {
+                return property.getFreeCancellation() != null && property.getFreeCancellation();
+            }
+            if (amLower.equals("breakfast included")) {
+                return property.getBreakfastIncluded() != null && property.getBreakfastIncluded();
+            }
+            if (amLower.equals("pet-friendly")) {
+                return property.getPetFriendly() != null && property.getPetFriendly();
+            }
+            if (amLower.equals("accessibility")) {
+                return property.getAccessibility() != null && property.getAccessibility();
+            }
+
+            // Normal amenity check
+            return amenitiesLower.contains(amLower);
+        });
     }
 
-    private PropertySearchResult mapToPropertySearchResult(Property property, int guests) {
+    private PropertySearchResult mapToPropertySearchResult(Property property, int guests, LocalDate checkIn, LocalDate checkOut) {
         List<Room> availableRooms = property.getRooms() != null
                 ? property.getRooms().stream()
-                    .filter(Room::getAvailable)
-                    .filter(r -> r.getMaxOccupancy() >= guests)
+                    .filter(r -> {
+                        if (checkIn == null || checkOut == null) return true;
+                        return !bookingRepository.existsOverlappingBooking(r.getId(), checkIn, checkOut);
+                    })
                     .collect(Collectors.toList())
                 : Collections.emptyList();
+
+        int matchingRoomsCount = availableRooms.size();
 
         BigDecimal lowestPrice = availableRooms.stream()
                 .map(Room::getPricePerNight)
                 .min(BigDecimal::compareTo)
                 .orElse(BigDecimal.ZERO);
 
-        int maxGuests = availableRooms.stream()
-                .mapToInt(Room::getMaxOccupancy)
-                .max()
-                .orElse(property.getBaseGuests() != null ? property.getBaseGuests() : 2);
+        int maxGuests = 2; // Defaulting since maxOccupancy is removed
 
         // Extract amenity labels for search card
         List<String> amenityLabels = new ArrayList<>();
         if (property.getAmenities() != null && !property.getAmenities().isEmpty()) {
-            for (String am : property.getAmenities().split(",")) {
-                String[] parts = am.trim().split(":");
-                amenityLabels.add(parts.length == 2 ? parts[1].trim() : parts[0].trim());
+            for (com.b4code.backend.models.Amenity am : property.getAmenities()) {
+                amenityLabels.add(am.getName());
             }
+        }
+        
+        Double avgRating = reviewRepository.calculateAverageRating(property.getId());
+        Long reviewCount = reviewRepository.countByPropertyId(property.getId());
+
+        String primaryImage = "/images/placeholder-property.jpg";
+        if (property.getImages() != null && !property.getImages().isEmpty()) {
+            primaryImage = property.getImages().stream()
+                .filter(img -> com.b4code.backend.models.ImageType.PROPERTY.equals(img.getType()))
+                .map(com.b4code.backend.models.Image::getUrl)
+                .findFirst()
+                .orElse(property.getImages().get(0).getUrl());
         }
 
         return PropertySearchResult.builder()
                 .id(property.getId())
                 .title(property.getName())
                 .location(property.getCity())
-                .propertyType(property.getPropertyType())
+                .district(property.getCity())
+                
                 .pricePerNight(lowestPrice)
                 .maxGuests(maxGuests)
-                .baseGuests(property.getBaseGuests() != null ? property.getBaseGuests() : 2)
-                .extraGuestFee(property.getExtraGuestFee())
-                .rating(property.getAverageRating() != null ? property.getAverageRating() : 0.0)
-                .reviewCount(property.getReviewCount() != null ? property.getReviewCount() : 0)
-                .badge(property.getBadge())
-                .imageSrc(property.getImageSrc())
+                .baseGuests(2)
+                .extraGuestFee(BigDecimal.ZERO)
+                .rating(avgRating != null ? avgRating : 0.0)
+                .reviewCount(reviewCount != null ? reviewCount.intValue() : 0)
+                .badge("")
+                .imageSrc(primaryImage)
                 .amenities(amenityLabels)
                 .lat(property.getLatitude())
                 .lng(property.getLongitude())
+                .matchingRoomsCount(matchingRoomsCount)
                 .build();
     }
 
     private PropertyDetailResult mapToPropertyDetailResult(Property property) {
         // Gallery images
-        List<String> galleryImages = property.getGalleryImages() != null && !property.getGalleryImages().isEmpty()
-                ? Arrays.asList(property.getGalleryImages().split(","))
-                : new ArrayList<>();
+        List<String> galleryImages = property.getImages() != null
+                ? property.getImages().stream().map(com.b4code.backend.models.Image::getUrl).collect(java.util.stream.Collectors.toList())
+                : new java.util.ArrayList<>();
+            
+        String primaryImage = galleryImages.isEmpty() ? "/images/placeholder-property.jpg" : galleryImages.get(0);
 
         // Amenities
         List<AmenityDTO> amenitiesList = new ArrayList<>();
         if (property.getAmenities() != null && !property.getAmenities().isEmpty()) {
-            for (String am : property.getAmenities().split(",")) {
-                String[] parts = am.trim().split(":");
-                if (parts.length == 2) {
-                    amenitiesList.add(new AmenityDTO(parts[0].trim(), parts[1].trim()));
-                } else {
-                    amenitiesList.add(new AmenityDTO("Check", parts[0].trim()));
-                }
+            for (com.b4code.backend.models.Amenity am : property.getAmenities()) {
+                amenitiesList.add(new AmenityDTO("Check", am.getName()));
             }
         }
 
@@ -313,73 +353,59 @@ public class SearchService {
         List<Review> dbReviews = reviewRepository.findByPropertyIdOrderByCreatedAtDesc(property.getId());
         List<ReviewDTO> reviewDTOs = dbReviews.stream().map(r -> ReviewDTO.builder()
                 .id(r.getId().toString())
-                .author(r.getGuestName() != null ? r.getGuestName() : "Anonymous")
-                .avatarInitials(getInitials(r.getGuestName()))
+                .author(r.getGuest() != null ? r.getGuest().getFullName() : "Anonymous")
+                .avatarInitials(getInitials(r.getGuest() != null ? r.getGuest().getFullName() : "Anonymous"))
                 .avatarColor(getAvatarColor(r.getId()))
                 .date(r.getCreatedAt() != null
                         ? r.getCreatedAt().format(DateTimeFormatter.ofPattern("MMM yyyy"))
                         : "Recent")
                 .text(r.getComment() != null ? r.getComment() : "")
                 .rating(r.getOverallRating())
-                .ownerReply(r.getOwnerResponse())
                 .build()
         ).collect(Collectors.toList());
 
         // Review breakdown
         List<ReviewBreakdownDTO> breakdown = new ArrayList<>();
-        if (!dbReviews.isEmpty()) {
-            breakdown.add(new ReviewBreakdownDTO("Cleanliness",
-                    dbReviews.stream().filter(r -> r.getCleanlinessRating() != null).mapToInt(Review::getCleanlinessRating).average().orElse(0.0)));
-            breakdown.add(new ReviewBreakdownDTO("Accuracy",
-                    dbReviews.stream().filter(r -> r.getAccuracyRating() != null).mapToInt(Review::getAccuracyRating).average().orElse(0.0)));
-            breakdown.add(new ReviewBreakdownDTO("Communication",
-                    dbReviews.stream().filter(r -> r.getCommunicationRating() != null).mapToInt(Review::getCommunicationRating).average().orElse(0.0)));
-            breakdown.add(new ReviewBreakdownDTO("Location",
-                    dbReviews.stream().filter(r -> r.getLocationRating() != null).mapToInt(Review::getLocationRating).average().orElse(0.0)));
-            breakdown.add(new ReviewBreakdownDTO("Value",
-                    dbReviews.stream().filter(r -> r.getValueRating() != null).mapToInt(Review::getValueRating).average().orElse(0.0)));
-        }
 
         // Rooms
         List<RoomDTO> roomDTOs = property.getRooms() != null
                 ? property.getRooms().stream().map(r -> {
-                    List<String> features = r.getFeatures() != null && !r.getFeatures().isEmpty()
-                            ? Arrays.asList(r.getFeatures().split(","))
-                            : new ArrayList<>();
-
                     return RoomDTO.builder()
                             .id(r.getId().toString())
-                            .name(r.getName())
-                            .maxGuests(r.getMaxOccupancy())
-                            .bedType(r.getBedType())
-                            .sqft(r.getSqft())
+                            .name(r.getRoomType() != null ? r.getRoomType().name() : "")
+                            .maxGuests(r.getMaxOccupancy() != null ? r.getMaxOccupancy() : 2)
+                            .bedType(r.getBedType() != null ? r.getBedType().name() : "")
+                            .sqft(0)
                             .pricePerNight(r.getPricePerNight())
-                            .originalPrice(r.getOriginalPrice())
-                            .tag(r.getTag())
-                            .features(features)
-                            .imageSrc(r.getImageSrc())
+                            .originalPrice(r.getPricePerNight())
+                            .tag("")
+                            .features(new ArrayList<>())
+                            .imageSrc(r.getImage() != null ? r.getImage().getUrl() : null)
                             .build();
                 }).collect(Collectors.toList())
                 : new ArrayList<>();
 
         BigDecimal price = roomDTOs.isEmpty() ? BigDecimal.ZERO : roomDTOs.get(0).getPricePerNight();
+        
+        Double avgRating = reviewRepository.calculateAverageRating(property.getId());
+        Long reviewCount = reviewRepository.countByPropertyId(property.getId());
 
         return PropertyDetailResult.builder()
                 .id(property.getId())
                 .title(property.getName())
                 .location(property.getCity())
-                .fullAddress(property.getAddress())
-                .propertyType(property.getPropertyType())
+                .fullAddress((property.getAddressLine1() != null ? property.getAddressLine1() : "") + ", " + (property.getCity() != null ? property.getCity() : "") + ", " + (property.getCountry() != null ? property.getCountry() : ""))
+                
                 .pricePerNight(price)
-                .rating(property.getAverageRating() != null ? property.getAverageRating() : 0.0)
-                .reviewCount(property.getReviewCount() != null ? property.getReviewCount() : 0)
-                .badge(property.getBadge())
-                .imageSrc(property.getImageSrc())
+                .rating(avgRating != null ? avgRating : 0.0)
+                .reviewCount(reviewCount != null ? reviewCount.intValue() : 0)
+                .badge("")
+                .imageSrc(primaryImage)
                 .galleryImages(galleryImages)
-                .hostName(property.getHostName())
-                .hostBio(property.getHostBio())
-                .hostYears(property.getHostYears())
-                .hostSuperhost(property.getHostSuperhost())
+                .hostName("Prime Stay")
+                .hostBio("")
+                .hostYears(1)
+                .hostSuperhost(false)
                 .description(property.getDescription())
                 .amenities(amenitiesList)
                 .reviewBreakdown(breakdown)
