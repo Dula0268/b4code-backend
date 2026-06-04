@@ -14,8 +14,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/admin/finance")
@@ -123,13 +125,49 @@ public class FinanceController {
             @PathVariable Long id,
             @RequestBody PayoutProcessRequest request) {
         log.info("PUT /api/admin/finance/payouts/{}/process — ref='{}'", id, request.bankReference());
-        return ResponseEntity.ok(financeService.processPayout(id, request.bankReference()));
+        return ResponseEntity.ok(financeService.processPayout(id, request.bankReference(), request.commissionRate()));
+    }
+
+    // ── REJECT payout
+    @PutMapping("/payouts/{id}/reject")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Reject a payout")
+    public ResponseEntity<PayoutDto> rejectPayout(@PathVariable Long id) {
+        log.info("PUT /api/admin/finance/payouts/{}/reject", id);
+        return ResponseEntity.ok(financeService.rejectPayout(id));
+    }
+
+    // ── GET commission rate
+    @GetMapping("/commission")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
+    @Operation(summary = "Get current platform commission rate")
+    public ResponseEntity<Map<String, Object>> getCommissionRate() {
+        BigDecimal rate = financeService.getCommissionRate();
+        return ResponseEntity.ok(Map.of(
+                "commissionRate", rate,
+                "description", "Percentage applied to hotel booking revenue only. Food orders are commission-free."));
+    }
+
+    // ── UPDATE commission rate
+    @PutMapping("/commission")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Update platform commission rate")
+    public ResponseEntity<Map<String, Object>> updateCommissionRate(
+            @RequestBody CommissionUpdateRequest request) {
+        log.info("PUT /api/admin/finance/commission — newRate={}", request.commissionRate());
+        BigDecimal updated = financeService.updateCommissionRate(request.commissionRate());
+        return ResponseEntity.ok(Map.of(
+                "commissionRate", updated,
+                "message", "Commission rate updated successfully."));
     }
 
     // ── Request body records
     public record RefundRejectRequest(String adminNote) {
     }
 
-    public record PayoutProcessRequest(String bankReference) {
+    public record PayoutProcessRequest(String bankReference, BigDecimal commissionRate) {
+    }
+
+    public record CommissionUpdateRequest(BigDecimal commissionRate) {
     }
 }

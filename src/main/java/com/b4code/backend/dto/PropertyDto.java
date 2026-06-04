@@ -18,6 +18,9 @@ public class PropertyDto {
     private String name;
     private String pvId;
     private String imageUrl;
+    private String imageSrc;     // Cloudinary image from guest-seeded properties
+    private String city;
+    private String propertyType;
     private Long ownerId;
     private String ownerName;
     private String ownerRole;           
@@ -45,6 +48,9 @@ public class PropertyDto {
                 .name(p.getName())
                 .pvId(p.getPvId())
                 .imageUrl(p.getImageUrl())
+                .imageSrc(p.getImageSrc())
+                .city(p.getCity())
+                .propertyType(p.getPropertyType())
                 .ownerId(p.getOwnerId())
                 .ownerName(p.getOwnerName())
                 .ownerRole("Owner")
