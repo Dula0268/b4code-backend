@@ -25,12 +25,14 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     @Query("""
             SELECT u FROM User u
+            LEFT JOIN Property p ON p.id = u.propertyId
             WHERE u.deleted = false
               AND (
                     :search IS NULL OR :search = ''
                     OR LOWER(u.firstName)  LIKE LOWER(CONCAT('%', :search, '%'))
                     OR LOWER(u.lastName)   LIKE LOWER(CONCAT('%', :search, '%'))
                     OR LOWER(u.email)      LIKE LOWER(CONCAT('%', :search, '%'))
+                    OR LOWER(p.name)       LIKE LOWER(CONCAT('%', :search, '%'))
                   )
               AND (:role   IS NULL OR u.role   = :role)
               AND (:status IS NULL OR u.status = :status)
