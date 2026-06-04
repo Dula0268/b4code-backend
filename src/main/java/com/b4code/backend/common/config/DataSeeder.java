@@ -23,7 +23,7 @@ import java.util.Arrays;
 @Component
 public class DataSeeder implements CommandLineRunner {
 
-    private static final Logger log = LoggerFactory.getLogger(DataSeeder.class);
+        private static final Logger log = LoggerFactory.getLogger(DataSeeder.class);
 
     private final UserRepository userRepository;
     private final PropertyRepository propertyRepository;

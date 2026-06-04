@@ -43,7 +43,7 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
   @Query(value = """
       SELECT TO_CHAR(t.created_at, 'Mon') AS month,
              SUM(t.amount) AS total
-      FROM transactions t
+      FROM admin.transactions t
       WHERE t.type = 'BOOKING_PAYMENT'
       GROUP BY TO_CHAR(t.created_at, 'Mon'),
                EXTRACT(MONTH FROM t.created_at)
