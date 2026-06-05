@@ -16,11 +16,9 @@ public class AuditLog {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private Long userId;
-    private String userName;
-    private String userRole;
-    private String avatarInitial;
-    private String avatarColor;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_fk")
+    private User user;
 
     @Column(length = 45)
     private String ipAddress;

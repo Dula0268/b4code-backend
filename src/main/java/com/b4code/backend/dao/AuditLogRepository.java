@@ -15,9 +15,10 @@ public interface AuditLogRepository extends JpaRepository<AuditLog, Long> {
 
     @Query("""
         SELECT a FROM AuditLog a
-        WHERE (CAST(:role AS string) IS NULL OR a.userRole = :role)
+        WHERE (CAST(:role AS string) IS NULL OR CAST(a.user.role AS string) = :role)
           AND (CAST(:search AS string) IS NULL OR :search = '' OR
-               LOWER(a.userName) LIKE LOWER(CONCAT('%',:search,'%')) OR
+               LOWER(a.user.firstName) LIKE LOWER(CONCAT('%',:search,'%')) OR
+               LOWER(a.user.lastName) LIKE LOWER(CONCAT('%',:search,'%')) OR
                LOWER(a.ipAddress) LIKE LOWER(CONCAT('%',:search,'%')) OR
                LOWER(a.entity) LIKE LOWER(CONCAT('%',:search,'%')) OR
                LOWER(a.entityDetail) LIKE LOWER(CONCAT('%',:search,'%')))

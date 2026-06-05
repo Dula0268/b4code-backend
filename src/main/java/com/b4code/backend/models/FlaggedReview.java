@@ -19,20 +19,9 @@ public class FlaggedReview {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private Long propertyId;
-    @Column(columnDefinition = "TEXT")
-    private String propertyName;
-
-    private Long guestId;
-    @Column(columnDefinition = "TEXT")
-    private String guestName;
-    private String guestInitial;
-    private String guestAvatarColor;
-
-    @Column(columnDefinition = "TEXT")
-    private String reviewText;
-
-    private Double rating;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "review_id", nullable = false)
+    private Review review;
 
     @Column(columnDefinition = "TEXT")
     private String flagReason;

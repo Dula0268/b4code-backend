@@ -29,9 +29,9 @@ public class ModerationHistoryDto {
                 .resolvedTime(h.getResolvedAt() != null ? h.getResolvedAt().format(TIME_FMT) : "")
                 .caseId(h.getCaseId())
                 .actionTaken(toLabel(h.getActionTaken()))
-                .adminInitials(h.getAdminInitials())
-                .adminName(h.getAdminName())
-                .adminColor(h.getAdminColor())
+                .adminInitials(h.getAdmin() != null && h.getAdmin().getFirstName() != null && !h.getAdmin().getFirstName().isEmpty() ? h.getAdmin().getFirstName().substring(0, 1) : null)
+                .adminName(h.getAdmin() != null ? h.getAdmin().getFullName() : "System")
+                .adminColor(null)
                 .outcome(h.getOutcome())
                 .build();
     }
