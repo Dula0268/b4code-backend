@@ -19,7 +19,8 @@ public interface RefundRepository extends JpaRepository<Refund, Long> {
             WHERE (:status IS NULL OR r.status = :status)
               AND (
                     :search IS NULL OR :search = ''
-                    OR LOWER(r.userName) LIKE LOWER(CONCAT('%', :search, '%'))
+                    OR LOWER(r.user.firstName) LIKE LOWER(CONCAT('%', :search, '%'))
+                    OR LOWER(r.user.lastName) LIKE LOWER(CONCAT('%', :search, '%'))
                     OR LOWER(r.reason)   LIKE LOWER(CONCAT('%', :search, '%'))
                   )
             """)

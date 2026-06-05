@@ -17,11 +17,13 @@ public class Payment {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false)
-    private Long userId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_fk", nullable = false)
+    private User user;
 
-    @Column
-    private Long bookingId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "booking_fk")
+    private Booking booking;
 
     @Column(nullable = false)
     private Double amount;
@@ -39,8 +41,9 @@ public class Payment {
     @Column(unique = true)
     private String orderId;
 
-    @Column
-    private String transactionId;
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "transaction_fk")
+    private Transaction transaction;
 
     @Column
     private String cardHolderName;

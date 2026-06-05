@@ -29,13 +29,13 @@ public class PaymentResponse {
     public static PaymentResponse fromEntity(Payment payment) {
         PaymentResponse response = new PaymentResponse();
         response.setId(payment.getId());
-        response.setUserId(payment.getUserId());
+        response.setUserId(payment.getUser() != null ? payment.getUser().getId() : null);
         response.setAmount(payment.getAmount());
         response.setCurrency(payment.getCurrency());
         response.setPaymentMethod(payment.getPaymentMethod());
         response.setStatus(payment.getStatus().name());
         response.setOrderId(payment.getOrderId());
-        response.setTransactionId(payment.getTransactionId());
+        response.setTransactionId(payment.getTransaction() != null ? String.valueOf(payment.getTransaction().getId()) : null);
         response.setCardHolderName(payment.getCardHolderName());
         response.setCardLastFour(payment.getCardLastFour());
         response.setFailureReason(payment.getFailureReason());

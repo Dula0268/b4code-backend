@@ -7,6 +7,7 @@ import com.b4code.backend.models.Payment;
 import com.b4code.backend.dao.PaymentRepository;
 import com.b4code.backend.dao.BookingRepository;
 import com.b4code.backend.models.Booking;
+import com.b4code.backend.models.User;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -43,8 +44,16 @@ public class PaymentService {
     public PaymentResponse initiatePayment(PaymentRequest request, Long userId) {
         // Create payment record with PENDING status
         Payment payment = new Payment();
-        payment.setUserId(userId);
-        payment.setBookingId(request.getBookingId());
+        if (userId != null) {
+            User user = new User();
+            user.setId(userId);
+            payment.setUser(user);
+        }
+        if (request.getBookingId() != null) {
+            Booking booking = new Booking();
+            booking.setId(request.getBookingId());
+            payment.setBooking(booking);
+        }
         payment.setAmount(request.getAmount());
         payment.setCurrency(request.getCurrency() != null ? request.getCurrency() : "LKR");
         payment.setPaymentMethod(request.getPaymentMethod());
@@ -101,15 +110,15 @@ public class PaymentService {
         switch (notify.getStatus_code()) {
             case "2" -> {
                 payment.setStatus(Payment.PaymentStatus.SUCCESS);
-                payment.setTransactionId(notify.getPayment_id());
+                // payment.setTransactionId(notify.getPayment_id());
                 if (notify.getCard_holder_name() != null)
                     payment.setCardHolderName(notify.getCard_holder_name());
                 if (notify.getCard_no() != null)
                     payment.setCardLastFour(notify.getCard_no());
 
                 // Update linked booking status to CONFIRMED when payment succeeds
-                if (payment.getBookingId() != null) {
-                    bookingRepository.findById(payment.getBookingId()).ifPresent(booking -> {
+                if (payment.getBooking() != null && payment.getBooking().getId() != null) {
+                    bookingRepository.findById(payment.getBooking().getId()).ifPresent(booking -> {
                         // Status and email fields were removed from Booking.
                         // We can no longer update status or send confirmation emails automatically.
                     });
