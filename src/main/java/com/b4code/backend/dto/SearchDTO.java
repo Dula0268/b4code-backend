@@ -186,6 +186,7 @@ public class SearchDTO {
         private String name;
         private Integer maxGuests;
         private String bedType;
+        private Integer numberOfRooms;
         private Integer sqft;
         private BigDecimal pricePerNight;
         private BigDecimal originalPrice;

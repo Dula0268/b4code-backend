@@ -58,9 +58,12 @@ public class SearchController {
      * Property detail.
      */
     @GetMapping("/properties/{propertyId}")
-    public ResponseEntity<PropertyDetailResult> getPropertyDetail(@PathVariable Long propertyId) {
-        log.info("GET /api/guest/properties/{}", propertyId);
-        return ResponseEntity.ok(searchService.getPropertyDetail(propertyId));
+    public ResponseEntity<PropertyDetailResult> getPropertyDetail(
+            @PathVariable Long propertyId,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate checkIn,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate checkOut) {
+        log.info("GET /api/guest/properties/{} with dates: {} to {}", propertyId, checkIn, checkOut);
+        return ResponseEntity.ok(searchService.getPropertyDetail(propertyId, checkIn, checkOut));
     }
 
     /**

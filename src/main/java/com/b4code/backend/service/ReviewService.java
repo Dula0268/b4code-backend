@@ -69,8 +69,8 @@ public class ReviewService {
 
         Review saved = reviewRepository.save(review);
 
-        // Update property average rating (No longer stored on property entity)
-        // updatePropertyRating(booking.getRoom().getProperty().getId());
+        // Update property average rating
+        updatePropertyRating(booking.getRoom().getProperty().getId());
 
         return mapToResponse(saved);
     }
@@ -112,7 +112,15 @@ public class ReviewService {
 
     @Transactional
     public void updatePropertyRating(Long propertyId) {
-        // Method retained for API compatibility, but ratings are no longer stored on Property entity
+        Double avgRating = reviewRepository.calculateAverageRating(propertyId);
+        Long count = reviewRepository.countByPropertyId(propertyId);
+        
+        Property property = propertyRepository.findById(propertyId)
+            .orElseThrow(() -> new ResourceNotFoundException("Property not found: " + propertyId));
+            
+        property.setAverageRating(avgRating != null ? avgRating : 0.0);
+        property.setReviewCount(count != null ? count.intValue() : 0);
+        propertyRepository.save(property);
     }
 
     private ReviewResponse mapToResponse(Review r) {
