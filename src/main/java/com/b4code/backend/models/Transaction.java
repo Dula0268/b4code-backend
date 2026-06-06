@@ -31,11 +31,13 @@ public class Transaction {
     @Column(nullable = false)
     private TransactionType type;
 
-    private Long propertyId;
-    private String propertyName;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "property_id")
+    private Property property;
 
-    private Long userId;
-    private String userName;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id")
+    private User user;
 
     private String description;
 

@@ -36,7 +36,11 @@ public class Review {
 
     private String photoUrls;
 
-    @Column(nullable = false)
+    @Builder.Default
+    @Column(name = "visibility_status")
+    private String visibilityStatus = "PUBLIC";
+
+    @Column(name = "created_at")
     private LocalDateTime createdAt;
 
     @PrePersist

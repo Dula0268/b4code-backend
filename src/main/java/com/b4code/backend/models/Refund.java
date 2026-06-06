@@ -20,12 +20,13 @@ public class Refund {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false)
-    private Long transactionId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "transaction_fk", nullable = false)
+    private Transaction transaction;
 
-    @Column(nullable = false)
-    private Long userId;
-    private String userName;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_fk", nullable = false)
+    private User user;
 
     @Column(nullable = false, precision = 12, scale = 2)
     private BigDecimal amount;

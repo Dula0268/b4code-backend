@@ -48,6 +48,7 @@ public class Payout {
     @Column(precision = 5, scale = 2)
     private BigDecimal commissionRate;
 
+    @Builder.Default
     @Column(nullable = false, length = 3)
     private String currency = "LKR";
 

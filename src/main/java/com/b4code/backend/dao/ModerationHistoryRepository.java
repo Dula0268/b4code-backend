@@ -21,7 +21,8 @@ public interface ModerationHistoryRepository extends JpaRepository<ModerationHis
           AND (CAST(:to AS LocalDateTime) IS NULL OR h.resolvedAt <= :to)
           AND (CAST(:search AS string) IS NULL OR :search = '' OR
                LOWER(h.caseId) LIKE LOWER(CONCAT('%',:search,'%')) OR
-               LOWER(h.adminName) LIKE LOWER(CONCAT('%',:search,'%')) OR
+               LOWER(h.admin.firstName) LIKE LOWER(CONCAT('%',:search,'%')) OR
+               LOWER(h.admin.lastName) LIKE LOWER(CONCAT('%',:search,'%')) OR
                LOWER(h.outcome) LIKE LOWER(CONCAT('%',:search,'%')))
         ORDER BY h.resolvedAt DESC
         """)
