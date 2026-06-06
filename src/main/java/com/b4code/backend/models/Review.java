@@ -40,7 +40,7 @@ public class Review {
     @Column(name = "visibility_status")
     private String visibilityStatus = "PUBLIC";
 
-    @Column(nullable = false)
+    @Column(name = "created_at")
     private LocalDateTime createdAt;
 
     @PrePersist
