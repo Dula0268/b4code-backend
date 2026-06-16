@@ -23,7 +23,11 @@ public class GuestOrderService {
         Order order = new Order();
         order.setPropertyId(request.getPropertyId());
         order.setGuestId(request.getGuestId());
+        order.setGuestName(request.getGuestName());
+        order.setGuestPhone(request.getGuestPhone());
         order.setRoomNumber(request.getRoomNumber());
+        order.setTableId(request.getTableId());
+        order.setTableNumber(request.getTableNumber());
         order.setTotalAmount(request.getTotalAmount());
         order.setStatus(request.getStatus() != null ? request.getStatus() : "NEW");
 

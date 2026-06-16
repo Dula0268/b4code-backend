@@ -102,10 +102,17 @@ public interface PropertyRepository extends JpaRepository<Property, Long> {
     @Query("SELECT DISTINCT p.city FROM Property p ORDER BY p.city")
     List<String> findDistinctCities();
 
+    // 🛠️🛠️🛠️ Admin Management Methods (from admin module) 🛠️🛠️🛠️🛠️🛠️🛠️🛠️🛠️🛠️🛠️🛠️🛠️🛠️🛠️🛠️🛠️🛠️🛠️🛠️🛠️
+
+    /**
+     * Admin query to list ALL properties with optional search filters.
+     * Includes both PV-* (verification queue) and PROP-* (guest-seeded) properties.
+     */
     @Query("""
             SELECT p FROM Property p
             WHERE (:search IS NULL OR :search = ''
-                   OR LOWER(p.name) LIKE LOWER(CONCAT('%', :search, '%')))
+                   OR LOWER(p.name)      LIKE LOWER(CONCAT('%', :search, '%'))
+                   OR LOWER(p.city)      LIKE LOWER(CONCAT('%', :search, '%')))
             """)
     Page<Property> findAllWithFilters(@Param("search") String search, Pageable pageable);
 

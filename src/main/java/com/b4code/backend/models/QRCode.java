@@ -24,9 +24,6 @@ public class QRCode {
     private String qrCodeValue;
 
     @Column(nullable = true)
-    private Long orderId;
-
-    @Column(nullable = true)
     private Long propertyId;
 
     @Column(name = "table_id")

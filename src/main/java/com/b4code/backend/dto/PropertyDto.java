@@ -20,6 +20,8 @@ public class PropertyDto {
     private Double latitude;
     private Double longitude;
     private Long ownerId;
+    
+    // Admin fields
     private String ownerName;
     private LocalDateTime createdAt;
     private PropertyStatus status;
@@ -51,6 +53,7 @@ public class PropertyDto {
         property.setLatitude(this.latitude);
         property.setLongitude(this.longitude);
         property.setOwnerId(this.ownerId);
+        // Do not update createdAt or status here as they are managed by system/admin
     }
 
     public Property toEntity() {
@@ -63,6 +66,7 @@ public class PropertyDto {
         property.setLatitude(this.latitude);
         property.setLongitude(this.longitude);
         property.setOwnerId(this.ownerId);
+        // Default status is set via builder/entity
         return property;
     }
 }
