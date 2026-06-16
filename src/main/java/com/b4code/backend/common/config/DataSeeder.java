@@ -31,8 +31,13 @@ public class DataSeeder implements CommandLineRunner {
     private final AmenityRepository amenityRepository;
     private final BookingRepository bookingRepository;
     private final ReviewRepository reviewRepository;
+    private final DisputeRepository disputeRepository;
+    private final FlaggedReviewRepository flaggedReviewRepository;
+    private final ModerationHistoryRepository moderationHistoryRepository;
+    private final PayoutRepository payoutRepository;
     private final PasswordEncoder passwordEncoder;
     private final JdbcTemplate jdbcTemplate;
+    private final AuditLogRepository auditLogRepository;
 
     public DataSeeder(UserRepository userRepository,
                       PropertyRepository propertyRepository,
@@ -40,22 +45,33 @@ public class DataSeeder implements CommandLineRunner {
                       AmenityRepository amenityRepository,
                       BookingRepository bookingRepository,
                       ReviewRepository reviewRepository,
+                      DisputeRepository disputeRepository,
+                      FlaggedReviewRepository flaggedReviewRepository,
+                      ModerationHistoryRepository moderationHistoryRepository,
+                      PayoutRepository payoutRepository,
                       PasswordEncoder passwordEncoder,
-                      JdbcTemplate jdbcTemplate) {
+                      JdbcTemplate jdbcTemplate,
+                      AuditLogRepository auditLogRepository) {
         this.userRepository = userRepository;
         this.propertyRepository = propertyRepository;
         this.roomRepository = roomRepository;
         this.amenityRepository = amenityRepository;
         this.bookingRepository = bookingRepository;
         this.reviewRepository = reviewRepository;
+        this.disputeRepository = disputeRepository;
+        this.flaggedReviewRepository = flaggedReviewRepository;
+        this.moderationHistoryRepository = moderationHistoryRepository;
+        this.payoutRepository = payoutRepository;
         this.passwordEncoder = passwordEncoder;
         this.jdbcTemplate = jdbcTemplate;
+        this.auditLogRepository = auditLogRepository;
     }
 
     @Override
     public void run(String... args) {
         seedCoreUsers();
         seedGuestData();
+        seedAdminAndOwnerData();
     }
     
     private void seedCoreUsers() {
@@ -206,6 +222,8 @@ public class DataSeeder implements CommandLineRunner {
                     .breakfastIncluded(i % 3 == 0)
                     .petFriendly(i % 4 == 0)
                     .accessibility(i % 5 == 0)
+                    .status(com.b4code.backend.models.enums.PropertyStatus.values()[i % 4]) // Mix of PENDING, APPROVED, etc.
+                    .createdAt(LocalDateTime.now().minusDays(i * 3L + 1)) // Staggered creation dates
                     .build();
             p = propertyRepository.save(p);
 
@@ -272,6 +290,260 @@ public class DataSeeder implements CommandLineRunner {
                 
                 reviewRepository.save(review);
             }
+        }
+    }
+
+    private void seedAdminAndOwnerData() {
+        log.info("🌱 Seeding Admin and Owner specific data...");
+
+        User admin = userRepository.findByEmail("admin@primestay.com").orElse(null);
+        User guest = userRepository.findByEmail("guest@primestay.com").orElse(null);
+        User owner = userRepository.findByEmail("owner1@primestay.com").orElse(null);
+
+        List<Property> properties = propertyRepository.findAll();
+        List<Review> reviews = reviewRepository.findAll();
+        List<Booking> bookings = bookingRepository.findAll();
+
+        if (admin == null || guest == null || owner == null || properties.isEmpty() || reviews.isEmpty() || bookings.isEmpty()) {
+            log.warn("⚠️ Missing core entities, skipping Admin/Owner seeding.");
+            return;
+        }
+
+        Property prop1 = properties.size() > 0 ? properties.get(0) : null;
+        Property prop2 = properties.size() > 1 ? properties.get(1) : prop1;
+
+        Booking booking1 = bookings.size() > 0 ? bookings.get(0) : null;
+        Booking booking2 = bookings.size() > 1 ? bookings.get(1) : booking1;
+
+        Review review1 = reviews.size() > 0 ? reviews.get(0) : null;
+        Review review2 = reviews.size() > 1 ? reviews.get(1) : review1;
+
+        if (disputeRepository.count() == 0) {
+            Dispute d1 = new Dispute();
+            d1.setDisputeId("DISP-" + java.util.UUID.randomUUID().toString());
+            d1.setGuest(guest);
+            d1.setProperty(prop1);
+            d1.setBooking(booking1);
+            d1.setReason("Property not as described");
+            d1.setStatus(com.b4code.backend.models.enums.DisputeStatus.OPEN);
+            d1.setAmount(new BigDecimal("5000.00"));
+            disputeRepository.save(d1);
+
+            Dispute d2 = new Dispute();
+            d2.setDisputeId("DISP-" + java.util.UUID.randomUUID().toString());
+            d2.setGuest(guest);
+            d2.setProperty(prop2);
+            d2.setBooking(booking2);
+            d2.setReason("Host was unresponsive");
+            d2.setStatus(com.b4code.backend.models.enums.DisputeStatus.OPEN);
+            d2.setAmount(new BigDecimal("2500.00"));
+            disputeRepository.save(d2);
+
+            Dispute d3 = new Dispute();
+            d3.setDisputeId("DISP-" + java.util.UUID.randomUUID().toString());
+            d3.setGuest(guest);
+            d3.setProperty(prop1);
+            d3.setBooking(booking1);
+            d3.setReason("Amenities missing");
+            d3.setStatus(com.b4code.backend.models.enums.DisputeStatus.RESOLVED);
+            d3.setAmount(new BigDecimal("1000.00"));
+            disputeRepository.save(d3);
+
+            Dispute d4 = new Dispute();
+            d4.setDisputeId("DISP-" + java.util.UUID.randomUUID().toString());
+            d4.setGuest(guest);
+            d4.setProperty(prop2);
+            d4.setBooking(booking2);
+            d4.setReason("Unclean room");
+            d4.setStatus(com.b4code.backend.models.enums.DisputeStatus.OPEN);
+            d4.setAmount(new BigDecimal("1500.00"));
+            disputeRepository.save(d4);
+
+            log.info("✅ 4 Disputes seeded explicitly");
+        }
+
+        if (flaggedReviewRepository.count() == 0) {
+            FlaggedReview f1 = new FlaggedReview();
+            f1.setReview(review1);
+            f1.setFlagReason("Harassment");
+            f1.setStatus(com.b4code.backend.models.enums.ReviewStatus.FLAGGED);
+            flaggedReviewRepository.save(f1);
+
+            FlaggedReview f2 = new FlaggedReview();
+            f2.setReview(review2);
+            f2.setFlagReason("Spam / Scam");
+            f2.setStatus(com.b4code.backend.models.enums.ReviewStatus.FLAGGED);
+            flaggedReviewRepository.save(f2);
+
+            FlaggedReview f3 = new FlaggedReview();
+            f3.setReview(review1);
+            f3.setFlagReason("Profanity");
+            f3.setStatus(com.b4code.backend.models.enums.ReviewStatus.APPROVED);
+            flaggedReviewRepository.save(f3);
+
+            FlaggedReview f4 = new FlaggedReview();
+            f4.setReview(review2);
+            f4.setFlagReason("Policy Violation");
+            f4.setStatus(com.b4code.backend.models.enums.ReviewStatus.REMOVED);
+            flaggedReviewRepository.save(f4);
+
+            log.info("✅ 4 FlaggedReviews seeded explicitly");
+        }
+
+        if (moderationHistoryRepository.count() == 0) {
+            ModerationHistory m1 = new ModerationHistory();
+            m1.setCaseId("MOD-" + java.util.UUID.randomUUID().toString());
+            m1.setAdmin(admin);
+            m1.setActionTaken(com.b4code.backend.models.enums.ModerationAction.REVIEW_REMOVED);
+            m1.setOutcome("Removed due to severe harassment");
+            m1.setResolvedAt(LocalDateTime.now());
+            moderationHistoryRepository.save(m1);
+
+            ModerationHistory m2 = new ModerationHistory();
+            m2.setCaseId("MOD-" + java.util.UUID.randomUUID().toString());
+            m2.setAdmin(admin);
+            m2.setActionTaken(com.b4code.backend.models.enums.ModerationAction.REVIEW_KEPT);
+            m2.setOutcome("Review kept, not a scam");
+            m2.setResolvedAt(LocalDateTime.now().minusDays(1));
+            moderationHistoryRepository.save(m2);
+
+            ModerationHistory m3 = new ModerationHistory();
+            m3.setCaseId("MOD-" + java.util.UUID.randomUUID().toString());
+            m3.setAdmin(admin);
+            m3.setActionTaken(com.b4code.backend.models.enums.ModerationAction.REFUND_ISSUED);
+            m3.setOutcome("Refund issued for missing amenities");
+            m3.setResolvedAt(LocalDateTime.now().minusDays(2));
+            moderationHistoryRepository.save(m3);
+
+            ModerationHistory m4 = new ModerationHistory();
+            m4.setCaseId("MOD-" + java.util.UUID.randomUUID().toString());
+            m4.setAdmin(admin);
+            m4.setActionTaken(com.b4code.backend.models.enums.ModerationAction.APPEAL_DENIED);
+            m4.setOutcome("Policy violation confirmed, appeal denied");
+            m4.setResolvedAt(LocalDateTime.now().minusDays(3));
+            moderationHistoryRepository.save(m4);
+
+            log.info("✅ 4 ModerationHistories seeded explicitly");
+        }
+
+        if (payoutRepository.count() == 0) {
+            Payout p1 = Payout.builder()
+                .ownerId(owner.getId())
+                .ownerName(owner.getFirstName() + " " + owner.getLastName())
+                .propertyId(prop1.getId())
+                .propertyName(prop1.getName())
+                .amount(new BigDecimal("45000.00"))
+                .hotelAmount(new BigDecimal("40000.00"))
+                .foodAmount(new BigDecimal("5000.00"))
+                .commissionAmount(new BigDecimal("4500.00"))
+                .commissionRate(new BigDecimal("10.00"))
+                .currency("LKR")
+                .status(PayoutStatus.PENDING)
+                .bankReference("BANK001")
+                .build();
+            payoutRepository.save(p1);
+
+            Payout p2 = Payout.builder()
+                .ownerId(owner.getId())
+                .ownerName(owner.getFirstName() + " " + owner.getLastName())
+                .propertyId(prop2.getId())
+                .propertyName(prop2.getName())
+                .amount(new BigDecimal("22500.00"))
+                .hotelAmount(new BigDecimal("20000.00"))
+                .foodAmount(new BigDecimal("2500.00"))
+                .commissionAmount(new BigDecimal("2250.00"))
+                .commissionRate(new BigDecimal("10.00"))
+                .currency("LKR")
+                .status(PayoutStatus.PROCESSED)
+                .bankReference("BANK002")
+                .build();
+            payoutRepository.save(p2);
+
+            Payout p3 = Payout.builder()
+                .ownerId(owner.getId())
+                .ownerName(owner.getFirstName() + " " + owner.getLastName())
+                .propertyId(prop1.getId())
+                .propertyName(prop1.getName())
+                .amount(new BigDecimal("18000.00"))
+                .hotelAmount(new BigDecimal("15000.00"))
+                .foodAmount(new BigDecimal("3000.00"))
+                .commissionAmount(new BigDecimal("1800.00"))
+                .commissionRate(new BigDecimal("10.00"))
+                .currency("LKR")
+                .status(PayoutStatus.FAILED)
+                .bankReference("BANK003")
+                .build();
+            payoutRepository.save(p3);
+
+            Payout p4 = Payout.builder()
+                .ownerId(owner.getId())
+                .ownerName(owner.getFirstName() + " " + owner.getLastName())
+                .propertyId(prop2.getId())
+                .propertyName(prop2.getName())
+                .amount(new BigDecimal("50000.00"))
+                .hotelAmount(new BigDecimal("45000.00"))
+                .foodAmount(new BigDecimal("5000.00"))
+                .commissionAmount(new BigDecimal("5000.00"))
+                .commissionRate(new BigDecimal("10.00"))
+                .currency("LKR")
+                .status(PayoutStatus.PENDING)
+                .bankReference("BANK004")
+                .build();
+            payoutRepository.save(p4);
+
+            Payout p5 = Payout.builder()
+                .ownerId(owner.getId())
+                .ownerName(owner.getFirstName() + " " + owner.getLastName())
+                .propertyId(prop1.getId())
+                .propertyName(prop1.getName())
+                .amount(new BigDecimal("12000.00"))
+                .hotelAmount(new BigDecimal("10000.00"))
+                .foodAmount(new BigDecimal("2000.00"))
+                .commissionAmount(new BigDecimal("1200.00"))
+                .commissionRate(new BigDecimal("10.00"))
+                .currency("LKR")
+                .status(PayoutStatus.PROCESSED)
+                .bankReference("BANK005")
+                .build();
+            payoutRepository.save(p5);
+
+            log.info("✅ 5 Payouts seeded explicitly");
+        }
+
+        if (auditLogRepository.count() == 0) {
+            AuditLog al1 = new AuditLog();
+            al1.setUser(admin);
+            al1.setAction("LOGIN_SUCCESS");
+            al1.setEntity("AUTH");
+            al1.setEntityDetail("admin@primestay.com");
+            al1.setTimestamp(LocalDateTime.now().minusHours(2));
+            auditLogRepository.save(al1);
+
+            AuditLog al2 = new AuditLog();
+            al2.setUser(owner);
+            al2.setAction("LOGIN_SUCCESS");
+            al2.setEntity("AUTH");
+            al2.setEntityDetail("owner1@primestay.com");
+            al2.setTimestamp(LocalDateTime.now().minusHours(5));
+            auditLogRepository.save(al2);
+
+            AuditLog al3 = new AuditLog();
+            al3.setUser(admin);
+            al3.setAction("PROPERTY_APPROVED");
+            al3.setEntity("PROPERTY");
+            al3.setEntityDetail("Property ID: " + prop1.getId());
+            al3.setTimestamp(LocalDateTime.now().minusDays(1));
+            auditLogRepository.save(al3);
+
+            AuditLog al4 = new AuditLog();
+            al4.setUser(admin);
+            al4.setAction("CONFIG_CHANGE");
+            al4.setEntity("SYSTEM");
+            al4.setEntityDetail("Updated commission rate");
+            al4.setTimestamp(LocalDateTime.now().minusDays(2));
+            auditLogRepository.save(al4);
+
+            log.info("✅ 4 Audit Logs seeded explicitly");
         }
     }
 }
