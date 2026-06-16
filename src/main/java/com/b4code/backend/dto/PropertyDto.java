@@ -1,7 +1,10 @@
 package com.b4code.backend.dto;
 
 import com.b4code.backend.models.Property;
+import com.b4code.backend.models.enums.PropertyStatus;
 import lombok.*;
+
+import java.time.LocalDateTime;
 
 @Data
 @Builder
@@ -17,6 +20,10 @@ public class PropertyDto {
     private Double latitude;
     private Double longitude;
     private Long ownerId;
+    private String ownerName;
+    private LocalDateTime createdAt;
+    private PropertyStatus status;
+    private String mainImageUrl;
 
     public static PropertyDto fromEntity(Property p) {
         if (p == null) return null;
@@ -30,6 +37,8 @@ public class PropertyDto {
                 .latitude(p.getLatitude())
                 .longitude(p.getLongitude())
                 .ownerId(p.getOwnerId())
+                .createdAt(p.getCreatedAt())
+                .status(p.getStatus())
                 .build();
     }
 
