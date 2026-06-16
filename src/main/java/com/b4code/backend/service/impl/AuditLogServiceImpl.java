@@ -26,7 +26,7 @@ public class AuditLogServiceImpl implements AuditLogService {
     @Override
     @Transactional(readOnly = true)
     public AuditLogPageDto getAuditLogs(String role, String search, int page, int size) {
-        String filterRole = (role != null && role.equalsIgnoreCase("All")) ? null : role;
+        String filterRole = (role != null && !role.equalsIgnoreCase("All")) ? role.toUpperCase() : null;
         String searchTerm = (search == null || search.isBlank()) ? null : search.trim();
         
         Page<AuditLog> result = auditLogRepository.findAllWithFilters(
