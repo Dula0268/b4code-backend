@@ -8,6 +8,10 @@ public class OrderRequest {
     private Long propertyId;
     private Long guestId;
     private String roomNumber;
+    private Long tableId;
+    private String tableNumber;
+    private String guestName;
+    private String guestPhone;
     private Double totalAmount;
     private String status;
     private List<OrderItemRequest> items;
