@@ -73,10 +73,12 @@ public class QRCodeController {
         return ResponseEntity.ok(qrCodes);
     }
     
-    @GetMapping("/order/{orderId}")
-    public ResponseEntity<List<QRCodeResponse>> getQRCodesByOrder(@PathVariable Long orderId) {
-        List<QRCodeResponse> qrCodes = qrCodeService.getQRCodesByOrder(orderId);
-        return ResponseEntity.ok(qrCodes);
+    @GetMapping("/unique/{uniqueQrId}")
+    @Operation(summary = "Get QR context by unique ID", description = "Returns the QR metadata to be used by the frontend for menu rendering")
+    public ResponseEntity<?> getQRCodeByUniqueId(@PathVariable String uniqueQrId) {
+        return qrCodeService.getQRCodeByUniqueId(uniqueQrId)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
     }
     
     @GetMapping("/property/{propertyId}/status/{status}")
@@ -109,11 +111,6 @@ public class QRCodeController {
         return ResponseEntity.noContent().build();
     }
     
-    @DeleteMapping("/order/{orderId}")
-    public ResponseEntity<Void> deleteQRCodesByOrder(@PathVariable Long orderId) {
-        qrCodeService.deleteQRCodesByOrder(orderId);
-        return ResponseEntity.noContent().build();
-    }
 }
 
 

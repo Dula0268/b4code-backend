@@ -15,7 +15,7 @@ public class QRCodeResponse {
     private Long id;
     private String qrCodeValue;
     private String uniqueQrId;
-    private Long orderId;
+
     private Long propertyId;
     private String status;
     private String name;
