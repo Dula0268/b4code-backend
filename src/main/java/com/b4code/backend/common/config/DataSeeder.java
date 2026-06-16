@@ -53,6 +53,7 @@ public class DataSeeder implements CommandLineRunner {
     }
 
     @Override
+    @org.springframework.transaction.annotation.Transactional
     public void run(String... args) {
         seedCoreUsers();
         seedGuestData();
@@ -81,6 +82,12 @@ public class DataSeeder implements CommandLineRunner {
 
         seedUserIfMissing("guest@primestay.com", "guest123", "John", "Doe", UserRole.GUEST, null, UserStatus.ACTIVE);
         seedUserIfMissing("owner@primestay.com", "owner123", "Alex", "Owner", UserRole.OWNER, null, UserStatus.ACTIVE);
+
+        // Seed general staff users
+        seedUserIfMissing("mike.ross@primestay.com", "password123", "Mike", "Ross", UserRole.STAFF, null, UserStatus.ACTIVE);
+        seedUserIfMissing("john.d@gmail.com", "password123", "John", "Doe", UserRole.STAFF, null, UserStatus.SUSPENDED);
+        seedUserIfMissing("aisha.k@primestay.com", "password123", "Aisha", "Kumar", UserRole.STAFF, null, UserStatus.ACTIVE);
+        seedUserIfMissing("daniel.o@primestay.com", "password123", "Daniel", "Osei", UserRole.STAFF, null, UserStatus.ACTIVE);
     }
 
     private void seedUserIfMissing(String email, String password, String first, String last, UserRole role, Long propertyId, UserStatus status) {
@@ -208,6 +215,13 @@ public class DataSeeder implements CommandLineRunner {
                     .accessibility(i % 5 == 0)
                     .build();
             p = propertyRepository.save(p);
+
+            // Seed property-specific staff users
+            if (i == 0) {
+                seedUserIfMissing("staff@primestay.com", "staff123", "Mike", "Staff", UserRole.STAFF, p.getId(), UserStatus.APPROVED);
+            } else if (i == 1) {
+                seedUserIfMissing("staff2@primestay.com", "staff123", "Jane", "Staff", UserRole.STAFF, p.getId(), UserStatus.APPROVED);
+            }
 
             // 4 Amenities
             Set<Amenity> ams = new HashSet<>();
