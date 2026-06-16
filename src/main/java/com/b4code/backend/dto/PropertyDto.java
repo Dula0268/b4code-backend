@@ -1,7 +1,10 @@
 package com.b4code.backend.dto;
 
 import com.b4code.backend.models.Property;
+import com.b4code.backend.models.enums.PropertyStatus;
 import lombok.*;
+
+import java.time.LocalDateTime;
 
 @Data
 @Builder
@@ -17,6 +20,12 @@ public class PropertyDto {
     private Double latitude;
     private Double longitude;
     private Long ownerId;
+    
+    // Admin fields
+    private String ownerName;
+    private LocalDateTime createdAt;
+    private PropertyStatus status;
+    private String mainImageUrl;
 
     public static PropertyDto fromEntity(Property p) {
         if (p == null) return null;
@@ -30,6 +39,8 @@ public class PropertyDto {
                 .latitude(p.getLatitude())
                 .longitude(p.getLongitude())
                 .ownerId(p.getOwnerId())
+                .createdAt(p.getCreatedAt())
+                .status(p.getStatus())
                 .build();
     }
 
@@ -42,6 +53,7 @@ public class PropertyDto {
         property.setLatitude(this.latitude);
         property.setLongitude(this.longitude);
         property.setOwnerId(this.ownerId);
+        // Do not update createdAt or status here as they are managed by system/admin
     }
 
     public Property toEntity() {
@@ -54,6 +66,7 @@ public class PropertyDto {
         property.setLatitude(this.latitude);
         property.setLongitude(this.longitude);
         property.setOwnerId(this.ownerId);
+        // Default status is set via builder/entity
         return property;
     }
 }

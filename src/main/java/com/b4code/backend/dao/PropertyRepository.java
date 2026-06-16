@@ -102,7 +102,7 @@ public interface PropertyRepository extends JpaRepository<Property, Long> {
     @Query("SELECT DISTINCT p.city FROM Property p ORDER BY p.city")
     List<String> findDistinctCities();
 
-    // ─── Admin Management Methods (from admin module) ────────────────────
+    // 🛠️🛠️🛠️ Admin Management Methods (from admin module) 🛠️🛠️🛠️🛠️🛠️🛠️🛠️🛠️🛠️🛠️🛠️🛠️🛠️🛠️🛠️🛠️🛠️🛠️🛠️🛠️
 
     /**
      * Admin query to list ALL properties with optional search filters.
