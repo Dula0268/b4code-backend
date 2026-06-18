@@ -23,8 +23,9 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
         AND (
               CAST(:search AS string) IS NULL OR :search = ''
               OR LOWER(t.referenceNumber) LIKE LOWER(CONCAT('%', :search, '%'))
-              OR LOWER(t.userName)        LIKE LOWER(CONCAT('%', :search, '%'))
-              OR LOWER(t.propertyName)    LIKE LOWER(CONCAT('%', :search, '%'))
+              OR LOWER(t.user.firstName)  LIKE LOWER(CONCAT('%', :search, '%'))
+              OR LOWER(t.user.lastName)   LIKE LOWER(CONCAT('%', :search, '%'))
+              OR LOWER(t.property.name)   LIKE LOWER(CONCAT('%', :search, '%'))
             )
       """)
   Page<Transaction> findAllWithFilters(

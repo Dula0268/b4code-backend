@@ -30,6 +30,7 @@ public class DataSeeder implements CommandLineRunner {
         private final MenuItemRepository menuItemRepository;
         private final PropertyRepository propertyRepository;
         private final RoomRepository roomRepository;
+        private final AmenityRepository amenityRepository;
         private final BookingRepository bookingRepository;
         private final ReviewRepository reviewRepository;
         private final PromoCodeRepository promoCodeRepository;
@@ -81,6 +82,7 @@ public class DataSeeder implements CommandLineRunner {
                         MenuItemRepository menuItemRepository,
                         PropertyRepository propertyRepository,
                         RoomRepository roomRepository,
+                        AmenityRepository amenityRepository,
                         BookingRepository bookingRepository,
                         ReviewRepository reviewRepository,
                         PromoCodeRepository promoCodeRepository,
@@ -95,6 +97,7 @@ public class DataSeeder implements CommandLineRunner {
                 this.menuItemRepository = menuItemRepository;
                 this.propertyRepository = propertyRepository;
                 this.roomRepository = roomRepository;
+                this.amenityRepository = amenityRepository;
                 this.bookingRepository = bookingRepository;
                 this.reviewRepository = reviewRepository;
                 this.promoCodeRepository = promoCodeRepository;

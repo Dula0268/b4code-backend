@@ -23,8 +23,20 @@ public class Order {
     @Column(name = "property_id", nullable = false)
     private Long propertyId;
 
-    @Column(name = "guest_id", nullable = false)
+    @Column(name = "guest_id", nullable = true)
     private Long guestId;
+
+    @Column(name = "table_id")
+    private Long tableId;
+
+    @Column(name = "table_number")
+    private String tableNumber;
+
+    @Column(name = "guest_name")
+    private String guestName;
+
+    @Column(name = "guest_phone")
+    private String guestPhone;
 
     @Column(name = "room_number")
     private String roomNumber;

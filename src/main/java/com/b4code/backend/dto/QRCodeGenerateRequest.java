@@ -11,7 +11,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class QRCodeGenerateRequest {
 
-    private Long orderId;
+
     private Long propertyId;
     private String name;
     private String location;

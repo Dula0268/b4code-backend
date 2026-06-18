@@ -62,9 +62,9 @@ public class MessagingService {
 
         return ConversationResponse.builder()
             .bookingId(bookingId)
-            .confirmationNumber(booking.getConfirmationNumber())
+            .confirmationNumber("N/A")
             .propertyName(booking.getRoom().getProperty().getName())
-            .guestName(booking.getGuestName())
+            .guestName("Guest")
             .messages(messageResponses)
             .unreadCount((int) unreadCount)
             .build();

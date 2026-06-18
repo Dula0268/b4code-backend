@@ -42,8 +42,8 @@ public class QRCodeServiceImpl implements QRCodeService {
     @Transactional
     public QRCodeResponse generateQRCode(QRCodeGenerateRequest request) {
         QRCode qrCode = new QRCode();
-        qrCode.setUniqueQrId(UUID.randomUUID().toString());
-        qrCode.setOrderId(request.getOrderId());
+        String uniqueId = UUID.randomUUID().toString();
+        qrCode.setUniqueQrId(uniqueId);
         qrCode.setPropertyId(request.getPropertyId());
         qrCode.setStatus(STATUS_ACTIVE);
         qrCode.setName(request.getName());
@@ -59,12 +59,7 @@ public class QRCodeServiceImpl implements QRCodeService {
         qrCode.setUpdatedAt(LocalDateTime.now());
 
         // Construct target URL
-        String targetUrl = String.format("%s/guest/order/menu?propertyId=%d", baseUrl, qrCode.getPropertyId());
-        if (qrCode.getTableId() != null) {
-            targetUrl += "&tableId=" + qrCode.getTableId();
-        } else if (qrCode.getRoomNumber() != null && !qrCode.getRoomNumber().isEmpty()) {
-            targetUrl += "&roomNumber=" + qrCode.getRoomNumber();
-        }
+        String targetUrl = String.format("%s/guest/order/menu?qrId=%s", baseUrl, uniqueId);
 
         qrCode.setQrCodeValue(targetUrl);
         qrCode.setQrImageData(generateQRImageBase64(targetUrl));
@@ -73,23 +68,19 @@ public class QRCodeServiceImpl implements QRCodeService {
         return mapToResponse(saved);
     }
 
-    @Override
-    public QRCodeResponse generateQRCode(Long orderId, Long propertyId, String description) {
-        // FIXED: Using Builder to avoid the 11-argument constructor mismatch error
-        QRCodeGenerateRequest request = QRCodeGenerateRequest.builder()
-                .orderId(orderId)
-                .propertyId(propertyId)
-                .description(description)
-                .build();
-        
-        return generateQRCode(request);
-    }
+
 
     @Override
     public QRCodeResponse getQRCodeById(Long id) {
         return qrCodeRepository.findById(id)
                 .map(this::mapToResponse)
                 .orElseThrow(() -> new RuntimeException("QR Code not found with id: " + id));
+    }
+
+    @Override
+    public Optional<QRCodeResponse> getQRCodeByUniqueId(String uniqueQrId) {
+        return qrCodeRepository.findByUniqueQrId(uniqueQrId)
+                .map(this::mapToResponse);
     }
 
     @Override
@@ -116,13 +107,7 @@ public class QRCodeServiceImpl implements QRCodeService {
         return allQRs.subList(start, end);
     }
 
-    @Override
-    public List<QRCodeResponse> getQRCodesByOrder(Long orderId) {
-        return qrCodeRepository.findByOrderId(orderId)
-                .stream()
-                .map(this::mapToResponse)
-                .collect(Collectors.toList());
-    }
+
 
     @Override
     public List<QRCodeResponse> getQRCodesByPropertyAndStatus(Long propertyId, String status) {
@@ -170,7 +155,6 @@ public class QRCodeServiceImpl implements QRCodeService {
         if (updates.containsKey("status")) qrCode.setStatus((String) updates.get("status"));
         if (updates.containsKey("qrImageData")) qrCode.setQrImageData((String) updates.get("qrImageData"));
         if (updates.containsKey("propertyId")) qrCode.setPropertyId(toLong(updates.get("propertyId")));
-        if (updates.containsKey("orderId")) qrCode.setOrderId(toLong(updates.get("orderId")));
         if (updates.containsKey("instructionText")) qrCode.setInstructionText((String) updates.get("instructionText"));
         if (updates.containsKey("showRoomNumber")) qrCode.setShowRoomNumber(toBoolean(updates.get("showRoomNumber")));
         if (updates.containsKey("showLogo")) qrCode.setShowLogo(toBoolean(updates.get("showLogo")));
@@ -198,19 +182,13 @@ public class QRCodeServiceImpl implements QRCodeService {
         qrCodeRepository.deleteById(id);
     }
 
-    @Override
-    @Transactional
-    public void deleteQRCodesByOrder(Long orderId) {
-        List<QRCode> qrCodes = qrCodeRepository.findByOrderId(orderId);
-        qrCodeRepository.deleteAll(qrCodes);
-    }
+
 
     private QRCodeResponse mapToResponse(QRCode qrCode) {
         return QRCodeResponse.builder()
                 .id(qrCode.getId())
                 .qrCodeValue(qrCode.getQrCodeValue())
                 .uniqueQrId(qrCode.getUniqueQrId())
-                .orderId(qrCode.getOrderId())
                 .propertyId(qrCode.getPropertyId())
                 .status(qrCode.getStatus())
                 .name(qrCode.getName())

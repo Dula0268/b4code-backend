@@ -23,16 +23,17 @@ public class Dispute {
     @Column(nullable = false, unique = true, columnDefinition = "TEXT")
     private String disputeId;
 
-    private Long guestId;
-    @Column(columnDefinition = "TEXT")
-    private String guestName;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "guest_id")
+    private User guest;
 
-    private Long propertyId;
-    @Column(columnDefinition = "TEXT")
-    private String propertyName;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "property_id")
+    private Property property;
 
-    @Column(columnDefinition = "TEXT")
-    private String bookingId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "booking_fk")
+    private Booking booking;
 
     @Column(columnDefinition = "TEXT")
     private String reason;
@@ -54,7 +55,9 @@ public class Dispute {
 
     @Column(columnDefinition = "TEXT")
     private String resolutionNote;
-    private Long resolvedByAdminId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "resolved_by_admin_id")
+    private User resolvedByAdmin;
 
     @Column(columnDefinition = "TEXT")
     private String internalNote;

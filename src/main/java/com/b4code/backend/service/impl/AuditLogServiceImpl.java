@@ -4,6 +4,7 @@ import com.b4code.backend.dao.AuditLogRepository;
 import com.b4code.backend.dto.AuditLogDto;
 import com.b4code.backend.dto.AuditLogPageDto;
 import com.b4code.backend.models.AuditLog;
+import com.b4code.backend.models.User;
 import com.b4code.backend.service.AuditLogService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -25,7 +26,7 @@ public class AuditLogServiceImpl implements AuditLogService {
     @Override
     @Transactional(readOnly = true)
     public AuditLogPageDto getAuditLogs(String role, String search, int page, int size) {
-        String filterRole = (role != null && role.equalsIgnoreCase("All")) ? null : role;
+        String filterRole = (role != null && !role.equalsIgnoreCase("All")) ? role.toUpperCase() : null;
         String searchTerm = (search == null || search.isBlank()) ? null : search.trim();
         
         Page<AuditLog> result = auditLogRepository.findAllWithFilters(
@@ -47,19 +48,18 @@ public class AuditLogServiceImpl implements AuditLogService {
     public void recordLog(Long userId, String userName, String userRole, String ipAddress, 
                           String action, String entity, String entityDetail) {
         AuditLog logEntry = new AuditLog();
-        logEntry.setUserId(userId);
-        logEntry.setUserName(userName);
-        logEntry.setUserRole(userRole);
+        if (userId != null) {
+            User user = new User();
+            user.setId(userId);
+            logEntry.setUser(user);
+        }
         logEntry.setIpAddress(ipAddress);
         logEntry.setAction(action);
         logEntry.setEntity(entity);
         logEntry.setEntityDetail(entityDetail);
         logEntry.setTimestamp(LocalDateTime.now());
         
-        // Auto-assign avatar info based on name for mock display matching frontend
-        logEntry.setAvatarInitial(userName != null && !userName.isEmpty() ? userName.substring(0, 1).toUpperCase() : "U");
-        logEntry.setAvatarColor(assignColorByRole(userRole));
-        
+
         auditLogRepository.save(logEntry);
         log.info("Audit log recorded: {} - {}", action, entity);
     }

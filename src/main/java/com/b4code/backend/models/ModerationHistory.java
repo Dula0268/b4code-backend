@@ -24,13 +24,9 @@ public class ModerationHistory {
     @Column(nullable = false)
     private ModerationAction actionTaken;
 
-    private Long adminId;
-    @Column(columnDefinition = "TEXT")
-    private String adminName;
-    @Column(columnDefinition = "TEXT")
-    private String adminInitials;
-    @Column(columnDefinition = "TEXT")
-    private String adminColor;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "admin_fk")
+    private User admin;
 
     @Column(columnDefinition = "TEXT")
     private String outcome;

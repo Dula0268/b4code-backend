@@ -16,25 +16,20 @@ public class Review {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "booking_id", nullable = false)
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "booking_id", nullable = false, unique = true)
     private Booking booking;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "property_id", nullable = false)
     private Property property;
 
-    @Column(nullable = false)
-    private String guestName;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "guest_id", nullable = false)
+    private User guest;
 
     @Column(nullable = false)
     private Integer overallRating;
-
-    private Integer cleanlinessRating;
-    private Integer accuracyRating;
-    private Integer communicationRating;
-    private Integer locationRating;
-    private Integer valueRating;
 
     @Column(length = 2000)
     private String comment;
@@ -42,14 +37,11 @@ public class Review {
     private String photoUrls;
 
     @Builder.Default
-    @Column(nullable = false)
-    private Boolean isVerifiedStay = true;
+    @Column(name = "visibility_status")
+    private String visibilityStatus = "PUBLIC";
 
-    @Column(nullable = false)
+    @Column(name = "created_at")
     private LocalDateTime createdAt;
-
-    private String ownerResponse;
-    private LocalDateTime ownerRespondedAt;
 
     @PrePersist
     protected void onCreate() {

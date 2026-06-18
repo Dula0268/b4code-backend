@@ -1,14 +1,14 @@
 package com.b4code.backend.models;
 
-import com.b4code.backend.models.enums.PropertyStatus;
 import jakarta.persistence.*;
 import lombok.*;
-import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
 
-import java.math.BigDecimal;
+import org.hibernate.annotations.CreationTimestamp;
+import com.b4code.backend.models.enums.PropertyStatus;
+
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Set;
 
 @Entity
 @Table(name = "properties", schema = "owner")
@@ -24,89 +24,93 @@ public class Property {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // Basic Info (required)
+    // Basic Info
     @Column(nullable = false)
     private String name;
 
-    @Column(nullable = true)
-    private String address;
+    @Column(length = 2000)
+    private String description;
 
+    // Admin-focused Fields
     @Column(nullable = true, unique = true)
     private String pvId;
 
-    // Admin-focused Fields
     @Column(nullable = true)
     private Long ownerId;
 
     private String ownerName;
 
-    // Search & Display Fields
-    private String city;
-    private String destination;
-    private String propertyType; // Villa, Apartment, Guesthouse, Hotel
-    private String badge; // "Superhost", "Guest favorite"
+    // Legacy address field (kept for admin seeder compatibility)
+    @Column(nullable = true)
+    private String address;
 
-    // Location coordinates for mapping
+    // Location
+    private String addressLine1;
+    private String city;
+    private String country;
+    private String destination;
+
     private Double latitude;
     private Double longitude;
 
-    // Image & Gallery
-    private String imageUrl; // Primary image from admin
-    private String imageSrc; // Primary image from guest view
+    // Property type & display
+    private String propertyType; // Villa, Apartment, Guesthouse, Hotel
+    private String badge;        // "Superhost", "Guest favorite"
+
+    // Image & Gallery (legacy admin fields)
+    private String imageUrl;
+    private String imageSrc;
     @Column(length = 4000)
-    private String galleryImages; // comma-separated URLs for gallery
+    private String galleryImages;
 
-    // Description & Details
-    @Column(length = 2000)
-    private String description;
-
-    // Host Information
-    private String hostName;
-    @Column(length = 500)
-    private String hostBio;
-    private Integer hostYears;
-    private Boolean hostSuperhost;
-
-    // Guest Capacity & Pricing
+    // Filters
+    @Column(name = "free_cancellation", nullable = false)
     @Builder.Default
-    private Integer baseGuests = 2;
-    @Column(precision = 10, scale = 2)
-    private BigDecimal extraGuestFee;
+    private Boolean freeCancellation = false;
 
-    // Amenities (JSON-style string: "Wifi,Pool,Air conditioning")
-    @Column(length = 1000)
-    private String amenities;
+    @Column(name = "breakfast_included", nullable = false)
+    @Builder.Default
+    private Boolean breakfastIncluded = false;
 
-    // Accessibility features (comma-separated or JSON-style string)
-    @Column(length = 1000, nullable = true)
-    private String accessibility;
+    @Column(name = "pet_friendly", nullable = false)
+    @Builder.Default
+    private Boolean petFriendly = false;
+
+    @Column(name = "accessibility", nullable = false)
+    @Builder.Default
+    private Boolean accessibility = false;
 
     // Ratings & Reviews
     private Double averageRating;
     private Integer reviewCount;
 
-    // Publishing Status
-    @Builder.Default
-    private Boolean published = false;
+    // Admin & Reviews
+    @CreationTimestamp
+    @Column(updatable = false)
+    private LocalDateTime createdAt;
 
-    // Admin Verification Status
+    @Column(nullable = true)
+    private LocalDateTime submittedAt;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = true)
     @Builder.Default
-    private PropertyStatus status = PropertyStatus.APPROVED;
+    private PropertyStatus status = PropertyStatus.PENDING;
 
-    // Admin Rejection Details
-    private String rejectionReason;
-
-    // Timestamps
-    @CreationTimestamp
-    @Column(updatable = false)
-    private LocalDateTime submittedAt;
-
-    @UpdateTimestamp
-    private LocalDateTime updatedAt;
+    @OneToMany(mappedBy = "property", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
+    @Builder.Default
+    private List<Review> reviews = new java.util.ArrayList<>();
 
     // Relationships
     @OneToMany(mappedBy = "property", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
-    private List<Room> rooms;
+    @Builder.Default
+    private Set<Amenity> amenities = new java.util.HashSet<>();
+
+    @OneToMany(mappedBy = "property", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
+    @Builder.Default
+    private List<Room> rooms = new java.util.ArrayList<>();
+
+    @OneToMany(mappedBy = "property", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
+    @Builder.Default
+    private List<Image> images = new java.util.ArrayList<>();
 }

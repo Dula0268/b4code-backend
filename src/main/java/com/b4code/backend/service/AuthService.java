@@ -95,9 +95,7 @@ public class AuthService {
         emailService.sendVerificationOTPEmail(user.getEmail(), user.getFirstName(), otpCode);
 
         AuditLog log = new AuditLog();
-        log.setUserId(user.getId());
-        log.setUserName(user.getEmail());
-        log.setUserRole(user.getRole().name());
+        log.setUser(user);
         log.setAction("REGISTER");
         log.setEntity("AUTH");
         log.setEntityDetail(user.getEmail());
@@ -132,9 +130,7 @@ public class AuthService {
         if (!passwordMatches) {
 
             AuditLog log = new AuditLog();
-            log.setUserId(user.getId());
-            log.setUserName(user.getEmail());
-            log.setUserRole(user.getRole().name());
+            log.setUser(user);
             log.setAction("LOGIN_FAILED");
             log.setEntity("AUTH");
             log.setEntityDetail("INCORRECT_PASSWORD");
@@ -157,9 +153,7 @@ public class AuthService {
         }
 
         AuditLog log = new AuditLog();
-        log.setUserId(user.getId());
-        log.setUserName(user.getEmail());
-        log.setUserRole(user.getRole().name());
+        log.setUser(user);
         log.setAction("LOGIN_SUCCESS");
         log.setEntity("AUTH");
         log.setEntityDetail(user.getEmail());
@@ -237,9 +231,7 @@ public class AuthService {
 
         // Log the action
         AuditLog log = new AuditLog();
-        log.setUserId(user.getId());
-        log.setUserName(user.getEmail());
-        log.setUserRole(user.getRole().name());
+        log.setUser(user);
         log.setAction("PASSWORD_RESET");
         log.setEntity("AUTH");
         log.setEntityDetail(user.getEmail());
@@ -283,9 +275,7 @@ public class AuthService {
 
         // Log the action
         AuditLog log = new AuditLog();
-        log.setUserId(user.getId());
-        log.setUserName(user.getEmail());
-        log.setUserRole(user.getRole().name());
+        log.setUser(user);
         log.setAction("EMAIL_VERIFIED");
         log.setEntity("AUTH");
         log.setEntityDetail(user.getEmail());

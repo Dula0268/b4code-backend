@@ -24,9 +24,9 @@ public class RefundDto {
     public static RefundDto fromEntity(Refund r) {
         return RefundDto.builder()
                 .id(r.getId())
-                .transactionId(r.getTransactionId())
-                .userId(r.getUserId())
-                .userName(r.getUserName())
+                .transactionId(r.getTransaction() != null ? r.getTransaction().getId() : null)
+                .userId(r.getUser() != null ? r.getUser().getId() : null)
+                .userName(r.getUser() != null ? r.getUser().getFullName() : null)
                 .amount(r.getAmount())
                 .currency(r.getCurrency())
                 .reason(r.getReason())

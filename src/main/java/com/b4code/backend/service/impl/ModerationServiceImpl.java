@@ -130,9 +130,7 @@ public class ModerationServiceImpl implements ModerationService {
         ModerationHistory h = new ModerationHistory();
         h.setCaseId(caseId);
         h.setActionTaken(action);
-        h.setAdminName("System");   
-        h.setAdminInitials("SYS");
-        h.setAdminColor("#C05621");
+        // Admin fields mapped directly to User entity
         h.setOutcome(outcome);
         h.setResolvedAt(LocalDateTime.now());
         historyRepository.save(h);
