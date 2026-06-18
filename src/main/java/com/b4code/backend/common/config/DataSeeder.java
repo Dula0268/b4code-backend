@@ -6,6 +6,7 @@ import com.b4code.backend.models.enums.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.core.annotation.Order;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
@@ -18,6 +19,7 @@ import java.util.List;
 import java.util.Random;
 
 @Component
+@Order(2)
 public class DataSeeder implements CommandLineRunner {
 
         private static final Logger log = LoggerFactory.getLogger(DataSeeder.class);
@@ -33,6 +35,7 @@ public class DataSeeder implements CommandLineRunner {
         private final PromoCodeRepository promoCodeRepository;
         private final PlatformConfigRepository platformConfigRepository;
         private final PayoutRepository payoutRepository;
+        private final RolePermissionRepository rolePermissionRepository;
         private final PasswordEncoder passwordEncoder;
         private final JdbcTemplate jdbcTemplate;
 
@@ -83,6 +86,7 @@ public class DataSeeder implements CommandLineRunner {
                         PromoCodeRepository promoCodeRepository,
                         PlatformConfigRepository platformConfigRepository,
                         PayoutRepository payoutRepository,
+                        RolePermissionRepository rolePermissionRepository,
                         PasswordEncoder passwordEncoder,
                         JdbcTemplate jdbcTemplate) {
                 this.userRepository = userRepository;
@@ -96,6 +100,7 @@ public class DataSeeder implements CommandLineRunner {
                 this.promoCodeRepository = promoCodeRepository;
                 this.platformConfigRepository = platformConfigRepository;
                 this.payoutRepository = payoutRepository;
+                this.rolePermissionRepository = rolePermissionRepository;
                 this.passwordEncoder = passwordEncoder;
                 this.jdbcTemplate = jdbcTemplate;
         }
@@ -111,6 +116,52 @@ public class DataSeeder implements CommandLineRunner {
                 seedGuestData();
                 seedPlatformConfig();
                 seedPayouts();
+                seedRolePermissions();
+        }
+
+        private void seedRolePermissions() {
+                long count = rolePermissionRepository.count();
+                if (count > 0) {
+                        log.info("✅ Role permissions already seeded ({} records)", count);
+                        return;
+                }
+
+                List<RolePermission> permissions = new ArrayList<>();
+
+                // ── Staff permissions ──────────────────────────────────────────
+                permissions.add(buildPerm("Staff", "user", "order_management",
+                                "Order Management", "Allow staff to view and manage guest food/room orders", true));
+                permissions.add(buildPerm("Staff", "user", "menu_management",
+                                "Menu Management", "Allow staff to create, edit, and manage property menus", true));
+                permissions.add(buildPerm("Staff", "user", "qr_management",
+                                "QR Management", "Allow staff to generate and manage QR codes for guest ordering", true));
+                permissions.add(buildPerm("Staff", "user", "guest_messages",
+                                "Guest Messages", "Allow staff to send and receive messages with guests", true));
+
+                // ── Owner permissions ──────────────────────────────────────────
+                permissions.add(buildPerm("Owner", "user", "manage_staff",
+                                "Staff Management", "Allow owner to view and approve/reject pending staff registrations", true));
+                permissions.add(buildPerm("Owner", "financial", "view_payouts",
+                                "View Payouts", "Allow owner to access the payouts and earnings section", true));
+                permissions.add(buildPerm("Owner", "user", "manage_listings",
+                                "Manage Listings", "Allow owner to create, edit, and publish property listings", true));
+                permissions.add(buildPerm("Owner", "user", "manage_availability",
+                                "Manage Availability", "Allow owner to set room availability and rates", true));
+
+                rolePermissionRepository.saveAll(permissions);
+                log.info("✅ Role permissions seeded ({} records)", permissions.size());
+        }
+
+        private RolePermission buildPerm(String role, String section, String key, String label,
+                        String description, boolean enabled) {
+                RolePermission p = new RolePermission();
+                p.setRoleName(role);
+                p.setSection(section);
+                p.setPermissionKey(key);
+                p.setLabel(label);
+                p.setDescription(description);
+                p.setEnabled(enabled);
+                return p;
         }
 
         private void seedCoreProperties() {

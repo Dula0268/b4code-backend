@@ -12,6 +12,7 @@ import com.b4code.backend.dao.BookingRepository;
 import com.b4code.backend.dao.RoomRepository;
 import com.b4code.backend.dao.PromoCodeRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,6 +25,7 @@ import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class BookingService {
@@ -33,6 +35,7 @@ public class BookingService {
     private final BookingRepository bookingRepository;
     private final RoomRepository roomRepository;
     private final PromoCodeRepository promoCodeRepository;
+    private final EmailService emailService;
 
     // ──────────────────────────────────────────
     // Price Preview (called before confirming)
@@ -88,6 +91,36 @@ public class BookingService {
 
         Booking saved = bookingRepository.save(booking);
         return mapToResponse(saved);
+    }
+
+    // ──────────────────────────────────────────
+    // Send Confirmation Email (called by frontend
+    // after PayHere redirect, since notify_url
+    // cannot reach localhost in development)
+    // ──────────────────────────────────────────
+    @Transactional(readOnly = true)
+    public void sendReceiptEmail(String confirmationCode) {
+        Booking booking = bookingRepository.findByConfirmationNumber(confirmationCode)
+                .orElseThrow(() -> new com.b4code.backend.exceptions.ResourceNotFoundException(
+                        "Booking not found: " + confirmationCode));
+
+        if (booking.getPaymentMethod() != Booking.PaymentMethod.ONLINE_CARD) {
+            log.info("[EMAIL] Skipping receipt email – booking {} is pay-at-property", confirmationCode);
+            return;
+        }
+
+        String propertyName = booking.getRoom().getProperty().getName();
+        String roomName     = booking.getRoom().getName();
+
+        log.info("[EMAIL] Sending receipt email to {} for booking {}", booking.getGuestEmail(), confirmationCode);
+        emailService.sendBookingConfirmationEmail(
+                booking.getGuestEmail(),
+                booking.getGuestName(),
+                booking.getConfirmationNumber(),
+                propertyName + " – " + roomName,
+                booking.getCheckIn().toString(),
+                booking.getCheckOut().toString(),
+                booking.getTotalAmount().toString());
     }
 
     // ──────────────────────────────────────────

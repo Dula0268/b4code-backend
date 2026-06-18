@@ -28,14 +28,14 @@ public class Property {
     @Column(nullable = false)
     private String name;
 
-    @Column(nullable = false)
+    @Column(nullable = true)
     private String address;
 
-    @Column(nullable = false, unique = true)
+    @Column(nullable = true, unique = true)
     private String pvId;
 
     // Admin-focused Fields
-    @Column(nullable = false)
+    @Column(nullable = true)
     private Long ownerId;
 
     private String ownerName;
@@ -77,6 +77,10 @@ public class Property {
     @Column(length = 1000)
     private String amenities;
 
+    // Accessibility features (comma-separated or JSON-style string)
+    @Column(length = 1000, nullable = true)
+    private String accessibility;
+
     // Ratings & Reviews
     private Double averageRating;
     private Integer reviewCount;
@@ -87,7 +91,7 @@ public class Property {
 
     // Admin Verification Status
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(nullable = true)
     @Builder.Default
     private PropertyStatus status = PropertyStatus.APPROVED;
 

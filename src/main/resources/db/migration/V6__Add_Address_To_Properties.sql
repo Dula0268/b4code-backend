@@ -1,0 +1,1 @@
+ALTER TABLE owner.properties ADD COLUMN address VARCHAR(255) NOT NULL DEFAULT '';

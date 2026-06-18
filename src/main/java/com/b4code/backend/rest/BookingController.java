@@ -105,6 +105,19 @@ public class BookingController {
         return ResponseEntity.ok(bookingService.modifyBooking(id, request));
     }
 
+    /**
+     * POST /api/guest/bookings/{confirmationCode}/send-receipt
+     * Triggered by the frontend after PayHere redirects back to the confirmation page.
+     * Sends the booking confirmation email for ONLINE_CARD payments.
+     * Safe to call multiple times — idempotent by design.
+     */
+    @PostMapping("/{confirmationCode}/send-receipt")
+    public ResponseEntity<java.util.Map<String, String>> sendReceipt(
+            @PathVariable String confirmationCode) {
+        bookingService.sendReceiptEmail(confirmationCode);
+        return ResponseEntity.ok(java.util.Map.of("message", "Receipt email sent successfully"));
+    }
+
     @ExceptionHandler({ com.b4code.backend.exceptions.RoomNotAvailableException.class, IllegalArgumentException.class,
             IllegalStateException.class })
     public ResponseEntity<java.util.Map<String, String>> handleBookingValidations(Exception ex) {

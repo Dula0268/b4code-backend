@@ -61,7 +61,6 @@ public class EmailService {
         }
     }
 
-    @Async
     public void sendBookingConfirmationEmail(String toEmail, String guestName, String confirmationNumber, 
                                             String propertyName, String checkIn, String checkOut, String totalAmount) {
         try {
@@ -79,6 +78,7 @@ public class EmailService {
             log.info("Booking confirmation email sent to: {}", toEmail);
         } catch (Exception e) {
             log.error("Failed to send booking confirmation email to {}: {}", toEmail, e.getMessage());
+            throw new RuntimeException("Email sending failed: " + e.getMessage(), e);
         }
     }
 

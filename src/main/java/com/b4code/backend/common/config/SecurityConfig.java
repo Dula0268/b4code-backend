@@ -67,9 +67,7 @@ public class SecurityConfig {
                                 "/api/orders/**",
                                 "/api/payments/**",
                                 "/api/payments/notify",
-                                "/api/users/**",
-                                "/api/images/**",
-                                "/api/menu-items/**"
+                                "/api/images/**"
                         ).permitAll()
                         .requestMatchers("/actuator/**").permitAll()
                         .requestMatchers(
