@@ -4,6 +4,7 @@ import com.b4code.backend.dto.BookingDto.*;
 import com.b4code.backend.exceptions.ResourceNotFoundException;
 import com.b4code.backend.exceptions.RoomNotAvailableException;
 import com.b4code.backend.models.Booking;
+import com.b4code.backend.models.Booking.BookingStatus;
 import com.b4code.backend.models.Property;
 import com.b4code.backend.models.Room;
 import com.b4code.backend.models.PromoCode;
@@ -12,6 +13,7 @@ import com.b4code.backend.dao.PropertyRepository;
 import com.b4code.backend.dao.RoomRepository;
 import com.b4code.backend.dao.PromoCodeRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,6 +24,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class BookingService {
@@ -32,6 +35,7 @@ public class BookingService {
     private final PropertyRepository propertyRepository;
     private final RoomRepository roomRepository;
     private final PromoCodeRepository promoCodeRepository;
+    private final EmailService emailService;
 
     // ──────────────────────────────────────────
     // Price Preview (called before confirming)
@@ -48,7 +52,7 @@ public class BookingService {
     public BookingResponse createBooking(CreateBookingRequest request) {
 
         Room room = findRoomOrThrow(request.getRoomId());
-        
+
         Property property = propertyRepository.findById(request.getPropertyId())
             .orElseThrow(() -> new ResourceNotFoundException("Property not found"));
 
@@ -83,6 +87,149 @@ public class BookingService {
     }
 
     // ──────────────────────────────────────────
+    // Send Confirmation Email (called by frontend
+    // after PayHere redirect, since notify_url
+    // cannot reach localhost in development)
+    // ──────────────────────────────────────────
+    @Transactional(readOnly = true)
+    public void sendReceiptEmail(String confirmationCode) {
+        Booking booking = bookingRepository.findByConfirmationCode(confirmationCode)
+                .orElseThrow(() -> new com.b4code.backend.exceptions.ResourceNotFoundException(
+                        "Booking not found: " + confirmationCode));
+
+        if (booking.getPaymentMethod() != Booking.PaymentMethod.ONLINE_CARD) {
+            log.info("[EMAIL] Skipping receipt email – booking {} is pay-at-property", confirmationCode);
+            return;
+        }
+
+        String propertyName = booking.getRoom().getProperty().getName();
+        String roomName     = booking.getRoom().getRoomType().name();
+
+        log.info("[EMAIL] Sending receipt email to {} for booking {}", booking.getGuestEmail(), confirmationCode);
+        emailService.sendBookingConfirmationEmail(
+                booking.getGuestEmail(),
+                booking.getGuestName(),
+                booking.getConfirmationCode(),
+                propertyName + " – " + roomName,
+                booking.getCheckIn().toString(),
+                booking.getCheckOut().toString(),
+                booking.getTotalAmount().toString());
+    }
+
+    // ──────────────────────────────────────────
+    // Get by Confirmation Number
+    // ──────────────────────────────────────────
+    public BookingResponse getByConfirmationNumber(String confirmationNumber) {
+        Booking booking = bookingRepository.findByConfirmationCode(confirmationNumber)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Booking not found: " + confirmationNumber));
+        return mapToResponse(booking);
+    }
+
+    // ──────────────────────────────────────────
+    // Get all bookings for a guest (by email)
+    // ──────────────────────────────────────────
+    public List<BookingResponse> getGuestBookings(String email) {
+        return bookingRepository.findByGuestEmail(email)
+                .stream()
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
+    }
+
+    // ──────────────────────────────────────────
+    // Cancel Booking
+    // ──────────────────────────────────────────
+    @Transactional
+    public BookingResponse cancelBooking(Long bookingId, CancelBookingRequest request) {
+        Booking booking = bookingRepository.findById(bookingId)
+                .orElseThrow(() -> new ResourceNotFoundException("Booking not found: " + bookingId));
+
+        if (booking.getStatus() == BookingStatus.CANCELLED) {
+            throw new IllegalStateException("Booking is already cancelled");
+        }
+
+        booking.setStatus(BookingStatus.CANCELLED);
+        booking.setCancellationReason(request.getReason());
+        return mapToResponse(bookingRepository.save(booking));
+    }
+
+    // ──────────────────────────────────────────
+    // Complete Booking
+    // ──────────────────────────────────────────
+    @Transactional
+    public BookingResponse completeBooking(Long id) {
+        Booking booking = bookingRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Booking not found: " + id));
+
+        if (booking.getStatus() == BookingStatus.COMPLETED) {
+            return mapToResponse(booking);
+        }
+
+        if (booking.getStatus() == BookingStatus.CANCELLED) {
+            throw new IllegalStateException("Cancelled bookings cannot be completed");
+        }
+
+        booking.setStatus(BookingStatus.COMPLETED);
+        return mapToResponse(bookingRepository.save(booking));
+    }
+
+    // ──────────────────────────────────────────
+    // Modify Booking
+    // ──────────────────────────────────────────
+    @Transactional
+    public ModifyBookingResponse modifyBooking(Long bookingId, ModifyBookingRequest request) {
+        Booking booking = bookingRepository.findById(bookingId)
+                .orElseThrow(() -> new ResourceNotFoundException("Booking not found: " + bookingId));
+
+        if (booking.getStatus() == BookingStatus.CANCELLED) {
+            throw new IllegalStateException("Cancelled bookings cannot be modified");
+        }
+
+        if (!request.getCheckOutDate().isAfter(request.getCheckInDate())) {
+            throw new IllegalArgumentException("Check-out must be after check-in");
+        }
+
+        Room room = roomRepository.findById(request.getRoomId())
+                .orElseThrow(() -> new ResourceNotFoundException("Room not found: " + request.getRoomId()));
+
+        if (!room.getProperty().getId().equals(request.getPropertyId())) {
+            throw new IllegalArgumentException("Room does not belong to the selected property");
+        }
+
+        boolean overlap = bookingRepository.existsOverlappingBookingExcludingId(
+                booking.getId(), room.getId(), request.getCheckInDate(), request.getCheckOutDate());
+        if (overlap) {
+            throw new RoomNotAvailableException("Room is not available for the selected dates");
+        }
+
+        PriceBreakdown newPrice = calculatePrice(room, request.getCheckInDate(), request.getCheckOutDate(),
+                booking.getPromoCode(), false);
+        BigDecimal previousTotal = booking.getTotalAmount();
+        BigDecimal newTotal = newPrice.getTotalAmount();
+        BigDecimal difference = newTotal.subtract(previousTotal);
+
+        booking.setRoom(room);
+        booking.setCheckIn(request.getCheckInDate());
+        booking.setCheckOut(request.getCheckOutDate());
+        booking.setGuestCount(request.getGuests());
+        booking.setTotalAmount(newTotal);
+        booking.setTaxAmount(newPrice.getTaxAmount());
+        booking.setDiscountAmount(newPrice.getDiscountAmount());
+        booking.setPaymentMethod(
+                request.getPaymentMethod() != null ? request.getPaymentMethod() : booking.getPaymentMethod());
+
+        Booking saved = bookingRepository.save(booking);
+
+        return ModifyBookingResponse.builder()
+                .booking(mapToResponse(saved))
+                .previousTotalAmount(previousTotal)
+                .newTotalAmount(newTotal)
+                .refundAmount(difference.compareTo(BigDecimal.ZERO) < 0 ? difference.abs() : BigDecimal.ZERO)
+                .additionalAmountDue(difference.compareTo(BigDecimal.ZERO) > 0 ? difference : BigDecimal.ZERO)
+                .build();
+    }
+
+    // ──────────────────────────────────────────
     // Helpers
     // ──────────────────────────────────────────
 
@@ -114,6 +261,7 @@ public class BookingService {
                 .nights((int) nights)
                 .pricePerNight(pricePerNight)
                 .subtotal(subtotal.setScale(2, RoundingMode.HALF_UP))
+                .discountAmount(discountAmount.setScale(2, RoundingMode.HALF_UP))
                 .taxAmount(taxAmount)
                 .totalAmount(totalAmount)
                 .promoApplied(promoCode)

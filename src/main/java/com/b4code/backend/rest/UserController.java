@@ -9,12 +9,14 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.CrossOrigin;
 
 import java.security.Principal;
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/users")
+@CrossOrigin(origins = {"http://localhost:3000", "http://localhost:3001", "http://localhost:5173"})
 @RequiredArgsConstructor
 public class UserController {
 
@@ -53,12 +55,14 @@ public class UserController {
 
     // GET current user profile
     @GetMapping("/me")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<UserResponse> getCurrentUser(Principal principal) {
         return ResponseEntity.ok(userService.getUserByEmail(principal.getName()));
     }
 
     // UPDATE own profile
     @PutMapping("/profile")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<UserResponse> updateProfile(
             Principal principal,
             @RequestBody UpdateProfileRequest request) {
@@ -68,6 +72,7 @@ public class UserController {
 
     // CHANGE password
     @PatchMapping("/password")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<Void> changePassword(
             Principal principal,
             @RequestBody ChangePasswordRequest request) {

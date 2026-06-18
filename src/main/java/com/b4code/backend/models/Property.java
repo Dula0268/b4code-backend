@@ -31,6 +31,38 @@ public class Property {
     @Column(length = 2000)
     private String description;
 
+    // Admin-focused Fields
+    @Column(nullable = true, unique = true)
+    private String pvId;
+
+    @Column(nullable = true)
+    private Long ownerId;
+
+    private String ownerName;
+
+    // Legacy address field (kept for admin seeder compatibility)
+    @Column(nullable = true)
+    private String address;
+
+    // Location
+    private String addressLine1;
+    private String city;
+    private String country;
+    private String destination;
+
+    private Double latitude;
+    private Double longitude;
+
+    // Property type & display
+    private String propertyType; // Villa, Apartment, Guesthouse, Hotel
+    private String badge;        // "Superhost", "Guest favorite"
+
+    // Image & Gallery (legacy admin fields)
+    private String imageUrl;
+    private String imageSrc;
+    @Column(length = 4000)
+    private String galleryImages;
+
     // Filters
     @Column(name = "free_cancellation", nullable = false)
     @Builder.Default
@@ -48,26 +80,22 @@ public class Property {
     @Builder.Default
     private Boolean accessibility = false;
 
-    // Location
-    private String addressLine1;
-    private String city;
-    private String country;
-
-    private Double latitude;
-    private Double longitude;
+    // Ratings & Reviews
+    private Double averageRating;
+    private Integer reviewCount;
 
     // Admin & Reviews
     @CreationTimestamp
     @Column(updatable = false)
     private LocalDateTime createdAt;
 
+    @Column(nullable = true)
+    private LocalDateTime submittedAt;
+
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(nullable = true)
     @Builder.Default
     private PropertyStatus status = PropertyStatus.PENDING;
-
-    @Column(nullable = false)
-    private Long ownerId;
 
     @OneToMany(mappedBy = "property", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
     @Builder.Default

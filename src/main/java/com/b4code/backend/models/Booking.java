@@ -18,6 +18,15 @@ public class Booking {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(unique = true)
+    private String confirmationCode;
+
+    @Column(nullable = false)
+    private String guestEmail;
+
+    @Column(nullable = false)
+    private String guestName;
+
     @Column(nullable = false)
     private LocalDate checkIn;
 
@@ -29,6 +38,8 @@ public class Booking {
 
     @Column(nullable = false)
     private Integer children;
+
+    private Integer guestCount;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "room_id", nullable = false)
@@ -47,13 +58,35 @@ public class Booking {
     @Column(nullable = false)
     private PaymentMethod paymentMethod;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    @Builder.Default
+    private BookingStatus status = BookingStatus.CONFIRMED;
+
     @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal taxAmount;
+
+    @Column(precision = 10, scale = 2)
+    @Builder.Default
+    private BigDecimal discountAmount = BigDecimal.ZERO;
 
     @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal totalAmount;
 
+    private String cancellationReason;
+
+    @Builder.Default
+    private Boolean receiptSent = false;
+
+    @Column(updatable = false)
+    @Builder.Default
+    private LocalDateTime createdAt = LocalDateTime.now();
+
     public enum PaymentMethod {
         ONLINE_CARD, PAY_AT_PROPERTY
+    }
+
+    public enum BookingStatus {
+        CONFIRMED, CANCELLED, COMPLETED, CHECKED_IN
     }
 }
