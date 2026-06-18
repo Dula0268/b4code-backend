@@ -93,7 +93,7 @@ public class BookingService {
     // ──────────────────────────────────────────
     @Transactional(readOnly = true)
     public void sendReceiptEmail(String confirmationCode) {
-        Booking booking = bookingRepository.findByConfirmationNumber(confirmationCode)
+        Booking booking = bookingRepository.findByConfirmationCode(confirmationCode)
                 .orElseThrow(() -> new com.b4code.backend.exceptions.ResourceNotFoundException(
                         "Booking not found: " + confirmationCode));
 
@@ -103,13 +103,13 @@ public class BookingService {
         }
 
         String propertyName = booking.getRoom().getProperty().getName();
-        String roomName     = booking.getRoom().getName();
+        String roomName     = booking.getRoom().getRoomType().name();
 
         log.info("[EMAIL] Sending receipt email to {} for booking {}", booking.getGuestEmail(), confirmationCode);
         emailService.sendBookingConfirmationEmail(
                 booking.getGuestEmail(),
                 booking.getGuestName(),
-                booking.getConfirmationNumber(),
+                booking.getConfirmationCode(),
                 propertyName + " – " + roomName,
                 booking.getCheckIn().toString(),
                 booking.getCheckOut().toString(),
@@ -120,7 +120,7 @@ public class BookingService {
     // Get by Confirmation Number
     // ──────────────────────────────────────────
     public BookingResponse getByConfirmationNumber(String confirmationNumber) {
-        Booking booking = bookingRepository.findByConfirmationNumber(confirmationNumber)
+        Booking booking = bookingRepository.findByConfirmationCode(confirmationNumber)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Booking not found: " + confirmationNumber));
         return mapToResponse(booking);
@@ -261,6 +261,7 @@ public class BookingService {
                 .nights((int) nights)
                 .pricePerNight(pricePerNight)
                 .subtotal(subtotal.setScale(2, RoundingMode.HALF_UP))
+                .discountAmount(discountAmount.setScale(2, RoundingMode.HALF_UP))
                 .taxAmount(taxAmount)
                 .totalAmount(totalAmount)
                 .promoApplied(promoCode)

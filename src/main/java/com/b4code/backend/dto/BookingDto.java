@@ -57,6 +57,7 @@ public class BookingDto {
         private Integer nights;
         private BigDecimal pricePerNight;
         private BigDecimal subtotal;
+        private BigDecimal discountAmount;
         private BigDecimal taxAmount;
         private BigDecimal totalAmount;
         private String promoApplied;
