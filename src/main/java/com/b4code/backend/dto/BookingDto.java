@@ -83,4 +83,57 @@ public class BookingDto {
         private BigDecimal taxAmount;
         private BigDecimal totalAmount;
     }
+
+    // ──────────────────────────────────
+    // Cancel Booking Request
+    // ──────────────────────────────────
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Builder
+    public static class CancelBookingRequest {
+        private String reason;
+    }
+
+    // ──────────────────────────────────
+    // Modify Booking Request
+    // ──────────────────────────────────
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Builder
+    public static class ModifyBookingRequest {
+        @NotNull(message = "Room ID is required")
+        private Long roomId;
+
+        @NotNull(message = "Property ID is required")
+        private Long propertyId;
+
+        @NotNull(message = "Check-in date is required")
+        private LocalDate checkInDate;
+
+        @NotNull(message = "Check-out date is required")
+        private LocalDate checkOutDate;
+
+        @NotNull(message = "Guest count is required")
+        @Min(value = 1, message = "At least 1 guest required")
+        private Integer guests;
+
+        private PaymentMethod paymentMethod;
+    }
+
+    // ──────────────────────────────────
+    // Modify Booking Response
+    // ──────────────────────────────────
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Builder
+    public static class ModifyBookingResponse {
+        private BookingResponse booking;
+        private BigDecimal previousTotalAmount;
+        private BigDecimal newTotalAmount;
+        private BigDecimal refundAmount;
+        private BigDecimal additionalAmountDue;
+    }
 }

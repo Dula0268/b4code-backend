@@ -4,6 +4,7 @@ import com.b4code.backend.dto.BookingDto.*;
 import com.b4code.backend.exceptions.ResourceNotFoundException;
 import com.b4code.backend.exceptions.RoomNotAvailableException;
 import com.b4code.backend.models.Booking;
+import com.b4code.backend.models.Booking.BookingStatus;
 import com.b4code.backend.models.Property;
 import com.b4code.backend.models.Room;
 import com.b4code.backend.models.PromoCode;
