@@ -1,14 +1,21 @@
 package com.b4code.backend.rest;
 
-import com.b4code.backend.models.MenuItem;
+import com.b4code.backend.dao.MenuCategoryRepository;
 import com.b4code.backend.dao.MenuItemRepository;
+import com.b4code.backend.dao.MenuRepository;
+import com.b4code.backend.dto.MenuItemDto;
+import com.b4code.backend.dto.MenuItemRequest;
+import com.b4code.backend.models.Menu;
+import com.b4code.backend.models.MenuCategory;
+import com.b4code.backend.models.MenuItem;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/menu-items")
@@ -18,71 +25,122 @@ import java.util.List;
 public class MenuItemController {
 
     private final MenuItemRepository menuItemRepository;
+    private final MenuRepository menuRepository;
+    private final MenuCategoryRepository menuCategoryRepository;
 
+    // ─── Guest & Staff: Get all items for a property ─────────────────────────────
     @GetMapping("/property/{propertyId}")
-    public ResponseEntity<List<MenuItem>> getMenuItems(@PathVariable Long propertyId) {
+    public ResponseEntity<List<MenuItemDto>> getMenuItems(@PathVariable Long propertyId) {
         log.info("Fetching menu items for property: {}", propertyId);
-        return ResponseEntity.ok(menuItemRepository.findByPropertyId(propertyId));
+        List<MenuItem> items = menuItemRepository.findByPropertyId(propertyId);
+        return ResponseEntity.ok(items.stream().map(this::toDto).collect(Collectors.toList()));
     }
 
-    @GetMapping("/staff/properties/{propertyId}/menus")
-    public ResponseEntity<List<MenuItem>> getStaffPropertyMenus(@PathVariable Long propertyId) {
-        return getMenuItems(propertyId);
+    // ─── Staff: Get all items for a specific menu ─────────────────────────────────
+    @GetMapping("/menu/{menuId}")
+    public ResponseEntity<List<MenuItemDto>> getMenuItemsByMenu(@PathVariable Long menuId) {
+        log.info("Fetching menu items for menu: {}", menuId);
+        List<MenuItem> items = menuItemRepository.findByMenuId(menuId);
+        return ResponseEntity.ok(items.stream().map(this::toDto).collect(Collectors.toList()));
     }
 
-    @GetMapping("/staff/properties/{propertyId}/menus/{category}")
-    public ResponseEntity<List<MenuItem>> getStaffPropertyMenusByCategory(
-            @PathVariable Long propertyId, 
-            @PathVariable String category) {
-        log.info("Fetching menu items for property: {} category: {}", propertyId, category);
-        return ResponseEntity.ok(menuItemRepository.findByPropertyIdAndCategory(propertyId, category));
-    }
-
+    // ─── Staff: Create item ───────────────────────────────────────────────────────
     @PostMapping
-    public ResponseEntity<MenuItem> createMenuItem(@RequestBody MenuItem menuItem) {
-        log.info("Creating menu item: {}", menuItem.getName());
-        return ResponseEntity.ok(menuItemRepository.save(menuItem));
+    public ResponseEntity<MenuItemDto> createMenuItem(@RequestBody MenuItemRequest request) {
+        log.info("Creating menu item '{}' for property: {}", request.getName(), request.getPropertyId());
+
+        Menu menu = menuRepository.findById(request.getMenuId())
+                .orElseThrow(() -> new IllegalArgumentException("Menu not found: " + request.getMenuId()));
+        MenuCategory category = menuCategoryRepository.findById(request.getCategoryId())
+                .orElseThrow(() -> new IllegalArgumentException("Category not found: " + request.getCategoryId()));
+
+        MenuItem item = new MenuItem();
+        item.setPropertyId(request.getPropertyId());
+        item.setMenu(menu);
+        item.setCategory(category);
+        item.setName(request.getName());
+        item.setDescription(request.getDescription());
+        item.setPrice(request.getPrice());
+        item.setIsAvailable(request.getIsAvailable() != null ? request.getIsAvailable() : true);
+        item.setTag(request.getTag());
+        item.setCalories(request.getCalories());
+        item.setImageUrls(request.getImageUrls() != null ? request.getImageUrls() : List.of());
+
+        MenuItem saved = menuItemRepository.save(item);
+        return ResponseEntity.ok(toDto(saved));
     }
 
+    // ─── Staff: Update item ───────────────────────────────────────────────────────
     @PutMapping("/{id}")
-    public ResponseEntity<MenuItem> updateMenuItem(@PathVariable Long id, @RequestBody MenuItem details) {
+    public ResponseEntity<MenuItemDto> updateMenuItem(@PathVariable Long id, @RequestBody MenuItemRequest request) {
         return menuItemRepository.findById(id)
                 .map(item -> {
-                    item.setName(details.getName());
-                    item.setDescription(details.getDescription());
-                    item.setPrice(details.getPrice());
-                    item.setCategory(details.getCategory());
-                    item.setIsAvailable(details.getIsAvailable());
-                    item.setImageUrls(details.getImageUrls());
-                    return ResponseEntity.ok(menuItemRepository.save(item));
+                    if (request.getMenuId() != null) {
+                        menuRepository.findById(request.getMenuId()).ifPresent(item::setMenu);
+                    }
+                    if (request.getCategoryId() != null) {
+                        menuCategoryRepository.findById(request.getCategoryId()).ifPresent(item::setCategory);
+                    }
+                    if (request.getName() != null) item.setName(request.getName());
+                    if (request.getDescription() != null) item.setDescription(request.getDescription());
+                    if (request.getPrice() != null) item.setPrice(request.getPrice());
+                    if (request.getIsAvailable() != null) item.setIsAvailable(request.getIsAvailable());
+                    if (request.getTag() != null) item.setTag(request.getTag());
+                    if (request.getCalories() != null) item.setCalories(request.getCalories());
+                    if (request.getImageUrls() != null) item.setImageUrls(request.getImageUrls());
+                    return ResponseEntity.ok(toDto(menuItemRepository.save(item)));
                 })
                 .orElse(ResponseEntity.notFound().build());
     }
 
+    // ─── Staff: Toggle availability ───────────────────────────────────────────────
     @PatchMapping("/{id}/toggle")
-    public ResponseEntity<MenuItem> toggleAvailability(@PathVariable Long id) {
+    public ResponseEntity<MenuItemDto> toggleAvailability(@PathVariable Long id) {
         return menuItemRepository.findById(id)
                 .map(item -> {
                     item.setIsAvailable(!item.getIsAvailable());
-                    return ResponseEntity.ok(menuItemRepository.save(item));
+                    return ResponseEntity.ok(toDto(menuItemRepository.save(item)));
                 })
                 .orElse(ResponseEntity.notFound().build());
     }
 
+    // ─── Staff: Delete single item ────────────────────────────────────────────────
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteMenuItem(@PathVariable Long id) {
         menuItemRepository.deleteById(id);
         return ResponseEntity.noContent().build();
     }
 
-    @DeleteMapping("/property/{propertyId}/category/{category}")
+    // ─── Staff: Delete all items in a menu ────────────────────────────────────────
+    @DeleteMapping("/menu/{menuId}")
     @Transactional
-    public ResponseEntity<Void> deleteByCategory(@PathVariable Long propertyId, @PathVariable String category) {
-        log.info("Deleting items for property {} in category {}", propertyId, category);
-        menuItemRepository.deleteByPropertyIdAndCategory(propertyId, category);
+    public ResponseEntity<Void> deleteItemsByMenu(@PathVariable Long menuId) {
+        log.info("Deleting all items for menu: {}", menuId);
+        menuItemRepository.deleteByMenuId(menuId);
         return ResponseEntity.noContent().build();
     }
+
+    // ─── Helper: Map entity to DTO ────────────────────────────────────────────────
+    private MenuItemDto toDto(MenuItem item) {
+        String imageUrl = (item.getImageUrls() != null && !item.getImageUrls().isEmpty())
+                ? item.getImageUrls().get(0) : null;
+        return MenuItemDto.builder()
+                .id(item.getId())
+                .propertyId(item.getPropertyId())
+                .menuId(item.getMenu() != null ? item.getMenu().getId() : null)
+                .menuName(item.getMenu() != null ? item.getMenu().getName() : null)
+                .categoryId(item.getCategory() != null ? item.getCategory().getId() : null)
+                .categoryName(item.getCategory() != null ? item.getCategory().getName() : null)
+                .name(item.getName())
+                .title(item.getName())
+                .description(item.getDescription())
+                .price(item.getPrice())
+                .priceLkr(item.getPrice())
+                .isAvailable(item.getIsAvailable())
+                .imageUrls(item.getImageUrls())
+                .imageUrl(imageUrl)
+                .tag(item.getTag())
+                .calories(item.getCalories())
+                .build();
+    }
 }
-
-
-

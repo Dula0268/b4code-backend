@@ -1,20 +1,12 @@
 package com.b4code.backend.service;
 
-import com.b4code.backend.models.User;
 import com.b4code.backend.models.MenuItem;
-import com.b4code.backend.models.Order;
-import com.b4code.backend.models.OrderItem;
 import com.b4code.backend.dto.MenuItemDto;
-import com.b4code.backend.dto.OrderRequest;
 import com.b4code.backend.dao.MenuItemRepository;
-import com.b4code.backend.dao.OrderRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -28,18 +20,25 @@ public class GuestMenuService {
     }
 
     public MenuItemDto mapToDto(MenuItem item) {
+        String imageUrl = (item.getImageUrls() != null && !item.getImageUrls().isEmpty())
+                ? item.getImageUrls().get(0) : null;
         return MenuItemDto.builder()
                 .id(item.getId())
                 .propertyId(item.getPropertyId())
+                .menuId(item.getMenu() != null ? item.getMenu().getId() : null)
+                .menuName(item.getMenu() != null ? item.getMenu().getName() : null)
+                .categoryId(item.getCategory() != null ? item.getCategory().getId() : null)
+                .categoryName(item.getCategory() != null ? item.getCategory().getName() : null)
                 .name(item.getName())
-                .title(item.getName()) // Mapping name to title
-                .category(item.getCategory())
+                .title(item.getName())
                 .description(item.getDescription())
                 .price(item.getPrice())
-                .priceLkr(item.getPrice()) // Mapping price to priceLkr
+                .priceLkr(item.getPrice())
                 .isAvailable(item.getIsAvailable())
                 .imageUrls(item.getImageUrls())
-                .imageUrl(item.getImageUrls() != null && !item.getImageUrls().isEmpty() ? item.getImageUrls().get(0) : null)
+                .imageUrl(imageUrl)
+                .tag(item.getTag())
+                .calories(item.getCalories())
                 .build();
     }
 }
