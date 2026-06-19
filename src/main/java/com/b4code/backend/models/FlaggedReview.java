@@ -1,6 +1,7 @@
 package com.b4code.backend.models;
 
 import com.b4code.backend.models.enums.ReviewStatus;
+import com.b4code.backend.models.enums.FlagType;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -23,8 +24,13 @@ public class FlaggedReview {
     @JoinColumn(name = "review_id", nullable = false)
     private Review review;
 
-    @Column(columnDefinition = "TEXT")
-    private String flagReason;
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private FlagType flagType;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "owner_id", nullable = false)
+    private User owner;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)

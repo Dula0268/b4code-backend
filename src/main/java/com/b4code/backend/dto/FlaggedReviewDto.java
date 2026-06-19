@@ -18,7 +18,9 @@ public class FlaggedReviewDto {
     private String guestAvatarColor;
     private String reviewText;
     private Double rating;
-    private String flagReason;
+    private String flagType;
+    private Long ownerId;
+    private String ownerName;
     private String status;          
     private String adminNote;
     private String flaggedAt;       
@@ -37,7 +39,9 @@ public class FlaggedReviewDto {
                 .guestAvatarColor(r.getReview() != null && r.getReview().getGuest() != null ? r.getReview().getGuest().getAvatarUrl() : null)
                 .reviewText(r.getReview() != null ? r.getReview().getComment() : null)
                 .rating(r.getReview() != null && r.getReview().getOverallRating() != null ? Double.valueOf(r.getReview().getOverallRating()) : null)
-                .flagReason(r.getFlagReason())
+                .flagType(r.getFlagType() != null ? r.getFlagType().name() : null)
+                .ownerId(r.getOwner() != null ? r.getOwner().getId() : null)
+                .ownerName(r.getOwner() != null ? r.getOwner().getFullName() : null)
                 .status(toLabel(r.getStatus()))
                 .adminNote(r.getAdminNote())
                 .flaggedAt(r.getFlaggedAt() != null ? r.getFlaggedAt().format(FMT) : "")
