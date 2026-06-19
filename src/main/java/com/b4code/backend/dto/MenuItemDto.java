@@ -34,4 +34,6 @@ public class MenuItemDto {
     private String imageUrl;     // Single image URL (frontend compatibility)
     private String tag;
     private Integer calories;
+    private List<MenuItemVariantDto> variants;
+    private List<MenuItemModifierDto> modifiers;
 }

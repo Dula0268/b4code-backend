@@ -5,9 +5,15 @@ import com.b4code.backend.dao.MenuItemRepository;
 import com.b4code.backend.dao.MenuRepository;
 import com.b4code.backend.dto.MenuItemDto;
 import com.b4code.backend.dto.MenuItemRequest;
+import com.b4code.backend.dto.MenuItemVariantDto;
+import com.b4code.backend.dto.MenuItemModifierDto;
+import com.b4code.backend.dto.MenuItemModifierOptionDto;
 import com.b4code.backend.models.Menu;
 import com.b4code.backend.models.MenuCategory;
 import com.b4code.backend.models.MenuItem;
+import com.b4code.backend.models.MenuItemVariant;
+import com.b4code.backend.models.MenuItemModifier;
+import com.b4code.backend.models.MenuItemModifierOption;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -66,6 +72,29 @@ public class MenuItemController {
         item.setCalories(request.getCalories());
         item.setImageUrls(request.getImageUrls() != null ? request.getImageUrls() : List.of());
 
+        if (request.getVariants() != null) {
+            item.setVariants(request.getVariants().stream()
+                .map(v -> new MenuItemVariant(v.getLabel(), v.getPrice()))
+                .collect(Collectors.toList()));
+        }
+
+        if (request.getModifiers() != null) {
+            List<MenuItemModifier> modifiers = request.getModifiers().stream()
+                .map(m -> {
+                    MenuItemModifier modifier = new MenuItemModifier();
+                    modifier.setName(m.getName());
+                    modifier.setMenuItem(item);
+                    if (m.getOptions() != null) {
+                        modifier.setOptions(m.getOptions().stream()
+                            .map(o -> new MenuItemModifierOption(o.getLabel(), o.getPrice()))
+                            .collect(Collectors.toList()));
+                    }
+                    return modifier;
+                })
+                .collect(Collectors.toList());
+            item.setModifiers(modifiers);
+        }
+
         MenuItem saved = menuItemRepository.save(item);
         return ResponseEntity.ok(toDto(saved));
     }
@@ -88,6 +117,31 @@ public class MenuItemController {
                     if (request.getTag() != null) item.setTag(request.getTag());
                     if (request.getCalories() != null) item.setCalories(request.getCalories());
                     if (request.getImageUrls() != null) item.setImageUrls(request.getImageUrls());
+
+                    if (request.getVariants() != null) {
+                        item.getVariants().clear();
+                        item.getVariants().addAll(request.getVariants().stream()
+                            .map(v -> new MenuItemVariant(v.getLabel(), v.getPrice()))
+                            .collect(Collectors.toList()));
+                    }
+
+                    if (request.getModifiers() != null) {
+                        item.getModifiers().clear();
+                        item.getModifiers().addAll(request.getModifiers().stream()
+                            .map(m -> {
+                                MenuItemModifier modifier = new MenuItemModifier();
+                                modifier.setName(m.getName());
+                                modifier.setMenuItem(item);
+                                if (m.getOptions() != null) {
+                                    modifier.setOptions(m.getOptions().stream()
+                                        .map(o -> new MenuItemModifierOption(o.getLabel(), o.getPrice()))
+                                        .collect(Collectors.toList()));
+                                }
+                                return modifier;
+                            })
+                            .collect(Collectors.toList()));
+                    }
+
                     return ResponseEntity.ok(toDto(menuItemRepository.save(item)));
                 })
                 .orElse(ResponseEntity.notFound().build());
@@ -141,6 +195,18 @@ public class MenuItemController {
                 .imageUrl(imageUrl)
                 .tag(item.getTag())
                 .calories(item.getCalories())
+                .variants(item.getVariants() != null ? item.getVariants().stream()
+                        .map(v -> MenuItemVariantDto.builder().label(v.getLabel()).price(v.getPrice()).build())
+                        .collect(Collectors.toList()) : List.of())
+                .modifiers(item.getModifiers() != null ? item.getModifiers().stream()
+                        .map(m -> MenuItemModifierDto.builder()
+                                .id(m.getId())
+                                .name(m.getName())
+                                .options(m.getOptions() != null ? m.getOptions().stream()
+                                        .map(o -> MenuItemModifierOptionDto.builder().label(o.getLabel()).price(o.getPrice()).build())
+                                        .collect(Collectors.toList()) : List.of())
+                                .build())
+                        .collect(Collectors.toList()) : List.of())
                 .build();
     }
 }

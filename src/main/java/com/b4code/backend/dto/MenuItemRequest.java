@@ -16,4 +16,6 @@ public class MenuItemRequest {
     private String tag;
     private Integer calories;
     private List<String> imageUrls;
+    private List<MenuItemVariantDto> variants;
+    private List<MenuItemModifierDto> modifiers;
 }
