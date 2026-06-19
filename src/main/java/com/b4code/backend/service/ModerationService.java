@@ -4,14 +4,15 @@ import com.b4code.backend.dto.*;
 import com.b4code.backend.models.enums.DisputeStatus;
 import com.b4code.backend.models.enums.ModerationAction;
 import com.b4code.backend.models.enums.ReviewStatus;
+import com.b4code.backend.models.enums.FlagType;
 import org.springframework.data.domain.Page;
 
 import java.time.LocalDateTime;
 
 public interface ModerationService {
 
-    Page<FlaggedReviewDto> getFlaggedReviews(ReviewStatus status, String flagReason, Double rating, String search, int page, int size);
-    FlaggedReviewDto approveReview(Long id);
+    Page<FlaggedReviewDto> getFlaggedReviews(ReviewStatus status, FlagType flagType, Integer rating, String search, int page, int size);
+    FlaggedReviewDto approveReview(Long id, String adminNote);
     FlaggedReviewDto removeReview(Long id, String adminNote);
 
     Page<DisputeDto> getDisputes(DisputeStatus status, String search, int page, int size);
@@ -24,4 +25,5 @@ public interface ModerationService {
 
     long getPendingReviewCount();
     long getOpenDisputeCount();
+    long getRemovedTodayCount();
 }

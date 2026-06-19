@@ -16,13 +16,14 @@ public interface ModerationHistoryRepository extends JpaRepository<ModerationHis
 
     @Query("""
         SELECT h FROM ModerationHistory h
+        LEFT JOIN h.admin a
         WHERE (CAST(:action AS string) IS NULL OR h.actionTaken = :action)
           AND (CAST(:from AS LocalDateTime) IS NULL OR h.resolvedAt >= :from)
           AND (CAST(:to AS LocalDateTime) IS NULL OR h.resolvedAt <= :to)
           AND (CAST(:search AS string) IS NULL OR :search = '' OR
                LOWER(h.caseId) LIKE LOWER(CONCAT('%',:search,'%')) OR
-               LOWER(h.admin.firstName) LIKE LOWER(CONCAT('%',:search,'%')) OR
-               LOWER(h.admin.lastName) LIKE LOWER(CONCAT('%',:search,'%')) OR
+               LOWER(a.firstName) LIKE LOWER(CONCAT('%',:search,'%')) OR
+               LOWER(a.lastName) LIKE LOWER(CONCAT('%',:search,'%')) OR
                LOWER(h.outcome) LIKE LOWER(CONCAT('%',:search,'%')))
         ORDER BY h.resolvedAt DESC
         """)
@@ -32,4 +33,6 @@ public interface ModerationHistoryRepository extends JpaRepository<ModerationHis
             @Param("from") LocalDateTime from,
             @Param("to") LocalDateTime to,
             Pageable pageable);
+
+    long countByActionTakenAndResolvedAtAfter(ModerationAction actionTaken, LocalDateTime resolvedAt);
 }

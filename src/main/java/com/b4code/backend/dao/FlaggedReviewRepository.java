@@ -2,6 +2,7 @@ package com.b4code.backend.dao;
 
 import com.b4code.backend.models.FlaggedReview;
 import com.b4code.backend.models.enums.ReviewStatus;
+import com.b4code.backend.models.enums.FlagType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -14,19 +15,18 @@ public interface FlaggedReviewRepository extends JpaRepository<FlaggedReview, Lo
 
     @Query("""
             SELECT r FROM FlaggedReview r
-            WHERE (CAST(:status AS string) IS NULL OR r.status = :status)
-              AND (CAST(:flagReason AS string) IS NULL OR :flagReason = '' OR r.flagReason = :flagReason)
+            WHERE (:status IS NULL OR r.status = :status)
+              AND (:flagType IS NULL OR r.flagType = :flagType)
               AND (:rating IS NULL OR r.review.overallRating = :rating)
-              AND (CAST(:search AS string) IS NULL OR :search = '' OR
+              AND (:search IS NULL OR :search = '' OR
                    LOWER(r.review.guest.firstName) LIKE LOWER(CONCAT('%',:search,'%')) OR
                    LOWER(r.review.guest.lastName) LIKE LOWER(CONCAT('%',:search,'%')) OR
-                   LOWER(r.review.property.name) LIKE LOWER(CONCAT('%',:search,'%')) OR
-                   LOWER(r.flagReason) LIKE LOWER(CONCAT('%',:search,'%')))
+                   LOWER(r.review.property.name) LIKE LOWER(CONCAT('%',:search,'%')))
             """)
     Page<FlaggedReview> findAllWithFilters(
             @Param("status") ReviewStatus status,
-            @Param("flagReason") String flagReason,
-            @Param("rating") Double rating,
+            @Param("flagType") FlagType flagType,
+            @Param("rating") Integer rating,
             @Param("search") String search,
             Pageable pageable);
 

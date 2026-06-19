@@ -15,7 +15,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.b4code.backend.models.Review;
 import java.time.LocalDateTime;
+import java.time.LocalDate;
 
 @Service
 @Slf4j
@@ -30,33 +32,39 @@ public class ModerationServiceImpl implements ModerationService {
 
     @Override
     @Transactional(readOnly = true)
-    public Page<FlaggedReviewDto> getFlaggedReviews(ReviewStatus status, String flagReason, Double rating, String search, int page, int size) {
+    public Page<FlaggedReviewDto> getFlaggedReviews(ReviewStatus status, FlagType flagType, Integer rating, String search, int page, int size) {
         String term = (search == null || search.isBlank()) ? null : search.trim();
-        String reasonFilter = (flagReason == null || flagReason.isBlank()) ? null : flagReason.trim();
-        return reviewRepository.findAllWithFilters(status, reasonFilter, rating, term,
+        return reviewRepository.findAllWithFilters(status, flagType, rating, term,
                 PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "flaggedAt")))
                 .map(FlaggedReviewDto::fromEntity);
     }
 
     @Override
     @Transactional
-    public FlaggedReviewDto approveReview(Long id) {
-        FlaggedReview review = findReviewOrThrow(id);
-        review.setStatus(ReviewStatus.APPROVED);
-        log.info("Review id={} APPROVED", id);
-        FlaggedReviewDto dto = FlaggedReviewDto.fromEntity(reviewRepository.save(review));
-        saveHistory("#REV-" + id, ModerationAction.REVIEW_KEPT, "Content within Guidelines");
+    public FlaggedReviewDto approveReview(Long id, String adminNote) {
+        FlaggedReview flaggedReview = findReviewOrThrow(id);
+        flaggedReview.setStatus(ReviewStatus.APPROVED);
+        if (adminNote != null && !adminNote.trim().isEmpty()) {
+            flaggedReview.setAdminNote(adminNote);
+        }
+        log.info("Review id={} APPROVED, note='{}'", id, adminNote);
+        FlaggedReviewDto dto = FlaggedReviewDto.fromEntity(reviewRepository.save(flaggedReview));
+        saveHistory("#REV-" + id, ModerationAction.REVIEW_KEPT, "Content within Guidelines. " + (adminNote != null ? adminNote : ""));
         return dto;
     }
 
     @Override
     @Transactional
     public FlaggedReviewDto removeReview(Long id, String adminNote) {
-        FlaggedReview review = findReviewOrThrow(id);
-        review.setStatus(ReviewStatus.REMOVED);
-        review.setAdminNote(adminNote);
+        FlaggedReview flaggedReview = findReviewOrThrow(id);
+        flaggedReview.setStatus(ReviewStatus.REMOVED);
+        flaggedReview.setAdminNote(adminNote);
+        
+        Review review = flaggedReview.getReview();
+        review.setComment("[Removed by Admin] " + (adminNote != null ? adminNote : "Violation of policy"));
+        
         log.info("Review id={} REMOVED, reason='{}'", id, adminNote);
-        FlaggedReviewDto dto = FlaggedReviewDto.fromEntity(reviewRepository.save(review));
+        FlaggedReviewDto dto = FlaggedReviewDto.fromEntity(reviewRepository.save(flaggedReview));
         saveHistory("#REV-" + id, ModerationAction.REVIEW_REMOVED, adminNote);
         return dto;
     }
@@ -120,6 +128,12 @@ public class ModerationServiceImpl implements ModerationService {
         return disputeRepository.countByStatusNot(DisputeStatus.RESOLVED);
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public long getRemovedTodayCount() {
+        LocalDateTime startOfDay = LocalDate.now().atStartOfDay();
+        return historyRepository.countByActionTakenAndResolvedAtAfter(ModerationAction.REVIEW_REMOVED, startOfDay);
+    }
 
     private FlaggedReview findReviewOrThrow(Long id) {
         return reviewRepository.findById(id)

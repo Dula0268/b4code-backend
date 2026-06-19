@@ -4,6 +4,7 @@ import com.b4code.backend.dto.*;
 import com.b4code.backend.models.enums.DisputeStatus;
 import com.b4code.backend.models.enums.ModerationAction;
 import com.b4code.backend.models.enums.ReviewStatus;
+import com.b4code.backend.models.enums.FlagType;
 import com.b4code.backend.service.ModerationService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -33,31 +34,34 @@ public class ModerationController {
     public ResponseEntity<Map<String, Long>> getBadgeCounts() {
         return ResponseEntity.ok(Map.of(
                 "pendingReviews", moderationService.getPendingReviewCount(),
-                "openDisputes",   moderationService.getOpenDisputeCount()
+                "openDisputes",   moderationService.getOpenDisputeCount(),
+                "removedToday",   moderationService.getRemovedTodayCount()
         ));
     }
 
     // ── Reviews Queue
     @GetMapping("/reviews")
     @PreAuthorize("hasAnyRole('ADMIN','STAFF')")
-    @Operation(summary = "List flagged reviews with optional status filter, flagReason, rating and search")
+    @Operation(summary = "List flagged reviews with optional status filter, flagType, rating and search")
     public ResponseEntity<Page<FlaggedReviewDto>> getFlaggedReviews(
             @RequestParam(required = false) ReviewStatus status,
-            @RequestParam(required = false) String flagReason,
-            @RequestParam(required = false) Double rating,
+            @RequestParam(required = false) FlagType flagType,
+            @RequestParam(required = false) Integer rating,
             @RequestParam(required = false) String search,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
         if (page < 0) page = 0;
-        return ResponseEntity.ok(moderationService.getFlaggedReviews(status, flagReason, rating, search, page, size));
+        if (status == null) status = ReviewStatus.FLAGGED;
+        return ResponseEntity.ok(moderationService.getFlaggedReviews(status, flagType, rating, search, page, size));
     }
 
     // PUT /api/admin/moderation/reviews/{id}/approve
     @PutMapping("/reviews/{id}/approve")
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Approve (keep) a flagged review")
-    public ResponseEntity<FlaggedReviewDto> approveReview(@PathVariable Long id) {
-        return ResponseEntity.ok(moderationService.approveReview(id));
+    public ResponseEntity<FlaggedReviewDto> approveReview(@PathVariable Long id, @RequestBody(required = false) Map<String, String> body) {
+        String adminNote = (body != null) ? body.getOrDefault("adminNote", "") : "";
+        return ResponseEntity.ok(moderationService.approveReview(id, adminNote));
     }
 
     // PUT /api/admin/moderation/reviews/{id}/remove   
