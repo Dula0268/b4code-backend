@@ -21,8 +21,10 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.Arrays;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -41,9 +43,9 @@ public class BookingService {
     // ──────────────────────────────────────────
     // Price Preview (called before confirming)
     // ──────────────────────────────────────────
-    public PriceBreakdown getPrice(Long roomId, LocalDate checkIn, LocalDate checkOut, Integer roomQuantity, String promoCode) {
+    public PriceBreakdown getPrice(Long roomId, LocalDate checkIn, LocalDate checkOut, Integer roomQuantity, List<String> promoCodes) {
         Room room = findRoomOrThrow(roomId);
-        return calculatePrice(room, checkIn, checkOut, roomQuantity, promoCode, true);
+        return calculatePrice(room, checkIn, checkOut, roomQuantity, promoCodes, true);
     }
 
     // ──────────────────────────────────────────
@@ -68,7 +70,7 @@ public class BookingService {
         }
 
         PriceBreakdown price = getPrice(
-                room.getId(), request.getCheckIn(), request.getCheckOut(), request.getRoomQuantity(), request.getPromoCode());
+                room.getId(), request.getCheckIn(), request.getCheckOut(), request.getRoomQuantity(), request.getPromoCodes());
 
         Booking booking = Booking.builder()
                 .confirmationCode(UUID.randomUUID().toString().substring(0, 8).toUpperCase())
@@ -84,17 +86,19 @@ public class BookingService {
                 .children(request.getChildren())
                 .totalAmount(price.getTotalAmount())
                 .taxAmount(price.getTaxAmount())
-                .promoCode(request.getPromoCode())
+                .promoCode(request.getPromoCodes() != null && !request.getPromoCodes().isEmpty() ? String.join(",", request.getPromoCodes()) : null)
                 .paymentMethod(request.getPaymentMethod())
                 .build();
 
         Booking saved = bookingRepository.save(booking);
 
-        if (request.getPromoCode() != null && !request.getPromoCode().isBlank()) {
-            PromoCode code = promoCodeRepository.findByCodeIgnoreCase(request.getPromoCode()).orElse(null);
-            if (code != null && code.isValid()) {
-                code.setCurrentUses(code.getCurrentUses() + 1);
-                promoCodeRepository.save(code);
+        if (request.getPromoCodes() != null && !request.getPromoCodes().isEmpty()) {
+            for (String codeStr : request.getPromoCodes()) {
+                PromoCode code = promoCodeRepository.findByCodeIgnoreCase(codeStr).orElse(null);
+                if (code != null && code.isValid()) {
+                    code.setCurrentUses(code.getCurrentUses() + 1);
+                    promoCodeRepository.save(code);
+                }
             }
         }
 
@@ -217,8 +221,9 @@ public class BookingService {
             throw new RoomNotAvailableException("Room is not available for the selected dates");
         }
 
+        List<String> currentPromoCodes = booking.getPromoCode() != null ? Arrays.asList(booking.getPromoCode().split(",")) : null;
         PriceBreakdown newPrice = calculatePrice(room, request.getCheckInDate(), request.getCheckOutDate(),
-                booking.getRoomQuantity(), booking.getPromoCode(), false);
+                booking.getRoomQuantity(), currentPromoCodes, false);
         BigDecimal previousTotal = booking.getTotalAmount();
         BigDecimal newTotal = newPrice.getTotalAmount();
         BigDecimal difference = newTotal.subtract(previousTotal);
@@ -248,7 +253,7 @@ public class BookingService {
     // Helpers
     // ──────────────────────────────────────────
 
-    private PriceBreakdown calculatePrice(Room room, LocalDate checkIn, LocalDate checkOut, Integer roomQuantity, String promoCode,
+    private PriceBreakdown calculatePrice(Room room, LocalDate checkIn, LocalDate checkOut, Integer roomQuantity, List<String> promoCodes,
             boolean isPreview) {
         BigDecimal pricePerNight = room.getPricePerNight();
 
@@ -260,11 +265,26 @@ public class BookingService {
         BigDecimal subtotal = pricePerNight.multiply(BigDecimal.valueOf(nights)).multiply(BigDecimal.valueOf(roomQuantity));
 
         BigDecimal discountAmount = BigDecimal.ZERO;
-        if (promoCode != null && !promoCode.isBlank()) {
-            PromoCode code = promoCodeRepository.findByCodeIgnoreCase(promoCode).orElse(null);
-            if (code != null && code.isValid()) {
-                discountAmount = subtotal.multiply(code.getDiscountPercent()).divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
+        List<String> validPromos = new ArrayList<>();
+        if (promoCodes != null && !promoCodes.isEmpty()) {
+            BigDecimal totalDiscountPercent = BigDecimal.ZERO;
+            for (String pCode : promoCodes) {
+                if (pCode == null || pCode.isBlank()) continue;
+                PromoCode code = promoCodeRepository.findByCodeIgnoreCase(pCode.trim())
+                        .orElseThrow(() -> new IllegalArgumentException("Invalid promo code: " + pCode));
+                        
+                if (!code.isValid()) {
+                    throw new IllegalArgumentException("Promo code is expired or usage limit reached: " + pCode);
+                }
+                
+                if (code.getPropertyId() != null && !code.getPropertyId().equals(room.getProperty().getId())) {
+                    throw new IllegalArgumentException("Promo code is not valid for this property: " + pCode);
+                }
+
+                totalDiscountPercent = totalDiscountPercent.add(code.getDiscountPercent());
+                validPromos.add(code.getCode());
             }
+            discountAmount = subtotal.multiply(totalDiscountPercent).divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
         }
 
         BigDecimal subtotalAfterDiscount = subtotal.subtract(discountAmount);
@@ -280,7 +300,7 @@ public class BookingService {
                 .discountAmount(discountAmount.setScale(2, RoundingMode.HALF_UP))
                 .taxAmount(taxAmount)
                 .totalAmount(totalAmount)
-                .promoApplied(promoCode)
+                .promosApplied(validPromos.isEmpty() ? null : validPromos)
                 .build();
     }
 
@@ -296,7 +316,7 @@ public class BookingService {
                 .checkOut(booking.getCheckOut())
                 .adults(booking.getAdults())
                 .children(booking.getChildren())
-                .promoCode(booking.getPromoCode())
+                .promoCodes(booking.getPromoCode() != null ? Arrays.asList(booking.getPromoCode().split(",")) : null)
                 .paymentMethod(booking.getPaymentMethod())
                 .taxAmount(booking.getTaxAmount())
                 .totalAmount(booking.getTotalAmount())

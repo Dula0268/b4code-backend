@@ -5,6 +5,7 @@ import jakarta.validation.constraints.*;
 import lombok.*;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
 
 public class BookingDto {
 
@@ -52,7 +53,7 @@ public class BookingDto {
         @Min(value = 0, message = "Children count cannot be negative")
         private Integer children;
 
-        private String promoCode;
+        private List<String> promoCodes;
 
         @NotNull(message = "Payment method is required")
         private PaymentMethod paymentMethod;
@@ -74,7 +75,7 @@ public class BookingDto {
         private BigDecimal discountAmount;
         private BigDecimal taxAmount;
         private BigDecimal totalAmount;
-        private String promoApplied;
+        private List<String> promosApplied;
     }
 
     // ──────────────────────────────────
@@ -95,7 +96,7 @@ public class BookingDto {
         private LocalDate checkOut;
         private Integer adults;
         private Integer children;
-        private String promoCode;
+        private List<String> promoCodes;
         private PaymentMethod paymentMethod;
         private BigDecimal taxAmount;
         private BigDecimal totalAmount;
