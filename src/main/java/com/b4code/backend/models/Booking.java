@@ -48,7 +48,7 @@ public class Booking {
     @JoinColumn(name = "room_id", nullable = false)
     private Room room;
 
-    @Column(nullable = false)
+    @Column(nullable = false, columnDefinition = "integer default 1")
     @Builder.Default
     private Integer roomQuantity = 1;
 

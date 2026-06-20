@@ -88,8 +88,12 @@ public class BookingDto {
     public static class BookingResponse {
         private Long id;
         private Long roomId;
+        private String roomName;
         private Integer roomQuantity;
         private Long propertyId;
+        private String propertyName;
+        private String propertyAddress;
+        private String propertyImage;
         private Long reviewId;
         private String confirmationCode;
         private LocalDate checkIn;
@@ -98,6 +102,7 @@ public class BookingDto {
         private Integer children;
         private List<String> promoCodes;
         private PaymentMethod paymentMethod;
+        private String status;
         private BigDecimal taxAmount;
         private BigDecimal totalAmount;
     }

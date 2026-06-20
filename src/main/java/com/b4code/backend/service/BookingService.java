@@ -102,6 +102,22 @@ public class BookingService {
             }
         }
 
+        // Send confirmation email with itinerary
+        try {
+            String propertyName = saved.getProperty().getName();
+            String roomName = saved.getRoom().getRoomType().name();
+            emailService.sendBookingConfirmationEmail(
+                    saved.getGuestEmail(),
+                    saved.getGuestName(),
+                    saved.getConfirmationCode(),
+                    propertyName + " – " + roomName,
+                    saved.getCheckIn().toString(),
+                    saved.getCheckOut().toString(),
+                    saved.getTotalAmount().toString());
+        } catch (Exception e) {
+            log.error("Failed to send booking confirmation email to {}", saved.getGuestEmail(), e);
+        }
+
         return mapToResponse(saved);
     }
 
@@ -305,11 +321,20 @@ public class BookingService {
     }
 
     private BookingResponse mapToResponse(Booking booking) {
+        String address = booking.getProperty().getAddressLine1() != null ? booking.getProperty().getAddressLine1() : booking.getProperty().getAddress();
+        if (booking.getProperty().getCity() != null) {
+            address = address != null ? address + ", " + booking.getProperty().getCity() : booking.getProperty().getCity();
+        }
+
         return BookingResponse.builder()
                 .id(booking.getId())
                 .roomId(booking.getRoom().getId())
+                .roomName(booking.getRoom().getRoomType().name())
                 .roomQuantity(booking.getRoomQuantity())
                 .propertyId(booking.getProperty().getId())
+                .propertyName(booking.getProperty().getName())
+                .propertyAddress(address)
+                .propertyImage(booking.getProperty().getImageSrc() != null ? booking.getProperty().getImageSrc() : booking.getProperty().getImageUrl())
                 .reviewId(booking.getReview() != null ? booking.getReview().getId() : null)
                 .confirmationCode(booking.getConfirmationCode())
                 .checkIn(booking.getCheckIn())
@@ -318,6 +343,7 @@ public class BookingService {
                 .children(booking.getChildren())
                 .promoCodes(booking.getPromoCode() != null ? Arrays.asList(booking.getPromoCode().split(",")) : null)
                 .paymentMethod(booking.getPaymentMethod())
+                .status(booking.getStatus().name())
                 .taxAmount(booking.getTaxAmount())
                 .totalAmount(booking.getTotalAmount())
                 .build();
