@@ -18,7 +18,7 @@ public class AttributeEncryptor implements AttributeConverter<String, String> {
     private final Key key;
     private final Cipher cipher;
 
-    public AttributeEncryptor(@Value("${b4code.security.encryption.secret:12345678901234567890123456789012}") String secret) throws Exception {
+    public AttributeEncryptor(@Value("${b4code.security.encryption.secret}") String secret) throws Exception {
         this.key = new SecretKeySpec(secret.getBytes(), AES);
         this.cipher = Cipher.getInstance(AES);
     }
