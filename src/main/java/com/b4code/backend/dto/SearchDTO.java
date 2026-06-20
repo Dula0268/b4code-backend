@@ -80,6 +80,12 @@ public class SearchDTO {
 
         private Double lat;
         private Double lng;
+
+        private String checkInTime;
+        private String checkOutTime;
+        private String cancellationPolicy;
+        private String childPolicy;
+        private String houseRules;
     }
 
     // ─── Filter Options (served to frontend) ─────────────────────────────

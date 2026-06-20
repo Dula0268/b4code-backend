@@ -428,6 +428,11 @@ public class SearchService {
                 .rooms(roomDTOs)
                 .lat(property.getLatitude())
                 .lng(property.getLongitude())
+                .checkInTime(property.getCheckInTime())
+                .checkOutTime(property.getCheckOutTime())
+                .cancellationPolicy(property.getCancellationPolicy())
+                .childPolicy(property.getChildPolicy())
+                .houseRules(property.getHouseRules())
                 .build();
     }
 

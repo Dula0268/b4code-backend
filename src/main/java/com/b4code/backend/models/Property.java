@@ -84,6 +84,27 @@ public class Property {
     private Double averageRating;
     private Integer reviewCount;
 
+    // Policies
+    @Column(length = 50)
+    @Builder.Default
+    private String checkInTime = "14:00";
+
+    @Column(length = 50)
+    @Builder.Default
+    private String checkOutTime = "11:00";
+
+    @Column(length = 1000)
+    @Builder.Default
+    private String cancellationPolicy = "Free cancellation until 48 hours before.\n50% refund within 48 hours.\nNo-shows will be charged full amount.";
+
+    @Column(length = 500)
+    @Builder.Default
+    private String childPolicy = "Children of any age are welcome.\nNo age restriction for check-in.\nExtra beds available upon request.";
+
+    @Column(length = 1000)
+    @Builder.Default
+    private String houseRules = "No smoking indoors.\nNo pets allowed.\nNo parties or events.";
+
     // Admin & Reviews
     @CreationTimestamp
     @Column(updatable = false)
