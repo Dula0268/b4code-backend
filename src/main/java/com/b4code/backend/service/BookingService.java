@@ -69,15 +69,29 @@ public class BookingService {
         PriceBreakdown price = getPrice(
                 room.getId(), request.getCheckIn(), request.getCheckOut(), request.getPromoCode());
 
+        String generatedCode = "B4C-" + java.util.UUID.randomUUID().toString().substring(0, 6).toUpperCase();
+
+        BigDecimal finalTotal = request.getTotalAmount() != null 
+                ? request.getTotalAmount() 
+                : price.getTotalAmount();
+        
+        // If frontend provided the total, just calculate a rough tax estimate for the DB record
+        BigDecimal finalTax = request.getTotalAmount() != null
+                ? finalTotal.divide(BigDecimal.valueOf(11), 2, java.math.RoundingMode.HALF_UP)
+                : price.getTaxAmount();
+
         Booking booking = Booking.builder()
                 .room(room)
                 .property(property)
+                .guestName(request.getGuestName())
+                .guestEmail(request.getGuestEmail())
+                .confirmationCode(generatedCode)
                 .checkIn(request.getCheckIn())
                 .checkOut(request.getCheckOut())
                 .adults(request.getAdults())
                 .children(request.getChildren())
-                .totalAmount(price.getTotalAmount())
-                .taxAmount(price.getTaxAmount())
+                .totalAmount(finalTotal)
+                .taxAmount(finalTax)
                 .promoCode(request.getPromoCode())
                 .paymentMethod(request.getPaymentMethod())
                 .build();
@@ -123,6 +137,15 @@ public class BookingService {
         Booking booking = bookingRepository.findByConfirmationCode(confirmationNumber)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Booking not found: " + confirmationNumber));
+        return mapToResponse(booking);
+    }
+
+    // ──────────────────────────────────────────
+    // Get by ID
+    // ──────────────────────────────────────────
+    public BookingResponse getById(Long id) {
+        Booking booking = bookingRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Booking not found: " + id));
         return mapToResponse(booking);
     }
 
@@ -204,8 +227,16 @@ public class BookingService {
 
         PriceBreakdown newPrice = calculatePrice(room, request.getCheckInDate(), request.getCheckOutDate(),
                 booking.getPromoCode(), false);
-        BigDecimal previousTotal = booking.getTotalAmount();
-        BigDecimal newTotal = newPrice.getTotalAmount();
+        BigDecimal previousTotal = booking.getTotalAmount() != null ? booking.getTotalAmount() : BigDecimal.ZERO;
+        
+        BigDecimal newTotal = request.getTotalAmount() != null 
+                ? request.getTotalAmount() 
+                : newPrice.getTotalAmount();
+                
+        BigDecimal newTax = request.getTotalAmount() != null
+                ? newTotal.divide(BigDecimal.valueOf(11), 2, RoundingMode.HALF_UP)
+                : newPrice.getTaxAmount();
+                
         BigDecimal difference = newTotal.subtract(previousTotal);
 
         booking.setRoom(room);
@@ -213,10 +244,18 @@ public class BookingService {
         booking.setCheckOut(request.getCheckOutDate());
         booking.setGuestCount(request.getGuests());
         booking.setTotalAmount(newTotal);
-        booking.setTaxAmount(newPrice.getTaxAmount());
-        booking.setDiscountAmount(newPrice.getDiscountAmount());
+        booking.setTaxAmount(newTax);
+        booking.setDiscountAmount(newPrice.getDiscountAmount() != null ? newPrice.getDiscountAmount() : BigDecimal.ZERO);
+        
+        Booking.PaymentMethod fallbackMethod = booking.getPaymentMethod() != null ? booking.getPaymentMethod() : Booking.PaymentMethod.ONLINE_CARD;
         booking.setPaymentMethod(
-                request.getPaymentMethod() != null ? request.getPaymentMethod() : booking.getPaymentMethod());
+                request.getPaymentMethod() != null ? request.getPaymentMethod() : fallbackMethod);
+
+        // Fix legacy nulls for existing records to prevent Hibernate PropertyValueException
+        if (booking.getGuestEmail() == null) booking.setGuestEmail("admin@example.com");
+        if (booking.getGuestName() == null) booking.setGuestName("Guest");
+        if (booking.getAdults() == null) booking.setAdults(1);
+        if (booking.getChildren() == null) booking.setChildren(0);
 
         Booking saved = bookingRepository.save(booking);
 
@@ -269,19 +308,44 @@ public class BookingService {
     }
 
     private BookingResponse mapToResponse(Booking booking) {
+        int guestCount = booking.getGuestCount() != null ? booking.getGuestCount() : (booking.getAdults() + booking.getChildren());
+        int nights = (int) ChronoUnit.DAYS.between(booking.getCheckIn(), booking.getCheckOut());
+
+        String primaryImage = null;
+        if (booking.getProperty() != null) {
+            if (booking.getProperty().getImages() != null && !booking.getProperty().getImages().isEmpty()) {
+                primaryImage = booking.getProperty().getImages().get(0).getUrl();
+            } else if (booking.getProperty().getImageSrc() != null && !booking.getProperty().getImageSrc().trim().isEmpty()) {
+                primaryImage = booking.getProperty().getImageSrc();
+            } else if (booking.getProperty().getImageUrl() != null && !booking.getProperty().getImageUrl().trim().isEmpty()) {
+                primaryImage = booking.getProperty().getImageUrl();
+            }
+        }
+
         return BookingResponse.builder()
-                .id(booking.getId())
+                .bookingId(booking.getId())
+                .confirmationNumber(booking.getConfirmationCode())
                 .roomId(booking.getRoom().getId())
                 .propertyId(booking.getProperty().getId())
+                .propertyName(booking.getProperty().getName())
+                .propertyAddress(booking.getProperty().getAddress())
+                .propertyImage(primaryImage)
+                .roomName(booking.getRoom().getRoomType().name())
                 .reviewId(booking.getReview() != null ? booking.getReview().getId() : null)
+                .guestName(booking.getGuestName())
+                .guestEmail(booking.getGuestEmail())
+                .guestCount(guestCount)
                 .checkIn(booking.getCheckIn())
                 .checkOut(booking.getCheckOut())
+                .nights(nights)
                 .adults(booking.getAdults())
                 .children(booking.getChildren())
                 .promoCode(booking.getPromoCode())
                 .paymentMethod(booking.getPaymentMethod())
                 .taxAmount(booking.getTaxAmount())
                 .totalAmount(booking.getTotalAmount())
+                .status(booking.getStatus().name())
+                .createdAt(booking.getCreatedAt().toString())
                 .build();
     }
 

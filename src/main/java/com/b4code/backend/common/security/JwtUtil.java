@@ -11,13 +11,13 @@ import java.util.Date;
 @Component
 public class JwtUtil {
 
-    @Value("${b4code.security.jwt.secret}")
+    @Value("${b4code.security.jwt.secret:8a846c483a992e5927515c0e1ae5b0c96c4d444458d92a0653d9e4c19a9a1d1d}")
     private String secret;
 
-    @Value("${b4code.security.jwt.expirationMs}")
+    @Value("${b4code.security.jwt.expirationMs:3600000}")
     private long expirationMs;
 
-    @Value("${b4code.security.jwt.refreshExpirationMs}")
+    @Value("${b4code.security.jwt.refreshExpirationMs:86400000}")
     private long refreshExpirationMs;
 
     private SecretKey getSigningKey() {

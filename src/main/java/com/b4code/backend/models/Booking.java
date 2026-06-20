@@ -21,10 +21,10 @@ public class Booking {
     @Column(unique = true)
     private String confirmationCode;
 
-    @Column(nullable = false)
+    @Column
     private String guestEmail;
 
-    @Column(nullable = false)
+    @Column
     private String guestName;
 
     @Column(nullable = false)
@@ -33,10 +33,10 @@ public class Booking {
     @Column(nullable = false)
     private LocalDate checkOut;
 
-    @Column(nullable = false)
+    @Column
     private Integer adults;
 
-    @Column(nullable = false)
+    @Column
     private Integer children;
 
     private Integer guestCount;
@@ -55,7 +55,7 @@ public class Booking {
     private String promoCode;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column
     private PaymentMethod paymentMethod;
 
     @Enumerated(EnumType.STRING)
@@ -63,14 +63,14 @@ public class Booking {
     @Builder.Default
     private BookingStatus status = BookingStatus.CONFIRMED;
 
-    @Column(nullable = false, precision = 10, scale = 2)
+    @Column(precision = 10, scale = 2)
     private BigDecimal taxAmount;
 
     @Column(precision = 10, scale = 2)
     @Builder.Default
     private BigDecimal discountAmount = BigDecimal.ZERO;
 
-    @Column(nullable = false, precision = 10, scale = 2)
+    @Column(precision = 10, scale = 2)
     private BigDecimal totalAmount;
 
     private String cancellationReason;

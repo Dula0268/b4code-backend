@@ -71,6 +71,15 @@ public class BookingController {
     }
 
     /**
+     * GET /api/guest/bookings/{id}
+     * Get a booking by numeric ID.
+     */
+    @GetMapping("/{id}")
+    public ResponseEntity<BookingResponse> getBookingById(@PathVariable Long id) {
+        return ResponseEntity.ok(bookingService.getById(id));
+    }
+
+    /**
      * PATCH /api/guest/bookings/{id}/cancel
      * Cancel a booking.
      */
