@@ -29,10 +29,11 @@ public class BookingController {
             @RequestParam Long roomId,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate checkIn,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate checkOut,
+            @RequestParam(required = false, defaultValue = "1") Integer roomQuantity,
             @RequestParam(required = false) String promoCode) {
 
         return ResponseEntity.ok(
-                bookingService.getPrice(roomId, checkIn, checkOut, promoCode));
+                bookingService.getPrice(roomId, checkIn, checkOut, roomQuantity, promoCode));
     }
 
     /**

@@ -22,6 +22,7 @@ import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -40,9 +41,9 @@ public class BookingService {
     // ──────────────────────────────────────────
     // Price Preview (called before confirming)
     // ──────────────────────────────────────────
-    public PriceBreakdown getPrice(Long roomId, LocalDate checkIn, LocalDate checkOut, String promoCode) {
+    public PriceBreakdown getPrice(Long roomId, LocalDate checkIn, LocalDate checkOut, Integer roomQuantity, String promoCode) {
         Room room = findRoomOrThrow(roomId);
-        return calculatePrice(room, checkIn, checkOut, promoCode, true);
+        return calculatePrice(room, checkIn, checkOut, roomQuantity, promoCode, true);
     }
 
     // ──────────────────────────────────────────
@@ -67,10 +68,15 @@ public class BookingService {
         }
 
         PriceBreakdown price = getPrice(
-                room.getId(), request.getCheckIn(), request.getCheckOut(), request.getPromoCode());
+                room.getId(), request.getCheckIn(), request.getCheckOut(), request.getRoomQuantity(), request.getPromoCode());
 
         Booking booking = Booking.builder()
+                .confirmationCode(UUID.randomUUID().toString().substring(0, 8).toUpperCase())
+                .guestName(request.getGuestName())
+                .guestEmail(request.getGuestEmail())
+                .nicNumber(request.getNicNumber())
                 .room(room)
+                .roomQuantity(request.getRoomQuantity())
                 .property(property)
                 .checkIn(request.getCheckIn())
                 .checkOut(request.getCheckOut())
@@ -83,6 +89,15 @@ public class BookingService {
                 .build();
 
         Booking saved = bookingRepository.save(booking);
+
+        if (request.getPromoCode() != null && !request.getPromoCode().isBlank()) {
+            PromoCode code = promoCodeRepository.findByCodeIgnoreCase(request.getPromoCode()).orElse(null);
+            if (code != null && code.isValid()) {
+                code.setCurrentUses(code.getCurrentUses() + 1);
+                promoCodeRepository.save(code);
+            }
+        }
+
         return mapToResponse(saved);
     }
 
@@ -203,7 +218,7 @@ public class BookingService {
         }
 
         PriceBreakdown newPrice = calculatePrice(room, request.getCheckInDate(), request.getCheckOutDate(),
-                booking.getPromoCode(), false);
+                booking.getRoomQuantity(), booking.getPromoCode(), false);
         BigDecimal previousTotal = booking.getTotalAmount();
         BigDecimal newTotal = newPrice.getTotalAmount();
         BigDecimal difference = newTotal.subtract(previousTotal);
@@ -233,7 +248,7 @@ public class BookingService {
     // Helpers
     // ──────────────────────────────────────────
 
-    private PriceBreakdown calculatePrice(Room room, LocalDate checkIn, LocalDate checkOut, String promoCode,
+    private PriceBreakdown calculatePrice(Room room, LocalDate checkIn, LocalDate checkOut, Integer roomQuantity, String promoCode,
             boolean isPreview) {
         BigDecimal pricePerNight = room.getPricePerNight();
 
@@ -242,7 +257,7 @@ public class BookingService {
             throw new IllegalArgumentException("Stay must be at least 1 night");
         }
 
-        BigDecimal subtotal = pricePerNight.multiply(BigDecimal.valueOf(nights));
+        BigDecimal subtotal = pricePerNight.multiply(BigDecimal.valueOf(nights)).multiply(BigDecimal.valueOf(roomQuantity));
 
         BigDecimal discountAmount = BigDecimal.ZERO;
         if (promoCode != null && !promoCode.isBlank()) {
@@ -258,6 +273,7 @@ public class BookingService {
 
         return PriceBreakdown.builder()
                 .roomId(room.getId())
+                .roomQuantity(roomQuantity)
                 .nights((int) nights)
                 .pricePerNight(pricePerNight)
                 .subtotal(subtotal.setScale(2, RoundingMode.HALF_UP))
@@ -272,8 +288,10 @@ public class BookingService {
         return BookingResponse.builder()
                 .id(booking.getId())
                 .roomId(booking.getRoom().getId())
+                .roomQuantity(booking.getRoomQuantity())
                 .propertyId(booking.getProperty().getId())
                 .reviewId(booking.getReview() != null ? booking.getReview().getId() : null)
+                .confirmationCode(booking.getConfirmationCode())
                 .checkIn(booking.getCheckIn())
                 .checkOut(booking.getCheckOut())
                 .adults(booking.getAdults())
