@@ -98,6 +98,7 @@ public class SearchService {
                 .filter(p -> matchesAmenities(p, amenities))
                 .map(p -> mapToPropertySearchResult(p, guestsVal, checkIn, checkOut))
                 .filter(p -> p.getMatchingRoomsCount() >= roomsVal) // Double check room count
+                .filter(p -> p.getRating() >= safeMinRating) // Filter by minimum rating
                 .collect(Collectors.toList());
 
         // Apply in-memory price sorting if needed
@@ -293,6 +294,11 @@ public class SearchService {
                 .min(BigDecimal::compareTo)
                 .orElse(BigDecimal.ZERO);
 
+        BigDecimal highestPrice = availableRooms.stream()
+                .map(Room::getPricePerNight)
+                .max(BigDecimal::compareTo)
+                .orElse(BigDecimal.ZERO);
+
         int maxGuests = 2; // Defaulting since maxOccupancy is removed
 
         // Extract amenity labels for search card
@@ -322,6 +328,7 @@ public class SearchService {
                 .district(property.getCity())
                 
                 .pricePerNight(lowestPrice)
+                .highestPricePerNight(highestPrice)
                 .maxGuests(maxGuests)
                 .baseGuests(2)
                 .extraGuestFee(BigDecimal.ZERO)
