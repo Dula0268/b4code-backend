@@ -33,6 +33,7 @@ public class SearchDTO {
         private String district;
         private String propertyType;
         private BigDecimal pricePerNight;
+        private BigDecimal highestPricePerNight;
         private Integer maxGuests;
         private Integer baseGuests;
         private BigDecimal extraGuestFee;
