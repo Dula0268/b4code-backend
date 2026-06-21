@@ -41,7 +41,12 @@ public class ReviewService {
 
         // For mock testing: If booking is null or already has a review, create a new one to prevent unique constraint violations
         if (booking == null || reviewRepository.existsByBookingId(booking.getId())) {
-            User g = userRepository.findAll().stream().findFirst().orElseThrow(() -> new ResourceNotFoundException("No users exist"));
+            String currentUserEmail = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication() != null 
+                ? org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication().getName() 
+                : null;
+            User g = currentUserEmail != null 
+                ? userRepository.findByEmail(currentUserEmail).orElseGet(() -> userRepository.findAll().stream().findFirst().orElseThrow(() -> new ResourceNotFoundException("No users exist")))
+                : userRepository.findAll().stream().findFirst().orElseThrow(() -> new ResourceNotFoundException("No users exist"));
             
             // Try to find a room for the requested property, or just any room if not specified
             com.b4code.backend.models.Room room = null;
@@ -84,10 +89,13 @@ public class ReviewService {
             ? String.join(",", request.getPhotoUrls())
             : null;
 
-        // Since guestEmail was removed, we can't look up user by email directly here.
-        // For now, look up user from SecurityContext or assume a hardcoded admin user for compilation.
-        User guest = userRepository.findAll().stream().findFirst()
-            .orElseThrow(() -> new ResourceNotFoundException("Guest user not found"));
+        String currentUserEmail = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication() != null 
+            ? org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication().getName() 
+            : null;
+        
+        User guest = currentUserEmail != null 
+            ? userRepository.findByEmail(currentUserEmail).orElseGet(() -> userRepository.findAll().stream().findFirst().orElseThrow(() -> new ResourceNotFoundException("Guest user not found")))
+            : userRepository.findAll().stream().findFirst().orElseThrow(() -> new ResourceNotFoundException("Guest user not found"));
 
         Review review = Review.builder()
             .booking(booking)
