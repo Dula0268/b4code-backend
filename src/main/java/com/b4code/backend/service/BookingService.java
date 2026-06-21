@@ -39,6 +39,8 @@ public class BookingService {
     private final RoomRepository roomRepository;
     private final PromoCodeRepository promoCodeRepository;
     private final EmailService emailService;
+    private final com.b4code.backend.dao.PaymentRepository paymentRepository;
+    private final PaymentService paymentService;
 
     // ──────────────────────────────────────────
     // Price Preview (called before confirming)
@@ -185,7 +187,20 @@ public class BookingService {
 
         booking.setStatus(BookingStatus.CANCELLED);
         booking.setCancellationReason(request.getReason());
-        return mapToResponse(bookingRepository.save(booking));
+        Booking saved = bookingRepository.save(booking);
+
+        // Attempt to refund any successful payments associated with this booking
+        paymentRepository.findFirstByBookingIdAndStatusOrderByCreatedAtDesc(
+                bookingId, com.b4code.backend.models.Payment.PaymentStatus.SUCCESS
+        ).ifPresent(payment -> {
+            try {
+                paymentService.refundPayment(payment.getId());
+            } catch (Exception e) {
+                log.error("Failed to automatically refund payment {} for booking {}", payment.getId(), bookingId, e);
+            }
+        });
+
+        return mapToResponse(saved);
     }
 
     // ──────────────────────────────────────────
