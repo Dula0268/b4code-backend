@@ -14,25 +14,27 @@ import java.util.Optional;
 public interface BookingRepository extends JpaRepository<Booking, Long> {
 
     @Query("""
-        SELECT COUNT(b) > 0 FROM Booking b
+        SELECT COALESCE(SUM(b.roomQuantity), 0) FROM Booking b
         WHERE b.room.id = :roomId
+          AND b.status <> 'CANCELLED'
           AND b.checkIn  < :checkOut
           AND b.checkOut > :checkIn
     """)
-    boolean existsOverlappingBooking(
+    int getBookedQuantityForDates(
         @Param("roomId")   Long roomId,
         @Param("checkIn")  LocalDate checkIn,
         @Param("checkOut") LocalDate checkOut
     );
 
     @Query("""
-        SELECT COUNT(b) > 0 FROM Booking b
+        SELECT COALESCE(SUM(b.roomQuantity), 0) FROM Booking b
         WHERE b.id <> :bookingId
           AND b.room.id = :roomId
+          AND b.status <> 'CANCELLED'
           AND b.checkIn  < :checkOut
           AND b.checkOut > :checkIn
     """)
-    boolean existsOverlappingBookingExcludingId(
+    int getBookedQuantityForDatesExcludingId(
         @Param("bookingId") Long bookingId,
         @Param("roomId") Long roomId,
         @Param("checkIn") LocalDate checkIn,

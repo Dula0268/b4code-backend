@@ -282,7 +282,8 @@ public class SearchService {
                 ? property.getRooms().stream()
                     .filter(r -> {
                         if (checkIn == null || checkOut == null) return true;
-                        return !bookingRepository.existsOverlappingBooking(r.getId(), checkIn, checkOut);
+                        int booked = bookingRepository.getBookedQuantityForDates(r.getId(), checkIn, checkOut);
+                        return (r.getInventory() - booked) > 0;
                     })
                     .collect(Collectors.toList())
                 : Collections.emptyList();
@@ -382,9 +383,15 @@ public class SearchService {
                 ? property.getRooms().stream()
                     .filter(r -> {
                         if (checkIn == null || checkOut == null) return true;
-                        return !bookingRepository.existsOverlappingBooking(r.getId(), checkIn, checkOut);
+                        int booked = bookingRepository.getBookedQuantityForDates(r.getId(), checkIn, checkOut);
+                        return (r.getInventory() - booked) > 0;
                     })
                     .map(r -> {
+                        int availableCount = r.getInventory() != null ? r.getInventory() : 3;
+                        if (checkIn != null && checkOut != null) {
+                            int booked = bookingRepository.getBookedQuantityForDates(r.getId(), checkIn, checkOut);
+                            availableCount -= booked;
+                        }
                     return RoomDTO.builder()
                             .id(r.getId().toString())
                             .name(r.getRoomType() != null ? r.getRoomType().name() : "")
@@ -396,6 +403,7 @@ public class SearchService {
                             .tag("")
                             .features(new ArrayList<>())
                             .imageSrc(r.getImage() != null ? r.getImage().getUrl() : null)
+                            .availableCount(availableCount)
                             .build();
                 }).collect(Collectors.toList())
                 : new ArrayList<>();

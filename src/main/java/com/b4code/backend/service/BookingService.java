@@ -63,10 +63,10 @@ public class BookingService {
             throw new IllegalArgumentException("Check-out must be after check-in");
         }
 
-        boolean overlap = bookingRepository.existsOverlappingBooking(
+        int bookedQuantity = bookingRepository.getBookedQuantityForDates(
                 room.getId(), request.getCheckIn(), request.getCheckOut());
-        if (overlap) {
-            throw new RoomNotAvailableException("Room is not available for the selected dates");
+        if (room.getInventory() - bookedQuantity < request.getRoomQuantity()) {
+            throw new RoomNotAvailableException("Room is not available for the selected dates with the requested quantity");
         }
 
         PriceBreakdown price = getPrice(
@@ -231,10 +231,10 @@ public class BookingService {
             throw new IllegalArgumentException("Room does not belong to the selected property");
         }
 
-        boolean overlap = bookingRepository.existsOverlappingBookingExcludingId(
+        int bookedQuantity = bookingRepository.getBookedQuantityForDatesExcludingId(
                 booking.getId(), room.getId(), request.getCheckInDate(), request.getCheckOutDate());
-        if (overlap) {
-            throw new RoomNotAvailableException("Room is not available for the selected dates");
+        if (room.getInventory() - bookedQuantity < booking.getRoomQuantity()) {
+            throw new RoomNotAvailableException("Room is not available for the selected dates with the current quantity");
         }
 
         List<String> currentPromoCodes = booking.getPromoCode() != null ? Arrays.asList(booking.getPromoCode().split(",")) : null;

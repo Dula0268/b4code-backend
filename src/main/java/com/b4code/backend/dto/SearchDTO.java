@@ -199,6 +199,7 @@ public class SearchDTO {
         private String tag;
         private List<String> features;
         private String imageSrc;
+        private Integer availableCount;
     }
 }
 
