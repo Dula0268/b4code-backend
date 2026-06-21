@@ -37,65 +37,38 @@ public class ReviewService {
     @Transactional
     public ReviewResponse createReview(CreateReviewRequest request) {
 
-        Booking booking = bookingRepository.findById(request.getBookingId()).orElse(null);
-
-        // For mock testing: If booking is null or already has a review, create a new one to prevent unique constraint violations
-        if (booking == null || reviewRepository.existsByBookingId(booking.getId())) {
-            String currentUserEmail = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication() != null 
-                ? org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication().getName() 
-                : null;
-            User g = currentUserEmail != null 
-                ? userRepository.findByEmail(currentUserEmail).orElseGet(() -> userRepository.findAll().stream().findFirst().orElseThrow(() -> new ResourceNotFoundException("No users exist")))
-                : userRepository.findAll().stream().findFirst().orElseThrow(() -> new ResourceNotFoundException("No users exist"));
-            
-            // Try to find a room for the requested property, or just any room if not specified
-            com.b4code.backend.models.Room room = null;
-            if (request.getPropertyId() != null) {
-                room = propertyRepository.findById(request.getPropertyId())
-                    .flatMap(p -> p.getRooms().stream().findFirst())
-                    .orElse(null);
-            }
-            if (room == null) {
-                room = propertyRepository.findAll().stream()
-                    .flatMap(p -> p.getRooms().stream()).findFirst().orElseThrow(() -> new ResourceNotFoundException("No rooms exist"));
-            }
-            
-            Booking newB = new Booking();
-            newB.setRoom(room);
-            newB.setProperty(room.getProperty());
-            newB.setGuestEmail(g.getEmail());
-            newB.setGuestName(g.getFirstName() + " " + g.getLastName());
-            newB.setCheckIn(java.time.LocalDate.now());
-            newB.setCheckOut(java.time.LocalDate.now().plusDays(2));
-            newB.setTotalAmount(java.math.BigDecimal.valueOf(100));
-            newB.setTaxAmount(java.math.BigDecimal.valueOf(10));
-            newB.setAdults(2);
-            newB.setChildren(0);
-            newB.setPaymentMethod(Booking.PaymentMethod.ONLINE_CARD);
-            newB.setStatus(Booking.BookingStatus.COMPLETED);
-            newB.setConfirmationCode("MOCK-" + System.currentTimeMillis());
-            booking = bookingRepository.save(newB);
-        }
-
-        // Check removed: guests can only review completed bookings
-        // (Status was removed from booking)
-
-        // Prevent duplicate reviews (COMMENTED OUT FOR MOCK TESTING)
-        // if (reviewRepository.existsByBookingId(booking.getId())) {
-        //     throw new IllegalStateException("Review already exists for this booking");
-        // }
-
-        String photoUrlsStr = request.getPhotoUrls() != null
-            ? String.join(",", request.getPhotoUrls())
-            : null;
+        Booking booking = bookingRepository.findById(request.getBookingId())
+            .orElseThrow(() -> new ResourceNotFoundException("Booking not found"));
 
         String currentUserEmail = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication() != null 
             ? org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication().getName() 
             : null;
-        
-        User guest = currentUserEmail != null 
-            ? userRepository.findByEmail(currentUserEmail).orElseGet(() -> userRepository.findAll().stream().findFirst().orElseThrow(() -> new ResourceNotFoundException("Guest user not found")))
-            : userRepository.findAll().stream().findFirst().orElseThrow(() -> new ResourceNotFoundException("Guest user not found"));
+
+        if (currentUserEmail == null) {
+            throw new IllegalStateException("User must be logged in to review");
+        }
+
+        User guest = userRepository.findByEmail(currentUserEmail)
+            .orElseThrow(() -> new ResourceNotFoundException("Guest user not found"));
+
+        // Enforce booking belongs to user
+        if (!guest.getEmail().equals(booking.getGuestEmail())) {
+            throw new IllegalStateException("You can only review your own bookings");
+        }
+
+        // Enforce booking is completed
+        if (booking.getStatus() != Booking.BookingStatus.COMPLETED) {
+            throw new IllegalStateException("You can only review completed stays");
+        }
+
+        // Prevent duplicate reviews
+        if (reviewRepository.existsByBookingId(booking.getId())) {
+            throw new IllegalStateException("Review already exists for this booking");
+        }
+
+        String photoUrlsStr = request.getPhotoUrls() != null
+            ? String.join(",", request.getPhotoUrls())
+            : null;
 
         Review review = Review.builder()
             .booking(booking)
