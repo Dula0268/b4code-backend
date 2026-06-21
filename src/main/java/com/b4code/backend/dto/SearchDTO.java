@@ -182,6 +182,15 @@ public class SearchDTO {
         private String date;
         private String text;
         private Integer rating;
+
+        private Integer cleanlinessRating;
+        private Integer comfortRating;
+        private Integer serviceRating;
+        private Integer diningRating;
+        private Integer locationRating;
+        private Integer valueRating;
+        
+        private List<String> photoUrls;
     }
 
     @Data

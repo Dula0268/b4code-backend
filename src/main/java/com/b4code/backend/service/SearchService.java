@@ -372,11 +372,24 @@ public class SearchService {
                         : "Recent")
                 .text(r.getComment() != null ? r.getComment() : "")
                 .rating(r.getOverallRating())
+                .cleanlinessRating(r.getCleanlinessRating())
+                .comfortRating(r.getComfortRating())
+                .serviceRating(r.getServiceRating())
+                .diningRating(r.getDiningRating())
+                .locationRating(r.getLocationRating())
+                .valueRating(r.getValueRating())
+                .photoUrls(r.getPhotoUrls() != null ? Arrays.asList(r.getPhotoUrls().split(",")) : new ArrayList<>())
                 .build()
         ).collect(Collectors.toList());
 
         // Review breakdown
         List<ReviewBreakdownDTO> breakdown = new ArrayList<>();
+        if (property.getAvgCleanliness() != null) breakdown.add(new ReviewBreakdownDTO("Cleanliness", property.getAvgCleanliness()));
+        if (property.getAvgComfort() != null) breakdown.add(new ReviewBreakdownDTO("Comfort", property.getAvgComfort()));
+        if (property.getAvgService() != null) breakdown.add(new ReviewBreakdownDTO("Service", property.getAvgService()));
+        if (property.getAvgDining() != null) breakdown.add(new ReviewBreakdownDTO("Dining", property.getAvgDining()));
+        if (property.getAvgLocation() != null) breakdown.add(new ReviewBreakdownDTO("Location", property.getAvgLocation()));
+        if (property.getAvgValue() != null) breakdown.add(new ReviewBreakdownDTO("Value", property.getAvgValue()));
 
         // Rooms
         List<RoomDTO> roomDTOs = property.getRooms() != null

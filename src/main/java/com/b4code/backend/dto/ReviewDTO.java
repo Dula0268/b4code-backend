@@ -29,6 +29,13 @@ public class ReviewDTO {
         @Size(max = 2000, message = "Comment cannot exceed 2000 characters")
         private String comment;
 
+        private Integer cleanlinessRating;
+        private Integer comfortRating;
+        private Integer serviceRating;
+        private Integer diningRating;
+        private Integer locationRating;
+        private Integer valueRating;
+
         private List<String> photoUrls;  // uploaded images
     }
 
@@ -45,6 +52,14 @@ public class ReviewDTO {
         private Long propertyId;
         private Long guestId;
         private Integer overallRating;
+        
+        private Integer cleanlinessRating;
+        private Integer comfortRating;
+        private Integer serviceRating;
+        private Integer diningRating;
+        private Integer locationRating;
+        private Integer valueRating;
+
         private String comment;
         private List<String> photoUrls;
         private LocalDateTime createdAt;
@@ -62,6 +77,14 @@ public class ReviewDTO {
         private String propertyName;
         private Double averageRating;
         private Long totalReviews;
+
+        private Double avgCleanliness;
+        private Double avgComfort;
+        private Double avgService;
+        private Double avgDining;
+        private Double avgLocation;
+        private Double avgValue;
+
         private List<ReviewResponse> recentReviews;
     }
 

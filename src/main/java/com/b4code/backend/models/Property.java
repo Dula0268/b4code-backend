@@ -83,6 +83,13 @@ public class Property {
     // Ratings & Reviews
     private Double averageRating;
     private Integer reviewCount;
+    
+    private Double avgCleanliness;
+    private Double avgComfort;
+    private Double avgService;
+    private Double avgDining;
+    private Double avgLocation;
+    private Double avgValue;
 
     // Policies
     @Column(length = 50)
