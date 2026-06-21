@@ -19,6 +19,9 @@ public class ReviewDTO {
         @NotNull(message = "Booking ID is required")
         private Long bookingId;
 
+        // Added for mock testing to specify the property when no real booking exists
+        private Long propertyId;
+
         @NotNull(message = "Overall rating is required")
         @Min(value = 1, message = "Rating must be between 1 and 5")
         @Max(value = 5, message = "Rating must be between 1 and 5")
