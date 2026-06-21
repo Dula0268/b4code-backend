@@ -2,12 +2,14 @@ package com.b4code.backend.rest;
 
 import com.b4code.backend.models.Order;
 import com.b4code.backend.dao.OrderRepository;
+import com.b4code.backend.service.OrderSseService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/staff/orders")
@@ -17,6 +19,7 @@ import java.util.List;
 public class StaffOrderController {
 
     private final OrderRepository orderRepository;
+    private final OrderSseService orderSseService;
 
     @GetMapping("/property/{propertyId}")
     public ResponseEntity<List<Order>> getOrdersByProperty(@PathVariable Long propertyId) {
@@ -50,7 +53,10 @@ public class StaffOrderController {
         return orderRepository.findById(orderId)
                 .map(order -> {
                     order.setStatus(status);
-                    return ResponseEntity.ok(orderRepository.save(order));
+                    Order saved = orderRepository.save(order);
+                    orderSseService.sendEvent(orderId, "status-update",
+                            Map.of("orderId", orderId, "status", status));
+                    return ResponseEntity.ok(saved);
                 })
                 .orElse(ResponseEntity.notFound().build());
     }

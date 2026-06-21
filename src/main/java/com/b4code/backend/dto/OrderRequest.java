@@ -14,6 +14,8 @@ public class OrderRequest {
     private String guestPhone;
     private Double totalAmount;
     private String status;
+    private String guestInstructions;
+    private String paymentMethod;
     private List<OrderItemRequest> items;
 
     @Data

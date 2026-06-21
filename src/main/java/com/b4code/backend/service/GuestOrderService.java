@@ -30,6 +30,8 @@ public class GuestOrderService {
         order.setTableNumber(request.getTableNumber());
         order.setTotalAmount(request.getTotalAmount());
         order.setStatus(request.getStatus() != null ? request.getStatus() : "NEW");
+        order.setGuestInstructions(request.getGuestInstructions());
+        order.setPaymentMethod(request.getPaymentMethod());
 
         if (request.getItems() != null) {
             for (OrderRequest.OrderItemRequest itemReq : request.getItems()) {

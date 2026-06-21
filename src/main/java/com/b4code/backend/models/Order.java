@@ -47,6 +47,15 @@ public class Order {
     @Column(nullable = false)
     private String status;
 
+    @Column(name = "guest_instructions", columnDefinition = "TEXT")
+    private String guestInstructions;
+
+    @Column(name = "payment_method", length = 50)
+    private String paymentMethod;
+
+    @Column(name = "staff_notes", columnDefinition = "TEXT")
+    private String staffNotes;
+
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
     private java.util.List<OrderItem> items = new java.util.ArrayList<>();
 
