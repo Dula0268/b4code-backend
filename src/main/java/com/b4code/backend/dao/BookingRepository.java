@@ -41,7 +41,7 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
         @Param("checkOut") LocalDate checkOut
     );
 
-    List<Booking> findByGuestEmail(String guestEmail);
+    List<Booking> findByGuestEmailOrderByCreatedAtDesc(String guestEmail);
 
     Optional<Booking> findByConfirmationCode(String confirmationCode);
 }

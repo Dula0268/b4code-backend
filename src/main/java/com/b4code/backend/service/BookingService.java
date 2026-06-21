@@ -165,7 +165,7 @@ public class BookingService {
     // Get all bookings for a guest (by email)
     // ──────────────────────────────────────────
     public List<BookingResponse> getGuestBookings(String email) {
-        return bookingRepository.findByGuestEmail(email)
+        return bookingRepository.findByGuestEmailOrderByCreatedAtDesc(email)
                 .stream()
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
