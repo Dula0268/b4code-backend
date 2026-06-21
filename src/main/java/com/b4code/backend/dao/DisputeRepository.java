@@ -30,4 +30,6 @@ public interface DisputeRepository extends JpaRepository<Dispute, Long> {
             Pageable pageable);
 
     long countByStatusNot(DisputeStatus status);
+
+    java.util.Optional<Dispute> findTopByBookingIdOrderByOpenedAtDesc(Long bookingId);
 }

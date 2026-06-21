@@ -104,6 +104,8 @@ public class BookingDto {
         private String status;
         private BigDecimal taxAmount;
         private BigDecimal totalAmount;
+        private String disputeStatus;
+        private BigDecimal disputeAmount;
     }
 
     // ──────────────────────────────────

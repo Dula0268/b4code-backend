@@ -41,6 +41,8 @@ public class BookingService {
     private final EmailService emailService;
     private final com.b4code.backend.dao.PaymentRepository paymentRepository;
     private final PaymentService paymentService;
+    private final com.b4code.backend.dao.DisputeRepository disputeRepository;
+    private final com.b4code.backend.dao.UserRepository userRepository;
 
     // ──────────────────────────────────────────
     // Price Preview (called before confirming)
@@ -189,16 +191,46 @@ public class BookingService {
         booking.setCancellationReason(request.getReason());
         Booking saved = bookingRepository.save(booking);
 
-        // Attempt to refund any successful payments associated with this booking
-        paymentRepository.findFirstByBookingIdAndStatusOrderByCreatedAtDesc(
-                bookingId, com.b4code.backend.models.Payment.PaymentStatus.SUCCESS
-        ).ifPresent(payment -> {
-            try {
-                paymentService.refundPayment(payment.getId());
-            } catch (Exception e) {
-                log.error("Failed to automatically refund payment {} for booking {}", payment.getId(), bookingId, e);
+        // Calculate refund amount
+        Property property = booking.getProperty();
+        BigDecimal totalPaid = booking.getPaymentMethod() == Booking.PaymentMethod.ONLINE_CARD 
+            ? booking.getTotalAmount() 
+            : BigDecimal.ZERO;
+        BigDecimal fee = BigDecimal.ZERO;
+
+        if (property.getFreeCancellation() != null && !property.getFreeCancellation()) {
+            // 20% cancellation fee if not free
+            fee = totalPaid.multiply(new BigDecimal("0.20")).setScale(2, RoundingMode.HALF_UP);
+        }
+
+        BigDecimal refundAmount = totalPaid.subtract(fee);
+
+        if (refundAmount.compareTo(BigDecimal.ZERO) > 0) {
+            com.b4code.backend.models.Dispute dispute = new com.b4code.backend.models.Dispute();
+            dispute.setDisputeId(UUID.randomUUID().toString());
+            dispute.setBooking(saved);
+            dispute.setProperty(property);
+            
+            // Link guest user if exists
+            if (userRepository != null) {
+                userRepository.findByEmailAndDeletedFalse(saved.getGuestEmail())
+                    .ifPresent(dispute::setGuest);
             }
-        });
+
+            dispute.setAmount(refundAmount);
+            String reasonText = request.getReason() != null && !request.getReason().isBlank() 
+                ? " - Reason: " + request.getReason() 
+                : "";
+            dispute.setReason("Booking cancellation refund request for " + saved.getConfirmationCode() + reasonText);
+            dispute.setStatus(com.b4code.backend.models.enums.DisputeStatus.OPEN);
+            
+            if (disputeRepository != null) {
+                disputeRepository.save(dispute);
+            }
+        }
+
+        // We skip automatic payment gateway refund (paymentService.refundPayment) 
+        // to let admin handle it via Dispute dashboard instead.
 
         return mapToResponse(saved);
     }
@@ -271,12 +303,31 @@ public class BookingService {
 
         Booking saved = bookingRepository.save(booking);
 
+        boolean isPaidOnline = saved.getPaymentMethod() == Booking.PaymentMethod.ONLINE_CARD;
+
+        if (difference.compareTo(BigDecimal.ZERO) < 0 && isPaidOnline) {
+            com.b4code.backend.models.Dispute dispute = new com.b4code.backend.models.Dispute();
+            dispute.setDisputeId(UUID.randomUUID().toString());
+            dispute.setBooking(saved);
+            dispute.setProperty(saved.getProperty());
+            
+            // Link guest user if exists
+            userRepository.findByEmailAndDeletedFalse(saved.getGuestEmail())
+                .ifPresent(dispute::setGuest);
+
+            dispute.setAmount(difference.abs());
+            dispute.setReason("Booking modification refund request for " + saved.getConfirmationCode());
+            dispute.setStatus(com.b4code.backend.models.enums.DisputeStatus.OPEN);
+            
+            disputeRepository.save(dispute);
+        }
+
         return ModifyBookingResponse.builder()
                 .booking(mapToResponse(saved))
                 .previousTotalAmount(previousTotal)
                 .newTotalAmount(newTotal)
-                .refundAmount(difference.compareTo(BigDecimal.ZERO) < 0 ? difference.abs() : BigDecimal.ZERO)
-                .additionalAmountDue(difference.compareTo(BigDecimal.ZERO) > 0 ? difference : BigDecimal.ZERO)
+                .refundAmount((isPaidOnline && difference.compareTo(BigDecimal.ZERO) < 0) ? difference.abs() : BigDecimal.ZERO)
+                .additionalAmountDue((isPaidOnline && difference.compareTo(BigDecimal.ZERO) > 0) ? difference : BigDecimal.ZERO)
                 .build();
     }
 
@@ -341,7 +392,12 @@ public class BookingService {
             address = address != null ? address + ", " + booking.getProperty().getCity() : booking.getProperty().getCity();
         }
 
-        return BookingResponse.builder()
+        String displayStatus = booking.getStatus().name();
+        if (booking.getStatus() == Booking.BookingStatus.CONFIRMED && booking.getCheckOut().isBefore(LocalDate.now())) {
+            displayStatus = "COMPLETED";
+        }
+
+        BookingResponse response = BookingResponse.builder()
                 .id(booking.getId())
                 .roomId(booking.getRoom().getId())
                 .roomName(booking.getRoom().getRoomType().name())
@@ -365,10 +421,20 @@ public class BookingService {
                 .adults(booking.getAdults())
                 .promoCodes(booking.getPromoCode() != null ? Arrays.asList(booking.getPromoCode().split(",")) : null)
                 .paymentMethod(booking.getPaymentMethod())
-                .status(booking.getStatus().name())
+                .status(displayStatus)
                 .taxAmount(booking.getTaxAmount())
                 .totalAmount(booking.getTotalAmount())
                 .build();
+                
+        if (booking.getId() != null && disputeRepository != null) {
+            disputeRepository.findTopByBookingIdOrderByOpenedAtDesc(booking.getId())
+                .ifPresent(d -> {
+                    response.setDisputeStatus(d.getStatus().name());
+                    response.setDisputeAmount(d.getAmount());
+                });
+        }
+        
+        return response;
     }
 
     private Room findRoomOrThrow(Long id) {
