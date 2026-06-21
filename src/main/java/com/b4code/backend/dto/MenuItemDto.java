@@ -15,15 +15,25 @@ import java.util.List;
 public class MenuItemDto {
     private Long id;
     private Long propertyId;
+
+    // Menu reference
+    private Long menuId;
+    private String menuName;
+
+    // Category reference
+    private Long categoryId;
+    private String categoryName;
+
     private String name;
-    private String title; // Mapping name to title for frontend
-    private String category;
+    private String title;       // Alias for name (frontend compatibility)
     private String description;
     private BigDecimal price;
-    private BigDecimal priceLkr; // Mapping price to priceLkr for frontend
+    private BigDecimal priceLkr; // Alias for price (frontend compatibility)
     private Boolean isAvailable;
     private List<String> imageUrls;
-    private String imageUrl; // Single image URL for compatibility
-    private String tag; // POPULAR, VEG, etc.
+    private String imageUrl;     // Single image URL (frontend compatibility)
+    private String tag;
+    private Integer calories;
+    private List<MenuItemVariantDto> variants;
+    private List<MenuItemModifierDto> modifiers;
 }
-
