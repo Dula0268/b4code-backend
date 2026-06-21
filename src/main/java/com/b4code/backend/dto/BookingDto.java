@@ -49,9 +49,9 @@ public class BookingDto {
         @Min(value = 1, message = "At least 1 adult required")
         private Integer adults;
 
-        @NotNull(message = "Children count is required")
         @Min(value = 0, message = "Children count cannot be negative")
-        private Integer children;
+        @Builder.Default
+        private Integer children = 0;
 
         private List<String> promoCodes;
 
@@ -99,7 +99,6 @@ public class BookingDto {
         private LocalDate checkIn;
         private LocalDate checkOut;
         private Integer adults;
-        private Integer children;
         private List<String> promoCodes;
         private PaymentMethod paymentMethod;
         private String status;
