@@ -27,6 +27,9 @@ public class Booking {
     @Column(nullable = false)
     private String guestName;
 
+    @Column(length = 20)
+    private String nicNumber;
+
     @Column(nullable = false)
     private LocalDate checkIn;
 
@@ -44,6 +47,10 @@ public class Booking {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "room_id", nullable = false)
     private Room room;
+
+    @Column(nullable = false, columnDefinition = "integer default 1")
+    @Builder.Default
+    private Integer roomQuantity = 1;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "property_id", nullable = false)

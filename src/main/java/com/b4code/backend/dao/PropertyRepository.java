@@ -27,7 +27,7 @@ public interface PropertyRepository extends JpaRepository<Property, Long> {
               AND r.pricePerNight <= :maxPrice
               
               AND (
-                    :checkIn IS NULL OR :checkOut IS NULL OR NOT EXISTS (
+                    :hasDates = false OR NOT EXISTS (
                         SELECT b FROM Booking b
                         WHERE b.room = r
                             AND b.checkIn  < :checkOut
@@ -39,7 +39,7 @@ public interface PropertyRepository extends JpaRepository<Property, Long> {
                   
                   
                   AND (
-                      :checkIn IS NULL OR :checkOut IS NULL OR NOT EXISTS (
+                      :hasDates = false OR NOT EXISTS (
                           SELECT b FROM Booking b
                           WHERE b.room = r2
                               AND b.checkIn  < :checkOut
@@ -47,11 +47,24 @@ public interface PropertyRepository extends JpaRepository<Property, Long> {
                       )
                   )
               ) >= :rooms
+              AND (
+                  SELECT SUM(r3.maxOccupancy) FROM Room r3 WHERE r3.property = p
+                  AND (
+                      :hasDates = false OR NOT EXISTS (
+                          SELECT b FROM Booking b
+                          WHERE b.room = r3
+                              AND b.checkIn  < :checkOut
+                              AND b.checkOut > :checkIn
+                      )
+                  )
+              ) >= :guests
             """)
     Page<Property> searchAvailableProperties(
             @Param("destination") String destination,
+            @Param("hasDates") boolean hasDates,
             @Param("checkIn") LocalDate checkIn,
             @Param("checkOut") LocalDate checkOut,
+            @Param("guests") Integer guests,
             @Param("rooms") Integer rooms,
             @Param("minPrice") BigDecimal minPrice,
             @Param("maxPrice") BigDecimal maxPrice,
@@ -68,7 +81,7 @@ public interface PropertyRepository extends JpaRepository<Property, Long> {
               AND r.pricePerNight >= :minPrice
               AND r.pricePerNight <= :maxPrice
               AND (
-                    :checkIn IS NULL OR :checkOut IS NULL OR NOT EXISTS (
+                    :hasDates = false OR NOT EXISTS (
                         SELECT b FROM Booking b
                         WHERE b.room = r
                             AND b.checkIn  < :checkOut
@@ -80,7 +93,7 @@ public interface PropertyRepository extends JpaRepository<Property, Long> {
                   
                   
                   AND (
-                      :checkIn IS NULL OR :checkOut IS NULL OR NOT EXISTS (
+                      :hasDates = false OR NOT EXISTS (
                           SELECT b FROM Booking b
                           WHERE b.room = r2
                               AND b.checkIn  < :checkOut
@@ -88,11 +101,24 @@ public interface PropertyRepository extends JpaRepository<Property, Long> {
                       )
                   )
               ) >= :rooms
+              AND (
+                  SELECT SUM(r3.maxOccupancy) FROM Room r3 WHERE r3.property = p
+                  AND (
+                      :hasDates = false OR NOT EXISTS (
+                          SELECT b FROM Booking b
+                          WHERE b.room = r3
+                              AND b.checkIn  < :checkOut
+                              AND b.checkOut > :checkIn
+                      )
+                  )
+              ) >= :guests
             """)
     List<Property> searchAvailablePropertiesList(
             @Param("destination") String destination,
+            @Param("hasDates") boolean hasDates,
             @Param("checkIn") LocalDate checkIn,
             @Param("checkOut") LocalDate checkOut,
+            @Param("guests") Integer guests,
             @Param("rooms") Integer rooms,
             @Param("minPrice") BigDecimal minPrice,
             @Param("maxPrice") BigDecimal maxPrice);

@@ -31,6 +31,13 @@ public class Review {
     @Column(nullable = false)
     private Integer overallRating;
 
+    private Integer cleanlinessRating;
+    private Integer comfortRating;
+    private Integer serviceRating;
+    private Integer diningRating;
+    private Integer locationRating;
+    private Integer valueRating;
+
     @Column(length = 2000)
     private String comment;
 

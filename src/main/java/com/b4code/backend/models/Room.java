@@ -35,4 +35,8 @@ public class Room {
 
     @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal pricePerNight;
+
+    @Column(nullable = false, columnDefinition = "integer default 3")
+    @Builder.Default
+    private Integer inventory = 3;
 }
