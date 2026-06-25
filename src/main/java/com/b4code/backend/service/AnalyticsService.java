@@ -6,7 +6,10 @@ import java.util.List;
 
 public interface AnalyticsService {
     PlatformAnalyticsDto getPlatformAnalytics();
+
     PlatformSummaryDto getPlatformSummary();
+
     List<RevParDto> getRevParBreakdown();
-    List<BookingChartPointDto> getBookingsChart();  
+
+    List<BookingChartPointDto> getBookingsChart();
 }

@@ -15,38 +15,38 @@ import java.util.Optional;
 
 @Repository
 public interface UserRepository extends JpaRepository<User, Long> {
-    Optional<User> findByEmail(String email);
-    
-    Optional<User> findByEmailAndDeletedFalse(String email);
+  Optional<User> findByEmail(String email);
 
-    Optional<User> findByIdAndDeletedFalse(Long id);
+  Optional<User> findByEmailAndDeletedFalse(String email);
 
-    List<User> findByPropertyIdInAndRoleAndStatusAndDeletedFalse(List<Long> propertyIds, UserRole role, UserStatus status);
+  Optional<User> findByIdAndDeletedFalse(Long id);
 
-    @Query("""
-            SELECT u FROM User u
-            LEFT JOIN Property p ON p.id = u.propertyId
-            WHERE u.deleted = false
-              AND (
-                    :search IS NULL OR :search = ''
-                    OR LOWER(u.firstName)  LIKE LOWER(CONCAT('%', :search, '%'))
-                    OR LOWER(u.lastName)   LIKE LOWER(CONCAT('%', :search, '%'))
-                    OR LOWER(u.email)      LIKE LOWER(CONCAT('%', :search, '%'))
-                    OR LOWER(p.name)       LIKE LOWER(CONCAT('%', :search, '%'))
-                  )
-              AND (:role   IS NULL OR u.role   = :role)
-              AND (:status IS NULL OR u.status = :status)
-            """)
-    Page<User> findAllWithFilters(
-            @Param("search") String search,
-            @Param("role") UserRole role,
-            @Param("status") UserStatus status,
-            Pageable pageable);
+  List<User> findByPropertyIdInAndRoleAndStatusAndDeletedFalse(List<Long> propertyIds, UserRole role,
+      UserStatus status);
 
-    boolean existsByEmailAndDeletedFalse(String email);
+  @Query("""
+      SELECT u FROM User u
+      LEFT JOIN Property p ON p.id = u.propertyId
+      WHERE u.deleted = false
+        AND (
+              :search IS NULL OR :search = ''
+              OR LOWER(u.firstName)  LIKE LOWER(CONCAT('%', :search, '%'))
+              OR LOWER(u.lastName)   LIKE LOWER(CONCAT('%', :search, '%'))
+              OR LOWER(u.email)      LIKE LOWER(CONCAT('%', :search, '%'))
+              OR LOWER(p.name)       LIKE LOWER(CONCAT('%', :search, '%'))
+            )
+        AND (:role   IS NULL OR u.role   = :role)
+        AND (:status IS NULL OR u.status = :status)
+      """)
+  Page<User> findAllWithFilters(
+      @Param("search") String search,
+      @Param("role") UserRole role,
+      @Param("status") UserStatus status,
+      Pageable pageable);
 
-    default boolean existsByEmail(String email) {
-        return existsByEmailAndDeletedFalse(email);
-    }
+  boolean existsByEmailAndDeletedFalse(String email);
+
+  default boolean existsByEmail(String email) {
+    return existsByEmailAndDeletedFalse(email);
+  }
 }
-

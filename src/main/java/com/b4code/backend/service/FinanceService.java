@@ -34,4 +34,6 @@ public interface FinanceService {
     java.math.BigDecimal getCommissionRate();
 
     java.math.BigDecimal updateCommissionRate(java.math.BigDecimal newRate);
+
+    void exportPayoutsToCsv(String search, PayoutStatus status, jakarta.servlet.http.HttpServletResponse response) throws java.io.IOException;
 }

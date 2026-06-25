@@ -117,6 +117,17 @@ public class FinanceController {
         return ResponseEntity.ok(financeService.getAllPayouts(search, status, page, size));
     }
 
+    // ── EXPORT payouts
+    @GetMapping("/payouts/export")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Export payout requests to CSV")
+    public void exportPayouts(
+            @RequestParam(required = false, defaultValue = "") String search,
+            @RequestParam(required = false) PayoutStatus status,
+            jakarta.servlet.http.HttpServletResponse response) throws java.io.IOException {
+        financeService.exportPayoutsToCsv(search, status, response);
+    }
+
     // ── PROCESS payout
     @PutMapping("/payouts/{id}/process")
     @PreAuthorize("hasRole('ADMIN')")

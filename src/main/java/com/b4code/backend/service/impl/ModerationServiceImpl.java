@@ -115,6 +115,88 @@ public class ModerationServiceImpl implements ModerationService {
                 .map(ModerationHistoryDto::fromEntity);
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public void exportHistoryToCsv(ModerationAction action, String search,
+                                    LocalDateTime from, LocalDateTime to,
+                                    jakarta.servlet.http.HttpServletResponse response) throws java.io.IOException {
+        String term = (search == null || search.isBlank()) ? null : search.trim();
+        Page<ModerationHistory> pageResult = historyRepository.findAllWithFilters(action, term, from, to,
+                org.springframework.data.domain.Pageable.unpaged());
+
+        response.setContentType("text/csv");
+        response.setHeader("Content-Disposition", "attachment; filename=\"moderation-history-report.csv\"");
+
+        try (java.io.PrintWriter writer = response.getWriter()) {
+            writer.println("Case ID,Resolved Date,Action Taken,Resolved By,Outcome,Review ID,Booking ID,Property Name,Rating,Review Comment,Flagged By,Reason for Flag,Flag Date,Current Status,Admin Internal Notes");
+            for (ModerationHistory h : pageResult.getContent()) {
+                String reviewId = "N/A";
+                String bookingId = "N/A";
+                String propertyName = "N/A";
+                String rating = "N/A";
+                String comment = "N/A";
+                String flaggedBy = "N/A";
+                String reasonForFlag = "N/A";
+                String flagDate = "N/A";
+                String currentStatus = "N/A";
+                String adminNotes = "N/A";
+
+                if (h.getCaseId() != null && h.getCaseId().startsWith("#REV-")) {
+                    try {
+                        Long rId = Long.parseLong(h.getCaseId().substring(5));
+                        FlaggedReview fr = reviewRepository.findById(rId).orElse(null);
+                        if (fr != null) {
+                            reviewId = fr.getReview() != null ? String.valueOf(fr.getReview().getId()) : "N/A";
+                            bookingId = (fr.getReview() != null && fr.getReview().getBooking() != null) ? String.valueOf(fr.getReview().getBooking().getId()) : "N/A";
+                            propertyName = (fr.getReview() != null && fr.getReview().getProperty() != null) ? fr.getReview().getProperty().getName() : "N/A";
+                            rating = fr.getReview() != null ? String.valueOf(fr.getReview().getOverallRating()) : "N/A";
+                            comment = fr.getReview() != null ? fr.getReview().getComment() : "N/A";
+                            flaggedBy = fr.getOwner() != null ? String.valueOf(fr.getOwner().getId()) : "System";
+                            reasonForFlag = fr.getFlagType() != null ? fr.getFlagType().name() : "N/A";
+                            flagDate = fr.getFlaggedAt() != null ? fr.getFlaggedAt().toString() : "N/A";
+                            currentStatus = fr.getStatus() != null ? fr.getStatus().name() : "N/A";
+                            adminNotes = fr.getAdminNote() != null ? fr.getAdminNote() : "N/A";
+                        }
+                    } catch (Exception e) {
+                        log.warn("Failed to parse review id from caseId={}", h.getCaseId());
+                    }
+                } else if (h.getCaseId() != null) {
+                    // It's a dispute
+                    Dispute d = disputeRepository.findAll().stream().filter(dis -> h.getCaseId().equals(dis.getDisputeId())).findFirst().orElse(null);
+                    if (d != null) {
+                        bookingId = d.getBooking() != null ? String.valueOf(d.getBooking().getId()) : "N/A";
+                        propertyName = d.getProperty() != null ? d.getProperty().getName() : "N/A";
+                        reasonForFlag = "Dispute";
+                        currentStatus = d.getStatus() != null ? d.getStatus().name() : "N/A";
+                        adminNotes = d.getInternalNote() != null ? d.getInternalNote() : "N/A";
+                    }
+                }
+
+                String outcome = h.getOutcome() != null ? h.getOutcome().replace("\"", "\"\"").replace("\n", " ") : "";
+                comment = comment != null ? comment.replace("\"", "\"\"").replace("\n", " ") : "";
+                adminNotes = adminNotes != null ? adminNotes.replace("\"", "\"\"").replace("\n", " ") : "";
+
+                writer.printf("\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\"%n",
+                        h.getCaseId(),
+                        h.getResolvedAt() != null ? h.getResolvedAt().toString() : "",
+                        h.getActionTaken(),
+                        h.getAdmin() != null ? h.getAdmin().getFirstName() + " " + h.getAdmin().getLastName() : "System",
+                        outcome,
+                        reviewId,
+                        bookingId,
+                        propertyName,
+                        rating,
+                        comment,
+                        flaggedBy,
+                        reasonForFlag,
+                        flagDate,
+                        currentStatus,
+                        adminNotes
+                );
+            }
+        }
+    }
+
 
     @Override
     @Transactional(readOnly = true)

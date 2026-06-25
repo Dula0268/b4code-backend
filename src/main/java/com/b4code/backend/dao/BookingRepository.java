@@ -44,4 +44,14 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
     List<Booking> findByGuestEmailOrderByCreatedAtDesc(String guestEmail);
 
     Optional<Booking> findByConfirmationCode(String confirmationCode);
+
+    @Query(value = """
+        SELECT b.room_id AS roomId,
+               COALESCE(SUM(b.total_amount), 0) AS totalRevenue,
+               COALESCE(SUM(b.check_out - b.check_in), 0) AS totalNights
+        FROM guest.bookings b
+        WHERE b.status IN ('COMPLETED', 'CHECKED_IN', 'CONFIRMED')
+        GROUP BY b.room_id
+    """, nativeQuery = true)
+    List<Object[]> getRoomAggregatedMetrics();
 }

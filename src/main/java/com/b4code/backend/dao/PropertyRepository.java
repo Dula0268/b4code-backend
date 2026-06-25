@@ -21,11 +21,11 @@ public interface PropertyRepository extends JpaRepository<Property, Long> {
             WHERE (LOWER(p.city) LIKE LOWER(CONCAT('%', :destination, '%'))
                    OR LOWER(p.country) LIKE LOWER(CONCAT('%', :destination, '%'))
                    OR LOWER(p.name) LIKE LOWER(CONCAT('%', :destination, '%')))
-              
-              
+
+
               AND r.pricePerNight >= :minPrice
               AND r.pricePerNight <= :maxPrice
-              
+
               AND (
                     :hasDates = false OR NOT EXISTS (
                         SELECT b FROM Booking b
@@ -36,8 +36,8 @@ public interface PropertyRepository extends JpaRepository<Property, Long> {
               )
               AND (
                   SELECT COUNT(r2) FROM Room r2 WHERE r2.property = p
-                  
-                  
+
+
                   AND (
                       :hasDates = false OR NOT EXISTS (
                           SELECT b FROM Booking b
@@ -76,8 +76,8 @@ public interface PropertyRepository extends JpaRepository<Property, Long> {
             WHERE (LOWER(p.city) LIKE LOWER(CONCAT('%', :destination, '%'))
                    OR LOWER(p.country) LIKE LOWER(CONCAT('%', :destination, '%'))
                    OR LOWER(p.name) LIKE LOWER(CONCAT('%', :destination, '%')))
-              
-              
+
+
               AND r.pricePerNight >= :minPrice
               AND r.pricePerNight <= :maxPrice
               AND (
@@ -90,8 +90,8 @@ public interface PropertyRepository extends JpaRepository<Property, Long> {
               )
               AND (
                   SELECT COUNT(r2) FROM Room r2 WHERE r2.property = p
-                  
-                  
+
+
                   AND (
                       :hasDates = false OR NOT EXISTS (
                           SELECT b FROM Booking b
@@ -123,12 +123,11 @@ public interface PropertyRepository extends JpaRepository<Property, Long> {
             @Param("minPrice") BigDecimal minPrice,
             @Param("maxPrice") BigDecimal maxPrice);
 
-    
-
     @Query("SELECT DISTINCT p.city FROM Property p ORDER BY p.city")
     List<String> findDistinctCities();
 
-    // 🛠️🛠️🛠️ Admin Management Methods (from admin module) 🛠️🛠️🛠️🛠️🛠️🛠️🛠️🛠️🛠️🛠️🛠️🛠️🛠️🛠️🛠️🛠️🛠️🛠️🛠️🛠️
+    // 🛠️🛠️🛠️ Admin Management Methods (from admin module)
+    // 🛠️🛠️🛠️🛠️🛠️🛠️🛠️🛠️🛠️🛠️🛠️🛠️🛠️🛠️🛠️🛠️🛠️🛠️🛠️🛠️
 
     /**
      * Admin query to list ALL properties with optional search filters.
@@ -145,8 +144,6 @@ public interface PropertyRepository extends JpaRepository<Property, Long> {
     List<Property> findTop5ByOrderByIdDesc();
 
     List<Property> findByOwnerId(Long ownerId);
-
-    
 
     @Query("SELECT MIN(r.pricePerNight) FROM Room r")
     BigDecimal findMinPrice();
