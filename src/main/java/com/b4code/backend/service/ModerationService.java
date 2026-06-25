@@ -23,6 +23,10 @@ public interface ModerationService {
                                            LocalDateTime from, LocalDateTime to,
                                            int page, int size);
 
+    void exportHistoryToCsv(ModerationAction action, String search,
+                            LocalDateTime from, LocalDateTime to,
+                            jakarta.servlet.http.HttpServletResponse response) throws java.io.IOException;
+
     long getPendingReviewCount();
     long getOpenDisputeCount();
     long getRemovedTodayCount();
