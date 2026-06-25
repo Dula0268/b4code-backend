@@ -1,5 +1,7 @@
 package com.b4code.backend.service.impl;
 
+import com.b4code.backend.dao.BookingRepository;
+import com.b4code.backend.dao.RoomRepository;
 import com.b4code.backend.dao.UserRepository;
 import com.b4code.backend.dao.PropertyRepository;
 import com.b4code.backend.dao.TransactionRepository;
@@ -23,6 +25,8 @@ public class AnalyticsServiceImpl implements AnalyticsService {
     private final TransactionRepository transactionRepository;
     private final PropertyRepository propertyRepository;
     private final UserRepository userRepository;
+    private final RoomRepository roomRepository;
+    private final BookingRepository bookingRepository;
 
     private static final int COMMISSION_RATE = 20;
 
@@ -100,27 +104,51 @@ public class AnalyticsServiceImpl implements AnalyticsService {
     public List<RevParDto> getRevParBreakdown() {
         log.debug("Computing RevPAR breakdown (cache miss)");
 
-        List<com.b4code.backend.models.Property> properties = propertyRepository.findAll();
+        List<com.b4code.backend.models.Room> rooms = roomRepository.findAllWithRelations();
+        List<Object[]> aggregatedMetrics = bookingRepository.getRoomAggregatedMetrics();
 
-        return properties.stream().map(prop -> {
-            long id = prop.getId();
-            // Generate deterministic realistic values based on ID
-            double occupancy = 60.0 + (id % 35); // 60% to 95%
-            BigDecimal adr = BigDecimal.valueOf(300 + (id * 50));
+        // Build a map for O(1) lookup
+        java.util.Map<Long, Object[]> metricsMap = new java.util.HashMap<>();
+        for (Object[] row : aggregatedMetrics) {
+            Number roomId = (Number) row[0];
+            metricsMap.put(roomId.longValue(), row);
+        }
+
+        return rooms.stream().map(room -> {
+            long roomId = room.getId();
+
+            long soldNights = 0;
+            BigDecimal totalRevenue = BigDecimal.ZERO;
+
+            Object[] metrics = metricsMap.get(roomId);
+            if (metrics != null) {
+                totalRevenue = metrics[1] != null ? new BigDecimal(metrics[1].toString()) : BigDecimal.ZERO;
+                soldNights = metrics[2] != null ? ((Number) metrics[2]).longValue() : 0;
+            }
+
+            // Calculate ADR (Average Daily Rate)
+            BigDecimal adr = soldNights > 0 
+                ? totalRevenue.divide(BigDecimal.valueOf(soldNights), 2, RoundingMode.HALF_UP) 
+                : BigDecimal.ZERO;
+
+            // Approximate Occupancy (assuming 30 days timeframe for MVP all-time calculation)
+            double occupancy = Math.min(100.0, (soldNights / 30.0) * 100.0);
+            
             BigDecimal revpar = adr.multiply(BigDecimal.valueOf(occupancy / 100.0)).setScale(2, RoundingMode.HALF_UP);
 
-            String[] types = { "Suite", "Villa", "Penthouse", "Eco Cabin" };
-            String type = types[(int) (id % types.length)];
+            String imageUrl = room.getImage() != null && room.getImage().getUrl() != null
+                ? room.getImage().getUrl()
+                : "/images/placeholder-property.jpg";
 
-            String imageUrl = "/images/placeholder-property.jpg";
+            String propertyName = room.getProperty() != null ? room.getProperty().getName() : "Unknown Property";
 
             return RevParDto.builder()
-                    .propertyId(prop.getId())
-                    .propertyName(prop.getName())
-                    .type(type)
-                    .roomNumber("Room " + (100 + id))
-                    .adults(2 + (int) (id % 4))
-                    .sqm(80 + (int) (id * 10))
+                    .propertyId(room.getProperty() != null ? room.getProperty().getId() : 0L)
+                    .propertyName(propertyName)
+                    .type(room.getRoomType() != null ? room.getRoomType().name() : "N/A")
+                    .roomNumber("Room " + roomId)
+                    .adults(room.getMaxOccupancy() != null ? room.getMaxOccupancy() : 2)
+                    .sqm(0) // Default if no SQM
                     .image(imageUrl)
                     .avgDailyRate(adr)
                     .occupancyRate(occupancy)
