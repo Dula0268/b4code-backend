@@ -152,6 +152,54 @@ public class FinanceServiceImpl implements FinanceService {
                                 .build();
         }
 
+        // ── Payouts: export
+        @Override
+        @Transactional(readOnly = true)
+        public void exportPayoutsToCsv(String search, PayoutStatus status, jakarta.servlet.http.HttpServletResponse response) throws java.io.IOException {
+                String searchTerm = (search == null || search.isBlank()) ? null : search.trim();
+                Page<Payout> pageResult = payoutRepository.findAllWithFilters(
+                                status, searchTerm,
+                                org.springframework.data.domain.Pageable.unpaged());
+
+                response.setContentType("text/csv");
+                response.setHeader("Content-Disposition", "attachment; filename=\"payout-report.csv\"");
+
+                try (java.io.PrintWriter writer = response.getWriter()) {
+                        writer.println("Payout ID,Property Name,Owner Name,Status,Currency,Gross Amount,Platform Commission,Net Payout,Bank Reference,Requested Date,Processed Date");
+                        for (Payout p : pageResult.getContent()) {
+                                BigDecimal gross = p.getAmount() != null ? p.getAmount() : BigDecimal.ZERO;
+                                BigDecimal commission = p.getCommissionAmount() != null ? p.getCommissionAmount() : BigDecimal.ZERO;
+                                BigDecimal net = gross.subtract(commission); // Alternatively, if amount is net: p.getAmount() and gross = p.getAmount() + p.getCommissionAmount()
+                                // Actually, in processPayout: payout.setAmount(payout.getHotelAmount().subtract(commission).add(foodAmt));
+                                // So amount is the net payout!
+                                net = p.getAmount() != null ? p.getAmount() : BigDecimal.ZERO;
+                                gross = net.add(commission);
+
+                                String bankRef = p.getBankReference() != null ? p.getBankReference() : "";
+                                if (bankRef.length() > 4) {
+                                        bankRef = "***" + bankRef.substring(bankRef.length() - 4);
+                                }
+
+                                String requestedDate = p.getRequestedAt() != null ? p.getRequestedAt().toString() : "";
+                                String processedDate = p.getProcessedAt() != null ? p.getProcessedAt().toString() : "";
+
+                                writer.printf("\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\"%n",
+                                        p.getId(),
+                                        p.getPropertyName() != null ? p.getPropertyName().replace("\"", "\"\"") : "",
+                                        p.getOwnerName() != null ? p.getOwnerName().replace("\"", "\"\"") : "",
+                                        p.getStatus(),
+                                        p.getCurrency(),
+                                        gross,
+                                        commission,
+                                        net,
+                                        bankRef,
+                                        requestedDate,
+                                        processedDate
+                                );
+                        }
+                }
+        }
+
         // ── Payouts: process
         @Override
         @Transactional
