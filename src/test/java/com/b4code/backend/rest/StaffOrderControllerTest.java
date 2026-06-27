@@ -20,6 +20,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -53,7 +54,7 @@ class StaffOrderControllerTest {
 
         when(staffOrderService.updateOrderStatus(1L, OrderStatus.ACCEPTED)).thenReturn(order);
 
-        mockMvc.perform(patch("/api/staff/orders/1/accept"))
+        mockMvc.perform(patch("/api/staff/orders/1/accept").with(csrf()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("ACCEPTED"));
     }
@@ -71,7 +72,7 @@ class StaffOrderControllerTest {
 
         when(staffOrderService.rejectOrder(eq(1L), any(StaffOrderActionDto.class))).thenReturn(order);
 
-        mockMvc.perform(post("/api/staff/orders/1/reject")
+        mockMvc.perform(post("/api/staff/orders/1/reject").with(csrf())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(action)))
                 .andExpect(status().isOk())
@@ -83,7 +84,7 @@ class StaffOrderControllerTest {
         StaffOrderActionDto action = new StaffOrderActionDto();
         action.setConfirm(true);
 
-        mockMvc.perform(post("/api/staff/orders/1/reject")
+        mockMvc.perform(post("/api/staff/orders/1/reject").with(csrf())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(action)))
                 .andExpect(status().isUnauthorized());

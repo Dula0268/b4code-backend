@@ -33,6 +33,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.Optional;
+import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -69,6 +70,15 @@ public class E2EOrderFlowTest {
     @MockBean
     private ReviewRepository reviewRepository;
 
+    @MockBean
+    private org.springframework.mail.javamail.JavaMailSender javaMailSender;
+
+    @MockBean
+    private com.b4code.backend.dao.BookingRepository bookingRepository;
+
+    @MockBean
+    private com.b4code.backend.dao.UserRepository userRepository;
+
     @BeforeEach
     void setupMocks() {
         // Setup Property Mock
@@ -79,8 +89,26 @@ public class E2EOrderFlowTest {
         // Setup MenuItem Mock
         MenuItem menuItem = new MenuItem();
         menuItem.setId(10L);
-        menuItem.setPrice(new BigDecimal("15.0"));
+        menuItem.setPrice(new BigDecimal("15.99"));
         Mockito.when(menuItemRepository.findById(10L)).thenReturn(Optional.of(menuItem));
+
+        // Setup Booking Mock
+        com.b4code.backend.models.Booking booking = new com.b4code.backend.models.Booking();
+        booking.setId(1L);
+        booking.setProperty(property);
+        booking.setGuestEmail("user");
+        booking.setStatus(com.b4code.backend.models.Booking.BookingStatus.COMPLETED);
+        
+        com.b4code.backend.models.Room room = new com.b4code.backend.models.Room();
+        room.setProperty(property);
+        booking.setRoom(room);
+        Mockito.when(bookingRepository.findById(1L)).thenReturn(Optional.of(booking));
+        
+        // Setup User Mock
+        com.b4code.backend.models.User guest = new com.b4code.backend.models.User();
+        guest.setEmail("user");
+        guest.setId(5L);
+        Mockito.when(userRepository.findByEmail("user")).thenReturn(Optional.of(guest));
 
         // Setup Order Save Mock
         Mockito.when(orderRepository.save(any(Order.class))).thenAnswer(i -> {
@@ -103,6 +131,8 @@ public class E2EOrderFlowTest {
             if (review.getId() == null) review.setId(200L);
             return review;
         });
+        Mockito.when(reviewRepository.findByPropertyIdOrderByCreatedAtDesc(eq(1L), any()))
+            .thenReturn(new org.springframework.data.domain.PageImpl<>(Collections.emptyList()));
     }
 
     @Test
