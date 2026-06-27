@@ -53,8 +53,6 @@ public class QRCodeServiceImpl implements QRCodeService {
         qrCode.setInstructionText(request.getInstructionText());
         qrCode.setShowRoomNumber(Boolean.TRUE.equals(request.getShowRoomNumber()));
         qrCode.setShowLogo(request.getShowLogo() == null || request.getShowLogo());
-        qrCode.setTableId(request.getTableId());
-        qrCode.setRoomNumber(request.getRoomNumber());
         qrCode.setCreatedAt(LocalDateTime.now());
         qrCode.setUpdatedAt(LocalDateTime.now());
 
@@ -203,8 +201,6 @@ public class QRCodeServiceImpl implements QRCodeService {
                 .instructionText(qrCode.getInstructionText())
                 .showRoomNumber(qrCode.getShowRoomNumber())
                 .showLogo(qrCode.getShowLogo())
-                .tableId(qrCode.getTableId())
-                .roomNumber(qrCode.getRoomNumber())
                 .build();
     }
 
