@@ -20,6 +20,12 @@ public class OrderSseService {
 
         emitters.computeIfAbsent(orderId, k -> new CopyOnWriteArrayList<>()).add(emitter);
         log.info("SSE emitter added for order: {}", orderId);
+        
+        try {
+            emitter.send(SseEmitter.event().name("connected").data("SSE connection established"));
+        } catch (IOException e) {
+            log.warn("Failed to send initial SSE event for order: {}", orderId);
+        }
 
         emitter.onCompletion(() -> removeEmitter(orderId, emitter));
         emitter.onTimeout(() -> removeEmitter(orderId, emitter));
@@ -57,6 +63,54 @@ public class OrderSseService {
                 emitters.remove(orderId);
             }
             log.debug("SSE emitter removed for order: {}", orderId);
+        }
+    }
+
+    private final ConcurrentHashMap<Long, List<SseEmitter>> propertyEmitters = new ConcurrentHashMap<>();
+
+    public SseEmitter addPropertyEmitter(Long propertyId) {
+        SseEmitter emitter = new SseEmitter(60 * 60 * 1000L); // 1 hour timeout
+
+        propertyEmitters.computeIfAbsent(propertyId, k -> new CopyOnWriteArrayList<>()).add(emitter);
+        log.info("SSE emitter added for property: {}", propertyId);
+        
+        try {
+            emitter.send(SseEmitter.event().name("connected").data("SSE connection established"));
+        } catch (IOException e) {
+            log.warn("Failed to send initial SSE event for property: {}", propertyId);
+        }
+
+        emitter.onCompletion(() -> removePropertyEmitter(propertyId, emitter));
+        emitter.onTimeout(() -> removePropertyEmitter(propertyId, emitter));
+        emitter.onError(e -> removePropertyEmitter(propertyId, emitter));
+
+        return emitter;
+    }
+
+    public void sendPropertyEvent(Long propertyId, String eventType, Object data) {
+        List<SseEmitter> propEmitters = propertyEmitters.get(propertyId);
+        if (propEmitters == null || propEmitters.isEmpty()) {
+            return;
+        }
+
+        log.info("Sending SSE event '{}' to {} emitter(s) for property: {}", eventType, propEmitters.size(), propertyId);
+
+        for (SseEmitter emitter : propEmitters) {
+            try {
+                emitter.send(SseEmitter.event().name(eventType).data(data));
+            } catch (IOException e) {
+                removePropertyEmitter(propertyId, emitter);
+            }
+        }
+    }
+
+    private void removePropertyEmitter(Long propertyId, SseEmitter emitter) {
+        List<SseEmitter> propEmitters = propertyEmitters.get(propertyId);
+        if (propEmitters != null) {
+            propEmitters.remove(emitter);
+            if (propEmitters.isEmpty()) {
+                propertyEmitters.remove(propertyId);
+            }
         }
     }
 }
