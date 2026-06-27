@@ -38,6 +38,9 @@ class StaffOrderControllerTest {
     @MockBean
     private OrderSseService orderSseService;
 
+    @MockBean
+    private com.b4code.backend.common.security.JwtUtil jwtUtil;
+
     @Autowired
     private ObjectMapper objectMapper;
 
