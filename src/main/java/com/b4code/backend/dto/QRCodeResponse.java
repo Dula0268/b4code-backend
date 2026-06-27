@@ -30,7 +30,5 @@ public class QRCodeResponse {
     private String instructionText;
     private Boolean showRoomNumber;
     private Boolean showLogo;
-    private Long tableId;
-    private String roomNumber;
 }
 
