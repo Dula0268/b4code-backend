@@ -1,5 +1,10 @@
 package com.b4code.backend.exceptions;
 
+import com.b4code.backend.exception.MenuItemNotFoundException;
+import com.b4code.backend.exception.OrderNotFoundException;
+import com.b4code.backend.exception.DuplicateOrderException;
+import com.b4code.backend.exception.StatusTransitionException;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -31,6 +36,51 @@ public class GlobalExceptionHandler {
                 .build();
 
         return ResponseEntity.status(ex.getStatus()).body(errorResponse);
+    }
+
+    @ExceptionHandler(MenuItemNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleMenuItemNotFound(MenuItemNotFoundException ex) {
+        log.warn("Menu item not found: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ErrorResponse.builder()
+                .status(HttpStatus.NOT_FOUND.value())
+                .message(ex.getMessage())
+                .build());
+    }
+
+    @ExceptionHandler(OrderNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleOrderNotFound(OrderNotFoundException ex) {
+        log.warn("Order not found: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ErrorResponse.builder()
+                .status(HttpStatus.NOT_FOUND.value())
+                .message(ex.getMessage())
+                .build());
+    }
+
+    @ExceptionHandler(DuplicateOrderException.class)
+    public ResponseEntity<ErrorResponse> handleDuplicateOrder(DuplicateOrderException ex) {
+        log.warn("Duplicate order: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(ErrorResponse.builder()
+                .status(HttpStatus.CONFLICT.value())
+                .message(ex.getMessage())
+                .build());
+    }
+
+    @ExceptionHandler(StatusTransitionException.class)
+    public ResponseEntity<ErrorResponse> handleStatusTransitionException(StatusTransitionException ex) {
+        log.warn("Invalid status transition: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ErrorResponse.builder()
+                .status(HttpStatus.BAD_REQUEST.value())
+                .message(ex.getMessage())
+                .build());
+    }
+    
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<ErrorResponse> handleIllegalArgumentException(IllegalArgumentException ex) {
+        log.warn("Illegal argument: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ErrorResponse.builder()
+                .status(HttpStatus.BAD_REQUEST.value())
+                .message(ex.getMessage())
+                .build());
     }
 
     /**

@@ -26,12 +26,6 @@ public class QRCode {
     @Column(nullable = true)
     private Long propertyId;
 
-    @Column(name = "table_id")
-    private Long tableId;
-
-    @Column(name = "room_number")
-    private String roomNumber;
-
     @Column(nullable = true)
     private String status = "ACTIVE";
 

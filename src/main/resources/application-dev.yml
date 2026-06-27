@@ -7,7 +7,7 @@ spring:
     hikari:
       connection-timeout: 20000
       validation-timeout: 5000
-      maximum-pool-size: 3
+      maximum-pool-size: 20
       minimum-idle: 1
       idle-timeout: 30000
       keepalive-time: 60000
@@ -23,6 +23,7 @@ spring:
       schema-locations: classpath:schema.sql
 
   jpa:
+    open-in-view: false
     hibernate:
       ddl-auto: update
     show-sql: true
