@@ -22,12 +22,11 @@ public class GuestMenuController {
     @GetMapping("/menu")
     public ResponseEntity<Page<MenuItemDto>> getGuestMenu(
             @RequestParam Long propertyId,
-            @RequestParam(required = false) Long tableId,
-            @RequestParam(required = false) String roomNumber,
+            @RequestParam(required = false) String location,
             @PageableDefault(size = 20) Pageable pageable) {
         
-        log.info("Guest fetching menu for property: {}, table: {}, room: {}, page: {}", 
-                propertyId, tableId, roomNumber, pageable.getPageNumber());
+        log.info("Guest fetching menu for property: {}, location: {}, page: {}", 
+                propertyId, location, pageable.getPageNumber());
         
         return ResponseEntity.ok(guestMenuService.getMenuForProperty(propertyId, pageable));
     }
