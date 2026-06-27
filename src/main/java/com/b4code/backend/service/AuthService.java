@@ -37,6 +37,7 @@ public class AuthService {
     private final PasswordResetTokenRepository passwordResetTokenRepository;
     private final EmailService emailService;
     private final VerificationOTPRepository verificationOTPRepository;
+    private final com.b4code.backend.dao.BookingRepository bookingRepository;
 
     @Value("${app.frontend-url:http://localhost:3001}")
     private String frontendUrl;
@@ -281,5 +282,61 @@ public class AuthService {
         log.setEntityDetail(user.getEmail());
         log.setTimestamp(LocalDateTime.now());
         auditLogRepository.save(log);
+    }
+
+    // ───────────────────────── ROOM LOGIN ─────────────────────────
+    public AuthResponse roomLogin(com.b4code.backend.dto.RoomLoginRequest request) {
+        Long roomId = Long.parseLong(request.getRoomNumber());
+        com.b4code.backend.models.Booking booking = bookingRepository.findActiveBookingByRoom(request.getPropertyId(), roomId)
+                .orElseThrow(() -> new CustomException("No active reservation found for this room.", HttpStatus.NOT_FOUND));
+
+        // Strict name verification removed to allow family members to order.
+        // We log them in using the primary booking email so the charge correctly routes to the room.
+        
+        User user = userRepository.findByEmail(booking.getGuestEmail().toLowerCase())
+                .orElseGet(() -> {
+                    User newUser = new User();
+                    newUser.setEmail(booking.getGuestEmail().toLowerCase());
+                    newUser.setFirstName(booking.getGuestName());
+                    newUser.setLastName("");
+                    newUser.setPasswordHash(passwordEncoder.encode(UUID.randomUUID().toString())); // dummy password
+                    newUser.setRole(UserRole.GUEST);
+                    newUser.setStatus(UserStatus.ACTIVE);
+                    return userRepository.save(newUser);
+                });
+
+        // Ensure user is active
+        if (user.getStatus() != UserStatus.ACTIVE) {
+            user.setStatus(UserStatus.ACTIVE);
+            userRepository.save(user);
+        }
+
+        AuditLog log = new AuditLog();
+        log.setUser(user);
+        log.setAction("ROOM_LOGIN_SUCCESS");
+        log.setEntity("AUTH");
+        log.setEntityDetail("Room: " + request.getRoomNumber());
+        log.setTimestamp(LocalDateTime.now());
+        auditLogRepository.save(log);
+
+        String token = jwtUtil.generateToken(user.getEmail(), user.getRole().name());
+        String refreshToken = jwtUtil.generateRefreshToken(user.getEmail());
+
+        UserProfileDto profile = new UserProfileDto(
+                user.getFirstName(),
+                user.getLastName(),
+                user.getPhone(),
+                user.getAvatarUrl(),
+                user.getNationalIdUrl());
+
+        return new AuthResponse(
+                token,
+                refreshToken,
+                user.getEmail(),
+                user.getRole().name(),
+                user.getId(),
+                user.getStatus().name(),
+                user.getPropertyId(),
+                profile);
     }
 }
