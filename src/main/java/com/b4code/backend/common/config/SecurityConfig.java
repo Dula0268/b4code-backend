@@ -69,6 +69,7 @@ public class SecurityConfig {
                                 "/api/payments/notify",
                                 "/api/images/**"
                         ).permitAll()
+                        .requestMatchers("/api/owner/**").hasRole("OWNER")
                         .requestMatchers("/actuator/**").permitAll()
                         .requestMatchers(
                                 "/swagger-ui/**",

@@ -91,6 +91,13 @@ public class Property {
     private Double avgLocation;
     private Double avgValue;
 
+    // Contact
+    @Column(length = 30)
+    private String contactPhone;
+
+    @Column(length = 120)
+    private String contactEmail;
+
     // Policies
     @Column(length = 50)
     @Builder.Default
