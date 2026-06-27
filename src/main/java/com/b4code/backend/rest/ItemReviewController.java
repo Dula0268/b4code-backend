@@ -35,12 +35,6 @@ public class ItemReviewController {
         }
 
         Order order = orderOpt.get();
-        String status = order.getStatus();
-        if (!"DELIVERED".equalsIgnoreCase(status) && !"COMPLETED".equalsIgnoreCase(status)) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(Map.of("error", "Reviews can only be submitted for delivered or completed orders"));
-        }
-
         Long menuItemId = ((Number) body.get("menuItemId")).longValue();
         Integer rating = ((Number) body.get("rating")).intValue();
         String comment = (String) body.get("comment");
