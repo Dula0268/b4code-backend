@@ -54,4 +54,54 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
         GROUP BY b.room_id
     """, nativeQuery = true)
     List<Object[]> getRoomAggregatedMetrics();
+
+    @Query("""
+        SELECT b FROM Booking b
+        WHERE b.property.ownerId = :ownerId
+          AND (:status IS NULL OR b.status = :status)
+          AND (:search IS NULL OR :search = ''
+               OR LOWER(b.guestName) LIKE LOWER(CONCAT('%', :search, '%'))
+               OR LOWER(b.guestEmail) LIKE LOWER(CONCAT('%', :search, '%'))
+               OR LOWER(b.confirmationCode) LIKE LOWER(CONCAT('%', :search, '%')))
+        ORDER BY b.createdAt DESC
+        """)
+    List<Booking> findByOwnerWithFilters(
+            @Param("ownerId") Long ownerId,
+            @Param("status") Booking.BookingStatus status,
+            @Param("search") String search);
+
+    @Query("""
+        SELECT b FROM Booking b
+        WHERE b.id = :id AND b.property.ownerId = :ownerId
+        """)
+    java.util.Optional<Booking> findByIdAndPropertyOwnerId(
+            @Param("id") Long id,
+            @Param("ownerId") Long ownerId);
+
+    @Query("""
+        SELECT b FROM Booking b
+        WHERE b.property.ownerId = :ownerId
+          AND b.status <> com.b4code.backend.models.Booking.BookingStatus.CANCELLED
+        ORDER BY b.createdAt DESC
+        """)
+    List<Booking> findRecentByOwner(@Param("ownerId") Long ownerId,
+                                    org.springframework.data.domain.Pageable pageable);
+
+    @Query("""
+        SELECT COALESCE(SUM(b.totalAmount), 0) FROM Booking b
+        WHERE b.property.ownerId = :ownerId
+          AND b.status IN (com.b4code.backend.models.Booking.BookingStatus.CONFIRMED,
+                           com.b4code.backend.models.Booking.BookingStatus.CHECKED_IN,
+                           com.b4code.backend.models.Booking.BookingStatus.COMPLETED)
+        """)
+    java.math.BigDecimal sumRevenueByOwner(@Param("ownerId") Long ownerId);
+
+    @Query("""
+        SELECT COUNT(b) FROM Booking b
+        WHERE b.property.ownerId = :ownerId
+          AND b.status IN (com.b4code.backend.models.Booking.BookingStatus.CONFIRMED,
+                           com.b4code.backend.models.Booking.BookingStatus.CHECKED_IN,
+                           com.b4code.backend.models.Booking.BookingStatus.COMPLETED)
+        """)
+    long countActiveByOwner(@Param("ownerId") Long ownerId);
 }
