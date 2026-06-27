@@ -42,4 +42,15 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
     List<Booking> findByGuestEmail(String guestEmail);
 
     Optional<Booking> findByConfirmationCode(String confirmationCode);
+
+    @Query("""
+        SELECT b FROM Booking b
+        WHERE b.property.id = :propertyId
+          AND b.room.id = :roomId
+          AND b.status = 'CHECKED_IN'
+    """)
+    Optional<Booking> findActiveBookingByRoom(
+        @Param("propertyId") Long propertyId,
+        @Param("roomId") Long roomId
+    );
 }
