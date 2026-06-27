@@ -35,10 +35,10 @@ public class PaymentService {
     @Value("${payhere.checkout-url}")
     private String checkoutUrl;
 
-    @Value("${payhere.return-url:http://localhost:3001/guest/booking/confirmation}")
+    @Value("${payhere.return-url:http://localhost:3000/guest/booking}")
     private String returnUrl;
 
-    @Value("${payhere.cancel-url:http://localhost:3001/payment}")
+    @Value("${payhere.cancel-url:http://localhost:3000/payment}")
     private String cancelUrl;
 
     public PaymentResponse initiatePayment(PaymentRequest request, Long userId) {

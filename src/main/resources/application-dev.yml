@@ -81,8 +81,8 @@ payhere:
   sandbox: true
   checkout-url: https://sandbox.payhere.lk/pay/checkout
   notify-url: http://localhost:8080/api/payments/notify
-  return-url: http://localhost:3001/guest/booking/confirmation
-  cancel-url: http://localhost:3001/payment
+  return-url: http://localhost:3000/guest/booking
+  cancel-url: http://localhost:3000/payment
 
 cloudinary:
   cloud-name: ${CLOUDINARY_CLOUD_NAME}

@@ -85,9 +85,12 @@ public class SearchService {
         BigDecimal safeMaxPrice = maxPrice != null ? maxPrice : new BigDecimal("10000000");
         Double safeMinRating = minRating != null ? minRating : 0.0;
         
+        boolean hasDates = (checkIn != null && checkOut != null);
+        LocalDate safeCheckIn = checkIn != null ? checkIn : LocalDate.of(1970, 1, 1);
+        LocalDate safeCheckOut = checkOut != null ? checkOut : LocalDate.of(1970, 1, 1);
 
         Page<Property> propertyPage = propertyRepository.searchAvailableProperties(
-                safeDestination, checkIn, checkOut, roomsVal,
+                safeDestination, hasDates, safeCheckIn, safeCheckOut, guestsVal, roomsVal,
                 safeMinPrice, safeMaxPrice, pageable);
 
         // Filter by amenities in-memory (amenities stored as comma-separated string)
@@ -95,6 +98,7 @@ public class SearchService {
                 .filter(p -> matchesAmenities(p, amenities))
                 .map(p -> mapToPropertySearchResult(p, guestsVal, checkIn, checkOut))
                 .filter(p -> p.getMatchingRoomsCount() >= roomsVal) // Double check room count
+                .filter(p -> p.getRating() >= safeMinRating) // Filter by minimum rating
                 .collect(Collectors.toList());
 
         // Apply in-memory price sorting if needed
@@ -138,13 +142,13 @@ public class SearchService {
     // ─── Property Detail ─────────────────────────────────────────────────
 
     @Transactional(readOnly = true)
-    public PropertyDetailResult getPropertyDetail(Long propertyId) {
-        log.info("Fetching property detail for id={}", propertyId);
+    public PropertyDetailResult getPropertyDetail(Long propertyId, LocalDate checkIn, LocalDate checkOut) {
+        log.info("Fetching property detail for id={}, checkIn={}, checkOut={}", propertyId, checkIn, checkOut);
 
         Property property = propertyRepository.findById(propertyId)
                 .orElseThrow(() -> new ResourceNotFoundException("Property not found: " + propertyId));
 
-        return mapToPropertyDetailResult(property);
+        return mapToPropertyDetailResult(property, checkIn, checkOut);
     }
 
     // ─── Dynamic Filter Options ──────────────────────────────────────────
@@ -278,7 +282,8 @@ public class SearchService {
                 ? property.getRooms().stream()
                     .filter(r -> {
                         if (checkIn == null || checkOut == null) return true;
-                        return !bookingRepository.existsOverlappingBooking(r.getId(), checkIn, checkOut);
+                        int booked = bookingRepository.getBookedQuantityForDates(r.getId(), checkIn, checkOut);
+                        return (r.getInventory() - booked) > 0;
                     })
                     .collect(Collectors.toList())
                 : Collections.emptyList();
@@ -288,6 +293,11 @@ public class SearchService {
         BigDecimal lowestPrice = availableRooms.stream()
                 .map(Room::getPricePerNight)
                 .min(BigDecimal::compareTo)
+                .orElse(BigDecimal.ZERO);
+
+        BigDecimal highestPrice = availableRooms.stream()
+                .map(Room::getPricePerNight)
+                .max(BigDecimal::compareTo)
                 .orElse(BigDecimal.ZERO);
 
         int maxGuests = 2; // Defaulting since maxOccupancy is removed
@@ -319,6 +329,7 @@ public class SearchService {
                 .district(property.getCity())
                 
                 .pricePerNight(lowestPrice)
+                .highestPricePerNight(highestPrice)
                 .maxGuests(maxGuests)
                 .baseGuests(2)
                 .extraGuestFee(BigDecimal.ZERO)
@@ -333,7 +344,7 @@ public class SearchService {
                 .build();
     }
 
-    private PropertyDetailResult mapToPropertyDetailResult(Property property) {
+    private PropertyDetailResult mapToPropertyDetailResult(Property property, LocalDate checkIn, LocalDate checkOut) {
         // Gallery images
         List<String> galleryImages = property.getImages() != null
                 ? property.getImages().stream().map(com.b4code.backend.models.Image::getUrl).collect(java.util.stream.Collectors.toList())
@@ -361,15 +372,39 @@ public class SearchService {
                         : "Recent")
                 .text(r.getComment() != null ? r.getComment() : "")
                 .rating(r.getOverallRating())
+                .cleanlinessRating(r.getCleanlinessRating())
+                .comfortRating(r.getComfortRating())
+                .serviceRating(r.getServiceRating())
+                .diningRating(r.getDiningRating())
+                .locationRating(r.getLocationRating())
+                .valueRating(r.getValueRating())
+                .photoUrls(r.getPhotoUrls() != null ? Arrays.asList(r.getPhotoUrls().split(",")) : new ArrayList<>())
                 .build()
         ).collect(Collectors.toList());
 
         // Review breakdown
         List<ReviewBreakdownDTO> breakdown = new ArrayList<>();
+        if (property.getAvgCleanliness() != null) breakdown.add(new ReviewBreakdownDTO("Cleanliness", property.getAvgCleanliness()));
+        if (property.getAvgComfort() != null) breakdown.add(new ReviewBreakdownDTO("Comfort", property.getAvgComfort()));
+        if (property.getAvgService() != null) breakdown.add(new ReviewBreakdownDTO("Service", property.getAvgService()));
+        if (property.getAvgDining() != null) breakdown.add(new ReviewBreakdownDTO("Dining", property.getAvgDining()));
+        if (property.getAvgLocation() != null) breakdown.add(new ReviewBreakdownDTO("Location", property.getAvgLocation()));
+        if (property.getAvgValue() != null) breakdown.add(new ReviewBreakdownDTO("Value", property.getAvgValue()));
 
         // Rooms
         List<RoomDTO> roomDTOs = property.getRooms() != null
-                ? property.getRooms().stream().map(r -> {
+                ? property.getRooms().stream()
+                    .filter(r -> {
+                        if (checkIn == null || checkOut == null) return true;
+                        int booked = bookingRepository.getBookedQuantityForDates(r.getId(), checkIn, checkOut);
+                        return (r.getInventory() - booked) > 0;
+                    })
+                    .map(r -> {
+                        int availableCount = r.getInventory() != null ? r.getInventory() : 3;
+                        if (checkIn != null && checkOut != null) {
+                            int booked = bookingRepository.getBookedQuantityForDates(r.getId(), checkIn, checkOut);
+                            availableCount -= booked;
+                        }
                     return RoomDTO.builder()
                             .id(r.getId().toString())
                             .name(r.getRoomType() != null ? r.getRoomType().name() : "")
@@ -381,6 +416,7 @@ public class SearchService {
                             .tag("")
                             .features(new ArrayList<>())
                             .imageSrc(r.getImage() != null ? r.getImage().getUrl() : null)
+                            .availableCount(availableCount)
                             .build();
                 }).collect(Collectors.toList())
                 : new ArrayList<>();
@@ -413,6 +449,11 @@ public class SearchService {
                 .rooms(roomDTOs)
                 .lat(property.getLatitude())
                 .lng(property.getLongitude())
+                .checkInTime(property.getCheckInTime())
+                .checkOutTime(property.getCheckOutTime())
+                .cancellationPolicy(property.getCancellationPolicy())
+                .childPolicy(property.getChildPolicy())
+                .houseRules(property.getHouseRules())
                 .build();
     }
 

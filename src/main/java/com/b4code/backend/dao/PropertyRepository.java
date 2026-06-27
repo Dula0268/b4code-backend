@@ -21,13 +21,13 @@ public interface PropertyRepository extends JpaRepository<Property, Long> {
             WHERE (LOWER(p.city) LIKE LOWER(CONCAT('%', :destination, '%'))
                    OR LOWER(p.country) LIKE LOWER(CONCAT('%', :destination, '%'))
                    OR LOWER(p.name) LIKE LOWER(CONCAT('%', :destination, '%')))
-              
-              
+
+
               AND r.pricePerNight >= :minPrice
               AND r.pricePerNight <= :maxPrice
-              
+
               AND (
-                    :checkIn IS NULL OR :checkOut IS NULL OR NOT EXISTS (
+                    :hasDates = false OR NOT EXISTS (
                         SELECT b FROM Booking b
                         WHERE b.room = r
                             AND b.checkIn  < :checkOut
@@ -36,10 +36,10 @@ public interface PropertyRepository extends JpaRepository<Property, Long> {
               )
               AND (
                   SELECT COUNT(r2) FROM Room r2 WHERE r2.property = p
-                  
-                  
+
+
                   AND (
-                      :checkIn IS NULL OR :checkOut IS NULL OR NOT EXISTS (
+                      :hasDates = false OR NOT EXISTS (
                           SELECT b FROM Booking b
                           WHERE b.room = r2
                               AND b.checkIn  < :checkOut
@@ -47,11 +47,24 @@ public interface PropertyRepository extends JpaRepository<Property, Long> {
                       )
                   )
               ) >= :rooms
+              AND (
+                  SELECT SUM(r3.maxOccupancy) FROM Room r3 WHERE r3.property = p
+                  AND (
+                      :hasDates = false OR NOT EXISTS (
+                          SELECT b FROM Booking b
+                          WHERE b.room = r3
+                              AND b.checkIn  < :checkOut
+                              AND b.checkOut > :checkIn
+                      )
+                  )
+              ) >= :guests
             """)
     Page<Property> searchAvailableProperties(
             @Param("destination") String destination,
+            @Param("hasDates") boolean hasDates,
             @Param("checkIn") LocalDate checkIn,
             @Param("checkOut") LocalDate checkOut,
+            @Param("guests") Integer guests,
             @Param("rooms") Integer rooms,
             @Param("minPrice") BigDecimal minPrice,
             @Param("maxPrice") BigDecimal maxPrice,
@@ -63,12 +76,12 @@ public interface PropertyRepository extends JpaRepository<Property, Long> {
             WHERE (LOWER(p.city) LIKE LOWER(CONCAT('%', :destination, '%'))
                    OR LOWER(p.country) LIKE LOWER(CONCAT('%', :destination, '%'))
                    OR LOWER(p.name) LIKE LOWER(CONCAT('%', :destination, '%')))
-              
-              
+
+
               AND r.pricePerNight >= :minPrice
               AND r.pricePerNight <= :maxPrice
               AND (
-                    :checkIn IS NULL OR :checkOut IS NULL OR NOT EXISTS (
+                    :hasDates = false OR NOT EXISTS (
                         SELECT b FROM Booking b
                         WHERE b.room = r
                             AND b.checkIn  < :checkOut
@@ -77,10 +90,10 @@ public interface PropertyRepository extends JpaRepository<Property, Long> {
               )
               AND (
                   SELECT COUNT(r2) FROM Room r2 WHERE r2.property = p
-                  
-                  
+
+
                   AND (
-                      :checkIn IS NULL OR :checkOut IS NULL OR NOT EXISTS (
+                      :hasDates = false OR NOT EXISTS (
                           SELECT b FROM Booking b
                           WHERE b.room = r2
                               AND b.checkIn  < :checkOut
@@ -88,21 +101,33 @@ public interface PropertyRepository extends JpaRepository<Property, Long> {
                       )
                   )
               ) >= :rooms
+              AND (
+                  SELECT SUM(r3.maxOccupancy) FROM Room r3 WHERE r3.property = p
+                  AND (
+                      :hasDates = false OR NOT EXISTS (
+                          SELECT b FROM Booking b
+                          WHERE b.room = r3
+                              AND b.checkIn  < :checkOut
+                              AND b.checkOut > :checkIn
+                      )
+                  )
+              ) >= :guests
             """)
     List<Property> searchAvailablePropertiesList(
             @Param("destination") String destination,
+            @Param("hasDates") boolean hasDates,
             @Param("checkIn") LocalDate checkIn,
             @Param("checkOut") LocalDate checkOut,
+            @Param("guests") Integer guests,
             @Param("rooms") Integer rooms,
             @Param("minPrice") BigDecimal minPrice,
             @Param("maxPrice") BigDecimal maxPrice);
 
-    
-
     @Query("SELECT DISTINCT p.city FROM Property p ORDER BY p.city")
     List<String> findDistinctCities();
 
-    // 🛠️🛠️🛠️ Admin Management Methods (from admin module) 🛠️🛠️🛠️🛠️🛠️🛠️🛠️🛠️🛠️🛠️🛠️🛠️🛠️🛠️🛠️🛠️🛠️🛠️🛠️🛠️
+    // 🛠️🛠️🛠️ Admin Management Methods (from admin module)
+    // 🛠️🛠️🛠️🛠️🛠️🛠️🛠️🛠️🛠️🛠️🛠️🛠️🛠️🛠️🛠️🛠️🛠️🛠️🛠️🛠️
 
     /**
      * Admin query to list ALL properties with optional search filters.
@@ -119,8 +144,6 @@ public interface PropertyRepository extends JpaRepository<Property, Long> {
     List<Property> findTop5ByOrderByIdDesc();
 
     List<Property> findByOwnerId(Long ownerId);
-
-    
 
     @Query("SELECT MIN(r.pricePerNight) FROM Room r")
     BigDecimal findMinPrice();

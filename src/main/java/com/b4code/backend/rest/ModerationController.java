@@ -124,6 +124,19 @@ public class ModerationController {
         if (page < 0) page = 0;
         return ResponseEntity.ok(moderationService.getHistory(action, search, from, to, page, size));
     }
+
+    // ── EXPORT history
+    @GetMapping("/history/export")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Export moderation history to CSV")
+    public void exportHistory(
+            @RequestParam(required = false) ModerationAction action,
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime from,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime to,
+            jakarta.servlet.http.HttpServletResponse response) throws java.io.IOException {
+        moderationService.exportHistoryToCsv(action, search, from, to, response);
+    }
 }
 
 

@@ -33,6 +33,7 @@ public class SearchDTO {
         private String district;
         private String propertyType;
         private BigDecimal pricePerNight;
+        private BigDecimal highestPricePerNight;
         private Integer maxGuests;
         private Integer baseGuests;
         private BigDecimal extraGuestFee;
@@ -79,6 +80,12 @@ public class SearchDTO {
 
         private Double lat;
         private Double lng;
+
+        private String checkInTime;
+        private String checkOutTime;
+        private String cancellationPolicy;
+        private String childPolicy;
+        private String houseRules;
     }
 
     // ─── Filter Options (served to frontend) ─────────────────────────────
@@ -175,6 +182,15 @@ public class SearchDTO {
         private String date;
         private String text;
         private Integer rating;
+
+        private Integer cleanlinessRating;
+        private Integer comfortRating;
+        private Integer serviceRating;
+        private Integer diningRating;
+        private Integer locationRating;
+        private Integer valueRating;
+        
+        private List<String> photoUrls;
     }
 
     @Data
@@ -192,6 +208,7 @@ public class SearchDTO {
         private String tag;
         private List<String> features;
         private String imageSrc;
+        private Integer availableCount;
     }
 }
 

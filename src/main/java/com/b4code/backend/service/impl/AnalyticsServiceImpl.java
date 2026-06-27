@@ -1,5 +1,7 @@
 package com.b4code.backend.service.impl;
 
+import com.b4code.backend.dao.BookingRepository;
+import com.b4code.backend.dao.RoomRepository;
 import com.b4code.backend.dao.UserRepository;
 import com.b4code.backend.dao.PropertyRepository;
 import com.b4code.backend.dao.TransactionRepository;
@@ -21,10 +23,12 @@ import java.util.List;
 public class AnalyticsServiceImpl implements AnalyticsService {
 
     private final TransactionRepository transactionRepository;
-    private final PropertyRepository    propertyRepository;
-    private final UserRepository   userRepository;
+    private final PropertyRepository propertyRepository;
+    private final UserRepository userRepository;
+    private final RoomRepository roomRepository;
+    private final BookingRepository bookingRepository;
 
-    private static final int COMMISSION_RATE = 20;  
+    private static final int COMMISSION_RATE = 20;
 
     @Override
     @Transactional(readOnly = true)
@@ -34,21 +38,23 @@ public class AnalyticsServiceImpl implements AnalyticsService {
 
         BigDecimal grossBookingValue = transactionRepository.sumTotalRevenue();
         BigDecimal netRevenue = transactionRepository.sumPlatformCommission();
-        
+
         // Calculate real Total Bookings
         long totalBookings = transactionRepository.count(); // Basic count for now
-        
+
         // Calculate ADR (Gross / Bookings) or default to 0
-        BigDecimal avgDailyRate = totalBookings > 0 
-            ? grossBookingValue.divide(BigDecimal.valueOf(totalBookings), 2, RoundingMode.HALF_UP)
-            : BigDecimal.ZERO;
-            
-        BigDecimal avgDailyGoal  = BigDecimal.valueOf(500); // Standard platform goal
-        
-        // Calculate occupancy based on property count vs bookings (mock logic if no actual stay dates)
+        BigDecimal avgDailyRate = totalBookings > 0
+                ? grossBookingValue.divide(BigDecimal.valueOf(totalBookings), 2, RoundingMode.HALF_UP)
+                : BigDecimal.ZERO;
+
+        BigDecimal avgDailyGoal = BigDecimal.valueOf(500); // Standard platform goal
+
+        // Calculate occupancy based on property count vs bookings (mock logic if no
+        // actual stay dates)
         long propertyCount = propertyRepository.count();
-        double occupancyRate = propertyCount > 0 ? Math.min(95.0, (double)totalBookings / (propertyCount * 10) * 100) : 0.0;
-        
+        double occupancyRate = propertyCount > 0 ? Math.min(95.0, (double) totalBookings / (propertyCount * 10) * 100)
+                : 0.0;
+
         BigDecimal revpar = avgDailyRate.multiply(BigDecimal.valueOf(occupancyRate / 100))
                 .setScale(2, RoundingMode.HALF_UP);
 
@@ -65,7 +71,7 @@ public class AnalyticsServiceImpl implements AnalyticsService {
                 .build();
     }
 
-    // ── Stat cards 
+    // ── Stat cards
     @Override
     @Transactional(readOnly = true)
     @Cacheable(value = "analytics", key = "'summary'")
@@ -73,9 +79,9 @@ public class AnalyticsServiceImpl implements AnalyticsService {
         log.debug("Computing platform summary (cache miss)");
 
         long registeredUsers = userRepository.count();
-        long propertyCount   = propertyRepository.count();     
+        long propertyCount = propertyRepository.count();
         BigDecimal commission = transactionRepository.sumPlatformCommission();
-        long totalBookings    = transactionRepository.count();
+        long totalBookings = transactionRepository.count();
 
         return PlatformSummaryDto.builder()
                 .avgLeadTimeDays(0.0) // Mock 0 until we have actual stay-start dates
@@ -91,34 +97,58 @@ public class AnalyticsServiceImpl implements AnalyticsService {
                 .build();
     }
 
-    // ── RevPAR per-property breakdown 
+    // ── RevPAR per-property breakdown
     @Override
     @Transactional(readOnly = true)
     @Cacheable(value = "analytics", key = "'revpar'")
     public List<RevParDto> getRevParBreakdown() {
         log.debug("Computing RevPAR breakdown (cache miss)");
-        
-        List<com.b4code.backend.models.Property> properties = propertyRepository.findAll();
-        
-        return properties.stream().map(prop -> {
-            long id = prop.getId();
-            // Generate deterministic realistic values based on ID
-            double occupancy = 60.0 + (id % 35); // 60% to 95%
-            BigDecimal adr = BigDecimal.valueOf(300 + (id * 50)); 
+
+        List<com.b4code.backend.models.Room> rooms = roomRepository.findAllWithRelations();
+        List<Object[]> aggregatedMetrics = bookingRepository.getRoomAggregatedMetrics();
+
+        // Build a map for O(1) lookup
+        java.util.Map<Long, Object[]> metricsMap = new java.util.HashMap<>();
+        for (Object[] row : aggregatedMetrics) {
+            Number roomId = (Number) row[0];
+            metricsMap.put(roomId.longValue(), row);
+        }
+
+        return rooms.stream().map(room -> {
+            long roomId = room.getId();
+
+            long soldNights = 0;
+            BigDecimal totalRevenue = BigDecimal.ZERO;
+
+            Object[] metrics = metricsMap.get(roomId);
+            if (metrics != null) {
+                totalRevenue = metrics[1] != null ? new BigDecimal(metrics[1].toString()) : BigDecimal.ZERO;
+                soldNights = metrics[2] != null ? ((Number) metrics[2]).longValue() : 0;
+            }
+
+            // Calculate ADR (Average Daily Rate)
+            BigDecimal adr = soldNights > 0 
+                ? totalRevenue.divide(BigDecimal.valueOf(soldNights), 2, RoundingMode.HALF_UP) 
+                : BigDecimal.ZERO;
+
+            // Approximate Occupancy (assuming 30 days timeframe for MVP all-time calculation)
+            double occupancy = Math.min(100.0, (soldNights / 30.0) * 100.0);
+            
             BigDecimal revpar = adr.multiply(BigDecimal.valueOf(occupancy / 100.0)).setScale(2, RoundingMode.HALF_UP);
-            
-            String[] types = {"Suite", "Villa", "Penthouse", "Eco Cabin"};
-            String type = types[(int)(id % types.length)];
-            
-            String imageUrl = "/images/placeholder-property.jpg";
-                
+
+            String imageUrl = room.getImage() != null && room.getImage().getUrl() != null
+                ? room.getImage().getUrl()
+                : "/images/placeholder-property.jpg";
+
+            String propertyName = room.getProperty() != null ? room.getProperty().getName() : "Unknown Property";
+
             return RevParDto.builder()
-                    .propertyId(prop.getId())
-                    .propertyName(prop.getName())
-                    .type(type)
-                    .roomNumber("Room " + (100 + id))
-                    .adults(2 + (int)(id % 4))
-                    .sqm(80 + (int)(id * 10))
+                    .propertyId(room.getProperty() != null ? room.getProperty().getId() : 0L)
+                    .propertyName(propertyName)
+                    .type(room.getRoomType() != null ? room.getRoomType().name() : "N/A")
+                    .roomNumber("Room " + roomId)
+                    .adults(room.getMaxOccupancy() != null ? room.getMaxOccupancy() : 2)
+                    .sqm(0) // Default if no SQM
                     .image(imageUrl)
                     .avgDailyRate(adr)
                     .occupancyRate(occupancy)
@@ -128,7 +158,7 @@ public class AnalyticsServiceImpl implements AnalyticsService {
         }).toList();
     }
 
-    // ── Monthly bookings chart 
+    // ── Monthly bookings chart
     @Override
     @Transactional(readOnly = true)
     @Cacheable(value = "analytics", key = "'bookings-chart'")
