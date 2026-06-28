@@ -71,6 +71,7 @@ public class SecurityConfig {
                                 "/api/staff/orders/*/stream",
                                 "/api/staff/orders/property/*/stream"
                         ).permitAll()
+                        .requestMatchers("/api/owner/**").hasRole("OWNER")
                         .requestMatchers("/actuator/**").permitAll()
                         .requestMatchers(
                                 "/swagger-ui/**",
