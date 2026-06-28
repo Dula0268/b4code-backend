@@ -262,7 +262,7 @@ public class SearchService {
             if (amLower.equals("free cancellation")) {
                 return property.getFreeCancellation() != null && property.getFreeCancellation();
             }
-            if (amLower.equals("breakfast included")) {
+            if (amLower.equals("breakfast included") || amLower.equals("breakfast")) {
                 return property.getBreakfastIncluded() != null && property.getBreakfastIncluded();
             }
             if (amLower.equals("pet-friendly")) {
