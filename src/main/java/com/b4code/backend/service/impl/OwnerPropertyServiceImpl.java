@@ -83,6 +83,7 @@ public class OwnerPropertyServiceImpl implements OwnerPropertyService {
                 .checkOutTime(request.getCheckOut() != null ? request.getCheckOut() : "11:00")
                 .houseRules(request.getHouseRules())
                 .propertyType(request.getPropertyType())
+                .imageUrl(request.getImageUrl())
                 .status(PropertyStatus.PENDING)
                 .build();
 
@@ -108,6 +109,7 @@ public class OwnerPropertyServiceImpl implements OwnerPropertyService {
         if (request.getCheckOut() != null)      property.setCheckOutTime(request.getCheckOut());
         if (request.getHouseRules() != null)    property.setHouseRules(request.getHouseRules());
         if (request.getPropertyType() != null)  property.setPropertyType(request.getPropertyType());
+        if (request.getImageUrl() != null)       property.setImageUrl(request.getImageUrl());
 
         if (request.getAmenities() != null) {
             property.getAmenities().clear();

@@ -20,7 +20,10 @@ public class B4CodeBackendApplication {
         Dotenv dotenv = Dotenv.configure().ignoreIfMissing().load();
         dotenv.entries().forEach(entry -> System.setProperty(entry.getKey(), entry.getValue()));
         
-        preInitializeDatabase();
+        // Skip on DevTools restart thread — pre-init already ran on the initial 'main' thread
+        if (Thread.currentThread().getName().equals("main")) {
+            preInitializeDatabase();
+        }
 
         SpringApplication.run(B4CodeBackendApplication.class, args);
     }

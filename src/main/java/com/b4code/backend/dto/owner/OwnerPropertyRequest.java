@@ -21,4 +21,5 @@ public class OwnerPropertyRequest {
     private String houseRules;
     private String propertyType;
     private List<String> amenities;
+    private String imageUrl;
 }

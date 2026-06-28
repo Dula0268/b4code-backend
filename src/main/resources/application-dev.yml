@@ -71,8 +71,8 @@ b4code:
   security:
     jwt:
       secret: ${JWT_SECRET}
-      expirationMs: 3600000
-      refreshExpirationMs: 86400000
+      expirationMs: 86400000
+      refreshExpirationMs: 604800000
 
 payhere:
   merchant-id: 1235421
