@@ -80,6 +80,7 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
 
     @Query("""
         SELECT b FROM Booking b
+        LEFT JOIN FETCH b.property
         WHERE b.property.ownerId = :ownerId
           AND b.status <> 'CANCELLED'
         ORDER BY b.createdAt DESC
@@ -88,7 +89,7 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
                                     org.springframework.data.domain.Pageable pageable);
 
     @Query("""
-        SELECT COALESCE(SUM(b.totalAmount), 0) FROM Booking b
+        SELECT SUM(b.totalAmount) FROM Booking b
         WHERE b.property.ownerId = :ownerId
           AND b.status IN ('CONFIRMED', 'CHECKED_IN', 'COMPLETED')
         """)
