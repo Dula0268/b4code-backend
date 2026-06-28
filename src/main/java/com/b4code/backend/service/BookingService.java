@@ -167,6 +167,7 @@ public class BookingService {
     // ──────────────────────────────────────────
     // Get by Confirmation Number
     // ──────────────────────────────────────────
+    @Transactional(readOnly = true)
     public BookingResponse getByConfirmationNumber(String confirmationNumber) {
         Booking booking = bookingRepository.findByConfirmationCode(confirmationNumber)
                 .orElseThrow(() -> new ResourceNotFoundException(
@@ -177,6 +178,7 @@ public class BookingService {
     // ──────────────────────────────────────────
     // Get all bookings for a guest (by email)
     // ──────────────────────────────────────────
+    @Transactional(readOnly = true)
     public List<BookingResponse> getGuestBookings(String email) {
         return bookingRepository.findByGuestEmailOrderByCreatedAtDesc(email)
                 .stream()
