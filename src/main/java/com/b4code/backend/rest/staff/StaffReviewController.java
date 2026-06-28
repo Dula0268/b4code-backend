@@ -65,7 +65,7 @@ public class StaffReviewController {
 
         jdbcTemplate.update(sql, 
             flagTypeStr,
-            ReviewStatus.PENDING.name(),
+            ReviewStatus.FLAGGED.name(),
             Timestamp.valueOf(LocalDateTime.now()),
             Timestamp.valueOf(LocalDateTime.now()),
             ownerId,
