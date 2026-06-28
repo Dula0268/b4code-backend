@@ -29,7 +29,7 @@ public class FlaggedReviewDto {
             DateTimeFormatter.ofPattern("MMM dd, yyyy hh:mm a");
 
     public static FlaggedReviewDto fromEntity(FlaggedReview r) {
-        String propName = r.getReview() != null && r.getReview().getProperty() != null ? r.getReview().getProperty().getName() : (r.getPropertyId() != null ? "Property ID: " + r.getPropertyId() : null);
+        String propName = r.getProperty() != null ? r.getProperty().getName() : (r.getReview() != null && r.getReview().getProperty() != null ? r.getReview().getProperty().getName() : (r.getPropertyId() != null ? "Property ID: " + r.getPropertyId() : null));
         Long propId = r.getPropertyId() != null ? r.getPropertyId() : (r.getReview() != null && r.getReview().getProperty() != null ? r.getReview().getProperty().getId() : null);
         String gName = r.getGuestName() != null ? r.getGuestName() : (r.getReview() != null && r.getReview().getGuest() != null ? r.getReview().getGuest().getFullName() : null);
         String initial = gName != null && !gName.isEmpty() ? gName.substring(0, 1) : null;

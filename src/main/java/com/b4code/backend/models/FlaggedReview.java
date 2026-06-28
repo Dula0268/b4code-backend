@@ -43,6 +43,11 @@ public class FlaggedReview {
     @Column(name = "guest_name")
     private String guestName;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "property_id", insertable = false, updatable = false)
+    @org.hibernate.annotations.NotFound(action = org.hibernate.annotations.NotFoundAction.IGNORE)
+    private Property property;
+
     @Column(name = "property_id")
     private Long propertyId;
 

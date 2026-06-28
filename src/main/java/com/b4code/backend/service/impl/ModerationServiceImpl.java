@@ -148,7 +148,7 @@ public class ModerationServiceImpl implements ModerationService {
                         if (fr != null) {
                             reviewId = fr.getReview() != null ? String.valueOf(fr.getReview().getId()) : (fr.getId() != null ? "FlaggedID:" + fr.getId() : "N/A");
                             bookingId = (fr.getReview() != null && fr.getReview().getBooking() != null) ? String.valueOf(fr.getReview().getBooking().getId()) : "N/A";
-                            propertyName = fr.getPropertyId() != null ? "Property ID: " + fr.getPropertyId() : ((fr.getReview() != null && fr.getReview().getProperty() != null) ? fr.getReview().getProperty().getName() : "N/A");
+                            propertyName = fr.getProperty() != null ? fr.getProperty().getName() : (fr.getPropertyId() != null ? "Property ID: " + fr.getPropertyId() : ((fr.getReview() != null && fr.getReview().getProperty() != null) ? fr.getReview().getProperty().getName() : "N/A"));
                             rating = fr.getRating() != null ? String.valueOf(fr.getRating()) : (fr.getReview() != null ? String.valueOf(fr.getReview().getOverallRating()) : "N/A");
                             comment = fr.getReviewText() != null ? fr.getReviewText() : (fr.getReview() != null ? fr.getReview().getComment() : "N/A");
                             flaggedBy = fr.getOwner() != null ? String.valueOf(fr.getOwner().getId()) : "System";
