@@ -32,8 +32,9 @@ public class GuestOrderController {
     public ResponseEntity<OrderResponse> placeOrder(@Valid @RequestBody OrderRequest request) {
         log.info("Placing new order for guest: {} at property: {}", request.getGuestId(), request.getPropertyId());
         Order savedOrder = guestOrderService.placeOrder(request);
-        orderSseService.sendPropertyEvent(savedOrder.getPropertyId(), "new-order", savedOrder);
-        return ResponseEntity.ok(OrderMapper.toResponse(savedOrder));
+        OrderResponse response = OrderMapper.toResponse(savedOrder);
+        orderSseService.sendPropertyEvent(savedOrder.getPropertyId(), "new-order", response);
+        return ResponseEntity.ok(response);
     }
 
     @Operation(summary = "Get guest order history", description = "Fetch paginated order history by guest ID")

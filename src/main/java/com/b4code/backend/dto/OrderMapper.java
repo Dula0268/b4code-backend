@@ -24,7 +24,11 @@ public class OrderMapper {
                 OrderResponse.OrderItemResponse itemResp = new OrderResponse.OrderItemResponse();
                 itemResp.setId(item.getId());
                 if (item.getMenuItem() != null) {
-                    itemResp.setMenuItemId(item.getMenuItem().getId());
+                    OrderResponse.MenuItemResponse menuResp = new OrderResponse.MenuItemResponse();
+                    menuResp.setId(item.getMenuItem().getId());
+                    menuResp.setName(item.getMenuItem().getName());
+                    menuResp.setTag(item.getMenuItem().getTag());
+                    itemResp.setMenuItem(menuResp);
                 }
                 itemResp.setQuantity(item.getQuantity());
                 itemResp.setPriceAtOrder(item.getPriceAtOrder());

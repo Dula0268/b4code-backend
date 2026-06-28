@@ -23,9 +23,16 @@ public class OrderResponse {
     @Data
     public static class OrderItemResponse {
         private Long id;
-        private Long menuItemId;
+        private MenuItemResponse menuItem;
         private Integer quantity;
         private Double priceAtOrder;
         private String note;
+    }
+
+    @Data
+    public static class MenuItemResponse {
+        private Long id;
+        private String name;
+        private String tag;
     }
 }
