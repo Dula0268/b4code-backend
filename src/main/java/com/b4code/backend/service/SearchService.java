@@ -302,13 +302,13 @@ public class SearchService {
 
         int maxGuests = 2; // Defaulting since maxOccupancy is removed
 
-        // Extract amenity labels for search card
+        // Extract amenity labels for search card (only advanced filters as requested)
         List<String> amenityLabels = new ArrayList<>();
-        if (property.getAmenities() != null && !property.getAmenities().isEmpty()) {
-            for (com.b4code.backend.models.Amenity am : property.getAmenities()) {
-                amenityLabels.add(am.getName());
-            }
-        }
+        
+        if (Boolean.TRUE.equals(property.getFreeCancellation())) amenityLabels.add("Free Cancellation");
+        if (Boolean.TRUE.equals(property.getBreakfastIncluded())) amenityLabels.add("Breakfast Included");
+        if (Boolean.TRUE.equals(property.getPetFriendly())) amenityLabels.add("Pet-Friendly");
+        if (Boolean.TRUE.equals(property.getAccessibility())) amenityLabels.add("Accessibility");
         
         Double avgRating = reviewRepository.calculateAverageRating(property.getId());
         Long reviewCount = reviewRepository.countByPropertyId(property.getId());
@@ -316,7 +316,7 @@ public class SearchService {
         String primaryImage = "/images/placeholder-property.jpg";
         if (property.getImages() != null && !property.getImages().isEmpty()) {
             primaryImage = property.getImages().stream()
-                .filter(img -> com.b4code.backend.models.ImageType.PROPERTY.equals(img.getType()))
+                .filter(img -> com.b4code.backend.models.ImageType.PROPERTY.equals(img.getType()) || com.b4code.backend.models.ImageType.GALLERY.equals(img.getType()))
                 .map(com.b4code.backend.models.Image::getUrl)
                 .findFirst()
                 .orElse(property.getImages().get(0).getUrl());
@@ -347,7 +347,10 @@ public class SearchService {
     private PropertyDetailResult mapToPropertyDetailResult(Property property, LocalDate checkIn, LocalDate checkOut) {
         // Gallery images
         List<String> galleryImages = property.getImages() != null
-                ? property.getImages().stream().map(com.b4code.backend.models.Image::getUrl).collect(java.util.stream.Collectors.toList())
+                ? property.getImages().stream()
+                    .filter(img -> com.b4code.backend.models.ImageType.PROPERTY.equals(img.getType()) || com.b4code.backend.models.ImageType.GALLERY.equals(img.getType()))
+                    .map(com.b4code.backend.models.Image::getUrl)
+                    .collect(java.util.stream.Collectors.toList())
                 : new java.util.ArrayList<>();
             
         String primaryImage = galleryImages.isEmpty() ? "/images/placeholder-property.jpg" : galleryImages.get(0);
