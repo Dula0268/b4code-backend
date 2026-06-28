@@ -20,6 +20,7 @@ import java.util.stream.Collectors;
 public class MenuController {
 
     private final MenuRepository menuRepository;
+    private final com.b4code.backend.dao.MenuItemRepository menuItemRepository;
 
     @GetMapping("/property/{propertyId}")
     public ResponseEntity<List<MenuDto>> getMenusByProperty(@PathVariable Long propertyId) {
@@ -53,8 +54,10 @@ public class MenuController {
     }
 
     @DeleteMapping("/{id}")
+    @org.springframework.transaction.annotation.Transactional
     public ResponseEntity<Void> deleteMenu(@PathVariable Long id) {
-        log.info("Deleting menu id: {}", id);
+        log.info("Deleting menu id: {} (unlinking items first)", id);
+        menuItemRepository.unlinkByMenuId(id);
         menuRepository.deleteById(id);
         return ResponseEntity.noContent().build();
     }

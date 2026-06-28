@@ -47,12 +47,16 @@ public class StaffReviewController {
             @PathVariable Long reviewId,
             @RequestBody Map<String, Object> body) {
             
-        Long propertyId = ((Number) body.get("propertyId")).longValue();
+        Object propObj = body.get("propertyId");
+        Long propertyId = propObj != null ? ((Number) propObj).longValue() : 1L;
+        
         String flagTypeStr = (String) body.get("flagType");
         String flagReason = (String) body.get("flagReason");
         String reviewText = (String) body.get("reviewText");
         String guestName = (String) body.get("guestName");
-        Double rating = ((Number) body.get("rating")).doubleValue();
+        Object ratingObj = body.get("rating");
+        Double rating = ratingObj != null ? ((Number) ratingObj).doubleValue() : 0.0;
+        
         Long ownerId = 1L; // Mock owner ID or get from context
 
         String sql = """
