@@ -1,5 +1,6 @@
 package com.b4code.backend.service.impl;
 
+import com.b4code.backend.dao.ImageRepository;
 import com.b4code.backend.dao.PropertyRepository;
 import com.b4code.backend.dao.RoomRepository;
 import com.b4code.backend.dao.UserRepository;
@@ -8,6 +9,8 @@ import com.b4code.backend.dto.owner.OwnerRoomListDto;
 import com.b4code.backend.dto.owner.OwnerRoomRequest;
 import com.b4code.backend.exceptions.CustomException;
 import com.b4code.backend.models.BedType;
+import com.b4code.backend.models.Image;
+import com.b4code.backend.models.ImageType;
 import com.b4code.backend.models.Property;
 import com.b4code.backend.models.Room;
 import com.b4code.backend.models.RoomType;
@@ -31,6 +34,7 @@ public class OwnerRoomServiceImpl implements OwnerRoomService {
     private final RoomRepository roomRepository;
     private final PropertyRepository propertyRepository;
     private final UserRepository userRepository;
+    private final ImageRepository imageRepository;
 
     @Override
     @Transactional(readOnly = true)
@@ -82,6 +86,15 @@ public class OwnerRoomServiceImpl implements OwnerRoomService {
             throw new CustomException("Property does not belong to this owner.", HttpStatus.FORBIDDEN);
         }
 
+        Image image = null;
+        if (request.getImageUrl() != null && !request.getImageUrl().isBlank()) {
+            image = imageRepository.save(Image.builder()
+                    .url(request.getImageUrl())
+                    .type(ImageType.ROOM)
+                    .property(property)
+                    .build());
+        }
+
         Room room = Room.builder()
                 .property(property)
                 .name(request.getName())
@@ -94,6 +107,7 @@ public class OwnerRoomServiceImpl implements OwnerRoomService {
                 .inventory(request.getInventory() != null ? request.getInventory() : 1)
                 .status(parseRoomStatus(request.getStatus()))
                 .isAvailable(true)
+                .image(image)
                 .build();
 
         Room saved = roomRepository.save(room);
