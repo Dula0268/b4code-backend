@@ -92,7 +92,7 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
     @Query("""
         SELECT b FROM Booking b
         WHERE b.property.ownerId = :ownerId
-          AND b.status <> com.b4code.backend.models.Booking.BookingStatus.CANCELLED
+          AND b.status <> com.b4code.backend.models.Booking$BookingStatus.CANCELLED
         ORDER BY b.createdAt DESC
         """)
     List<Booking> findRecentByOwner(@Param("ownerId") Long ownerId,
@@ -101,18 +101,18 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
     @Query("""
         SELECT COALESCE(SUM(b.totalAmount), 0) FROM Booking b
         WHERE b.property.ownerId = :ownerId
-          AND b.status IN (com.b4code.backend.models.Booking.BookingStatus.CONFIRMED,
-                           com.b4code.backend.models.Booking.BookingStatus.CHECKED_IN,
-                           com.b4code.backend.models.Booking.BookingStatus.COMPLETED)
+          AND b.status IN (com.b4code.backend.models.Booking$BookingStatus.CONFIRMED,
+                           com.b4code.backend.models.Booking$BookingStatus.CHECKED_IN,
+                           com.b4code.backend.models.Booking$BookingStatus.COMPLETED)
         """)
     java.math.BigDecimal sumRevenueByOwner(@Param("ownerId") Long ownerId);
 
     @Query("""
         SELECT COUNT(b) FROM Booking b
         WHERE b.property.ownerId = :ownerId
-          AND b.status IN (com.b4code.backend.models.Booking.BookingStatus.CONFIRMED,
-                           com.b4code.backend.models.Booking.BookingStatus.CHECKED_IN,
-                           com.b4code.backend.models.Booking.BookingStatus.COMPLETED)
+          AND b.status IN (com.b4code.backend.models.Booking$BookingStatus.CONFIRMED,
+                           com.b4code.backend.models.Booking$BookingStatus.CHECKED_IN,
+                           com.b4code.backend.models.Booking$BookingStatus.COMPLETED)
         """)
     long countActiveByOwner(@Param("ownerId") Long ownerId);
 }
