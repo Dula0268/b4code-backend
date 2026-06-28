@@ -63,20 +63,6 @@ public class StaffAnalyticsServiceImpl implements StaffAnalyticsService {
     @Override
     @Transactional(readOnly = true)
     public List<OrderTrendDto> getOrderTrends(Long propertyId, LocalDateTime startDate, LocalDateTime endDate, String interval) {
-        // Postgres date_trunc
-        String sql = """
-                SELECT 
-                    TO_CHAR(DATE_TRUNC(?, created_at), 'YYYY-MM-DD HH24:MI:SS') as timestamp,
-                    COUNT(id) as count,
-                    COALESCE(SUM(total_amount), 0) as revenue
-                FROM staff.orders
-                WHERE property_id = ?
-                  AND created_at >= COALESCE(?, created_at)
-                  AND created_at <= COALESCE(?, created_at)
-                GROUP BY DATE_TRUNC(?, created_at)
-                ORDER BY DATE_TRUNC(?, created_at) ASC
-                """;
-        
         String pgInterval = switch (interval != null ? interval.toLowerCase() : "day") {
             case "hour" -> "hour";
             case "month" -> "month";
@@ -84,6 +70,21 @@ public class StaffAnalyticsServiceImpl implements StaffAnalyticsService {
             default -> "day";
         };
 
+        // Postgres date_trunc expects the literal safely injected or casted. 
+        // Injecting safely since pgInterval is strictly controlled by the switch above.
+        String sql = String.format("""
+                SELECT 
+                    TO_CHAR(DATE_TRUNC('%s', created_at), 'YYYY-MM-DD HH24:MI:SS') as timestamp,
+                    COUNT(id) as count,
+                    COALESCE(SUM(total_amount), 0) as revenue
+                FROM staff.orders
+                WHERE property_id = ?
+                  AND created_at >= COALESCE(?, created_at)
+                  AND created_at <= COALESCE(?, created_at)
+                GROUP BY DATE_TRUNC('%s', created_at)
+                ORDER BY DATE_TRUNC('%s', created_at) ASC
+                """, pgInterval, pgInterval, pgInterval);
+        
         return jdbcTemplate.query(
                 sql,
                 (rs, rowNum) -> OrderTrendDto.builder()
@@ -91,12 +92,9 @@ public class StaffAnalyticsServiceImpl implements StaffAnalyticsService {
                         .count(rs.getLong("count"))
                         .revenue(rs.getBigDecimal("revenue"))
                         .build(),
-                pgInterval,
                 propertyId,
                 startDate != null ? Timestamp.valueOf(startDate) : null,
-                endDate != null ? Timestamp.valueOf(endDate) : null,
-                pgInterval,
-                pgInterval
+                endDate != null ? Timestamp.valueOf(endDate) : null
         );
     }
 
