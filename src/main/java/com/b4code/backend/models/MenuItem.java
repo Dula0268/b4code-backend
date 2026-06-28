@@ -50,13 +50,16 @@ public class MenuItem {
 
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "menu_item_images", schema = "staff", joinColumns = @JoinColumn(name = "menu_item_id"))
+    @org.hibernate.annotations.Fetch(org.hibernate.annotations.FetchMode.SUBSELECT)
     @Column(name = "image_url")
     private List<String> imageUrls = new ArrayList<>();
 
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "menu_item_variants", schema = "staff", joinColumns = @JoinColumn(name = "menu_item_id"))
+    @org.hibernate.annotations.Fetch(org.hibernate.annotations.FetchMode.SUBSELECT)
     private List<MenuItemVariant> variants = new ArrayList<>();
 
     @OneToMany(mappedBy = "menuItem", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
+    @org.hibernate.annotations.Fetch(org.hibernate.annotations.FetchMode.SUBSELECT)
     private List<MenuItemModifier> modifiers = new ArrayList<>();
 }

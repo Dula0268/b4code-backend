@@ -55,6 +55,7 @@ public class Order {
     private String staffNotes;
 
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
+    @org.hibernate.annotations.Fetch(org.hibernate.annotations.FetchMode.SUBSELECT)
     private java.util.List<OrderItem> items = new java.util.ArrayList<>();
 
     @Column(name = "created_at", updatable = false)
