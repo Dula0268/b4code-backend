@@ -11,8 +11,11 @@ import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.Statement;
 
+import org.springframework.scheduling.annotation.EnableScheduling;
+
 @SpringBootApplication
 @EnableAsync
+@EnableScheduling
 public class B4CodeBackendApplication {
 
     public static void main(String[] args) {
