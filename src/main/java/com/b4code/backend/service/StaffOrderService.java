@@ -111,6 +111,12 @@ public class StaffOrderService {
         
         boolean valid = false;
         switch (current) {
+            case PAYMENT_PENDING:
+                if (next == OrderStatus.ACCEPTED) {
+                    throw new StatusTransitionException("Payment not completed, reject the order");
+                }
+                if (next == OrderStatus.PLACED || next == OrderStatus.CANCELLED) valid = true;
+                break;
             case PLACED:
                 if (next == OrderStatus.ACCEPTED || next == OrderStatus.CANCELLED) valid = true;
                 break;
