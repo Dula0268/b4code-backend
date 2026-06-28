@@ -1,5 +1,6 @@
 package com.b4code.backend.service.impl;
 
+import com.b4code.backend.dao.ImageRepository;
 import com.b4code.backend.dao.PropertyRepository;
 import com.b4code.backend.dao.UserRepository;
 import com.b4code.backend.dto.owner.OwnerPropertyDto;
@@ -7,6 +8,8 @@ import com.b4code.backend.dto.owner.OwnerPropertyPageDto;
 import com.b4code.backend.dto.owner.OwnerPropertyRequest;
 import com.b4code.backend.exceptions.CustomException;
 import com.b4code.backend.models.Amenity;
+import com.b4code.backend.models.Image;
+import com.b4code.backend.models.ImageType;
 import com.b4code.backend.models.Property;
 import com.b4code.backend.models.User;
 import com.b4code.backend.models.enums.PropertyStatus;
@@ -29,6 +32,7 @@ public class OwnerPropertyServiceImpl implements OwnerPropertyService {
 
     private final PropertyRepository propertyRepository;
     private final UserRepository userRepository;
+    private final ImageRepository imageRepository;
 
     @Override
     @Transactional(readOnly = true)
@@ -109,7 +113,24 @@ public class OwnerPropertyServiceImpl implements OwnerPropertyService {
         if (request.getCheckOut() != null)      property.setCheckOutTime(request.getCheckOut());
         if (request.getHouseRules() != null)    property.setHouseRules(request.getHouseRules());
         if (request.getPropertyType() != null)  property.setPropertyType(request.getPropertyType());
-        if (request.getImageUrl() != null)       property.setImageUrl(request.getImageUrl());
+        if (request.getImageUrl() != null) property.setImageUrl(request.getImageUrl());
+
+        if (request.getImageUrls() != null) {
+            property.getImages().clear();
+            List<String> urls = request.getImageUrls().stream()
+                    .filter(u -> u != null && !u.isBlank())
+                    .limit(10)
+                    .toList();
+            for (String url : urls) {
+                Image img = Image.builder()
+                        .url(url)
+                        .type(ImageType.PROPERTY)
+                        .property(property)
+                        .build();
+                property.getImages().add(img);
+            }
+            property.setImageUrl(urls.isEmpty() ? null : urls.get(0));
+        }
 
         if (request.getAmenities() != null) {
             property.getAmenities().clear();

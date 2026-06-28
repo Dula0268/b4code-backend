@@ -22,4 +22,5 @@ public class OwnerPropertyRequest {
     private String propertyType;
     private List<String> amenities;
     private String imageUrl;
+    private List<String> imageUrls;
 }

@@ -36,6 +36,7 @@ public class OwnerPropertyDto {
     private String contactEmail;
     private String propertyType;
     private List<String> amenities;
+    private List<String> photoUrls;
     private Integer roomCount;
 
     public static OwnerPropertyDto fromEntity(Property p) {
@@ -54,11 +55,18 @@ public class OwnerPropertyDto {
         List<String> amenityNames = p.getAmenities() == null ? List.of()
                 : p.getAmenities().stream().map(Amenity::getName).toList();
 
-        String image = null;
-        if (p.getImages() != null && !p.getImages().isEmpty()) {
-            image = p.getImages().iterator().next().getUrl();
+        List<String> photoUrls = new java.util.ArrayList<>();
+        if (p.getImages() != null) {
+            p.getImages().stream()
+                    .filter(img -> img.getUrl() != null)
+                    .map(img -> img.getUrl())
+                    .forEach(photoUrls::add);
         }
-        if (image == null) image = p.getImageUrl();
+        if (photoUrls.isEmpty() && p.getImageUrl() != null) {
+            photoUrls.add(p.getImageUrl());
+        }
+
+        String image = photoUrls.isEmpty() ? null : photoUrls.get(0);
 
         return OwnerPropertyDto.builder()
                 .id(p.getId())
@@ -81,6 +89,7 @@ public class OwnerPropertyDto {
                 .contactEmail(p.getContactEmail())
                 .propertyType(p.getPropertyType())
                 .amenities(amenityNames)
+                .photoUrls(photoUrls)
                 .roomCount(p.getRooms() != null ? p.getRooms().size() : 0)
                 .build();
     }
