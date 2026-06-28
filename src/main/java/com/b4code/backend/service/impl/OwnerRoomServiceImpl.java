@@ -91,7 +91,6 @@ public class OwnerRoomServiceImpl implements OwnerRoomService {
             image = imageRepository.save(Image.builder()
                     .url(request.getImageUrl())
                     .type(ImageType.ROOM)
-                    .property(property)
                     .build());
         }
 

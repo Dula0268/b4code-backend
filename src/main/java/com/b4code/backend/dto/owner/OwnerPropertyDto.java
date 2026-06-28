@@ -58,8 +58,8 @@ public class OwnerPropertyDto {
         List<String> photoUrls = new java.util.ArrayList<>();
         if (p.getImages() != null) {
             p.getImages().stream()
-                    .filter(img -> img.getUrl() != null)
-                    .map(img -> img.getUrl())
+                    .filter(img -> img.getUrl() != null && img.getType() == com.b4code.backend.models.ImageType.PROPERTY)
+                    .map(com.b4code.backend.models.Image::getUrl)
                     .forEach(photoUrls::add);
         }
         if (photoUrls.isEmpty() && p.getImageUrl() != null) {
