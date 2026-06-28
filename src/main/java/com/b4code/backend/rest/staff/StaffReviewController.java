@@ -1,5 +1,7 @@
 package com.b4code.backend.rest.staff;
 
+import com.b4code.backend.dao.UserRepository;
+import com.b4code.backend.models.User;
 import com.b4code.backend.models.enums.FlagType;
 import com.b4code.backend.models.enums.ReviewStatus;
 import lombok.RequiredArgsConstructor;
@@ -7,6 +9,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.sql.Timestamp;
@@ -22,6 +25,7 @@ import java.util.Map;
 public class StaffReviewController {
 
     private final JdbcTemplate jdbcTemplate;
+    private final UserRepository userRepository;
 
     @PreAuthorize("hasAnyRole('STAFF', 'OWNER', 'ADMIN')")
     @GetMapping
@@ -57,7 +61,16 @@ public class StaffReviewController {
         Object ratingObj = body.get("rating");
         Double rating = ratingObj != null ? ((Number) ratingObj).doubleValue() : 0.0;
         
-        Long ownerId = 1L; // Mock owner ID or get from context
+        String currentUserEmail = SecurityContextHolder.getContext().getAuthentication() != null 
+            ? SecurityContextHolder.getContext().getAuthentication().getName() : null;
+
+        Long ownerId = 1L; // Fallback
+        if (currentUserEmail != null) {
+            User staffUser = userRepository.findByEmail(currentUserEmail).orElse(null);
+            if (staffUser != null) {
+                ownerId = staffUser.getId();
+            }
+        }
 
         String sql = """
             INSERT INTO admin.flagged_reviews (
