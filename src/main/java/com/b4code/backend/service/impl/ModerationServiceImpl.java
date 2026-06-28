@@ -146,11 +146,11 @@ public class ModerationServiceImpl implements ModerationService {
                         Long rId = Long.parseLong(h.getCaseId().substring(5));
                         FlaggedReview fr = reviewRepository.findById(rId).orElse(null);
                         if (fr != null) {
-                            reviewId = fr.getReview() != null ? String.valueOf(fr.getReview().getId()) : "N/A";
+                            reviewId = fr.getReview() != null ? String.valueOf(fr.getReview().getId()) : (fr.getId() != null ? "FlaggedID:" + fr.getId() : "N/A");
                             bookingId = (fr.getReview() != null && fr.getReview().getBooking() != null) ? String.valueOf(fr.getReview().getBooking().getId()) : "N/A";
-                            propertyName = (fr.getReview() != null && fr.getReview().getProperty() != null) ? fr.getReview().getProperty().getName() : "N/A";
-                            rating = fr.getReview() != null ? String.valueOf(fr.getReview().getOverallRating()) : "N/A";
-                            comment = fr.getReview() != null ? fr.getReview().getComment() : "N/A";
+                            propertyName = fr.getPropertyId() != null ? "Property ID: " + fr.getPropertyId() : ((fr.getReview() != null && fr.getReview().getProperty() != null) ? fr.getReview().getProperty().getName() : "N/A");
+                            rating = fr.getRating() != null ? String.valueOf(fr.getRating()) : (fr.getReview() != null ? String.valueOf(fr.getReview().getOverallRating()) : "N/A");
+                            comment = fr.getReviewText() != null ? fr.getReviewText() : (fr.getReview() != null ? fr.getReview().getComment() : "N/A");
                             flaggedBy = fr.getOwner() != null ? String.valueOf(fr.getOwner().getId()) : "System";
                             reasonForFlag = fr.getFlagType() != null ? fr.getFlagType().name() : "N/A";
                             flagDate = fr.getFlaggedAt() != null ? fr.getFlaggedAt().toString() : "N/A";

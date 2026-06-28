@@ -22,6 +22,7 @@ public class FlaggedReview {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "review_id", nullable = false)
+    @org.hibernate.annotations.NotFound(action = org.hibernate.annotations.NotFoundAction.IGNORE)
     private Review review;
 
     @Enumerated(EnumType.STRING)
@@ -38,6 +39,21 @@ public class FlaggedReview {
 
     @Column(columnDefinition = "TEXT")
     private String adminNote;
+
+    @Column(name = "guest_name")
+    private String guestName;
+
+    @Column(name = "property_id")
+    private Long propertyId;
+
+    @Column(name = "rating")
+    private Double rating;
+
+    @Column(name = "review_text", columnDefinition = "TEXT")
+    private String reviewText;
+
+    @Column(name = "flag_reason", columnDefinition = "TEXT")
+    private String flagReason;
 
     @CreationTimestamp
     @Column(updatable = false)
