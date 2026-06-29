@@ -98,6 +98,7 @@ public class BookingService {
                 .taxAmount(price.getTaxAmount())
                 .promoCode(request.getPromoCodes() != null && !request.getPromoCodes().isEmpty() ? String.join(",", request.getPromoCodes()) : null)
                 .paymentMethod(request.getPaymentMethod())
+                .status(request.getPaymentMethod() == Booking.PaymentMethod.ONLINE_CARD ? Booking.BookingStatus.PENDING : Booking.BookingStatus.CONFIRMED)
                 .build();
 
         Booking saved = bookingRepository.save(booking);
@@ -139,7 +140,7 @@ public class BookingService {
     // after PayHere redirect, since notify_url
     // cannot reach localhost in development)
     // ──────────────────────────────────────────
-    @Transactional(readOnly = true)
+    @Transactional
     public void sendReceiptEmail(String confirmationCode) {
         Booking booking = bookingRepository.findByConfirmationCode(confirmationCode)
                 .orElseThrow(() -> new com.b4code.backend.exceptions.ResourceNotFoundException(
@@ -148,6 +149,12 @@ public class BookingService {
         if (booking.getPaymentMethod() != Booking.PaymentMethod.ONLINE_CARD) {
             log.info("[EMAIL] Skipping receipt email – booking {} is pay-at-property", confirmationCode);
             return;
+        }
+
+        if (booking.getStatus() == Booking.BookingStatus.PENDING) {
+            booking.setStatus(Booking.BookingStatus.CONFIRMED);
+            bookingRepository.save(booking);
+            log.info("[BOOKING] Confirmed booking {} after payment redirect", confirmationCode);
         }
 
         String propertyName = booking.getRoom().getProperty().getName();
@@ -194,7 +201,9 @@ public class BookingService {
         Booking booking = bookingRepository.findById(bookingId)
                 .orElseThrow(() -> new ResourceNotFoundException("Booking not found: " + bookingId));
 
-        if (booking.getStatus() == BookingStatus.CANCELLED) {
+        BookingStatus oldStatus = booking.getStatus();
+        
+        if (oldStatus == BookingStatus.CANCELLED) {
             throw new IllegalStateException("Booking is already cancelled");
         }
 
@@ -207,7 +216,7 @@ public class BookingService {
 
         // Calculate refund amount
         Property property = booking.getProperty();
-        BigDecimal totalPaid = booking.getPaymentMethod() == Booking.PaymentMethod.ONLINE_CARD 
+        BigDecimal totalPaid = (oldStatus != BookingStatus.PENDING && booking.getPaymentMethod() == Booking.PaymentMethod.ONLINE_CARD)
             ? booking.getTotalAmount() 
             : BigDecimal.ZERO;
         BigDecimal fee = BigDecimal.ZERO;
@@ -420,9 +429,6 @@ public class BookingService {
         }
 
         String displayStatus = booking.getStatus().name();
-        if (booking.getStatus() == Booking.BookingStatus.CONFIRMED && booking.getCheckOut().isBefore(LocalDate.now())) {
-            displayStatus = "COMPLETED";
-        }
 
         BookingResponse response = BookingResponse.builder()
                 .id(booking.getId())
