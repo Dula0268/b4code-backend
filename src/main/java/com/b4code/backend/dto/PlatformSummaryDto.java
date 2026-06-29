@@ -11,6 +11,7 @@ public class PlatformSummaryDto {
     private long totalBookings;
     private long activeBookings;
     private long newListingsThisWeek;
+    private long totalProperties;
     private long registeredUsers;
     private double registeredUsersGrowthPct;
     private BigDecimal platformCommission;

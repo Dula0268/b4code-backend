@@ -26,8 +26,8 @@ import java.util.Map;
 @RequiredArgsConstructor
 @Tag(name = "Admin — Finance", description = "Manage transactions, refunds and payouts")
 public class FinanceController {
-
     private final FinanceService financeService;
+    private final com.b4code.backend.service.FinanceExportService financeExportService;
 
     // ── GET finance summary KPIs
     @GetMapping("/summary")
@@ -118,14 +118,28 @@ public class FinanceController {
     }
 
     // ── EXPORT payouts
-    @GetMapping("/payouts/export")
+    @GetMapping(value = "/payouts/export/csv", produces = "text/csv")
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Export payout requests to CSV")
-    public void exportPayouts(
+    public ResponseEntity<byte[]> exportPayoutsCsv(
             @RequestParam(required = false, defaultValue = "") String search,
-            @RequestParam(required = false) PayoutStatus status,
-            jakarta.servlet.http.HttpServletResponse response) throws java.io.IOException {
-        financeService.exportPayoutsToCsv(search, status, response);
+            @RequestParam(required = false) PayoutStatus status) {
+        byte[] data = financeExportService.exportPayoutsToCsv(status, search);
+        return ResponseEntity.ok()
+                .header("Content-Disposition", "attachment; filename=\"payouts.csv\"")
+                .body(data);
+    }
+
+    @GetMapping(value = "/payouts/export/pdf", produces = "application/pdf")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Export payout requests to PDF")
+    public ResponseEntity<byte[]> exportPayoutsPdf(
+            @RequestParam(required = false, defaultValue = "") String search,
+            @RequestParam(required = false) PayoutStatus status) {
+        byte[] data = financeExportService.exportPayoutsToPdf(status, search);
+        return ResponseEntity.ok()
+                .header("Content-Disposition", "attachment; filename=\"payouts.pdf\"")
+                .body(data);
     }
 
     // ── PROCESS payout

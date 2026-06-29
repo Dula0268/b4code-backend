@@ -14,7 +14,7 @@ import java.time.LocalDateTime;
 public interface AuditLogRepository extends JpaRepository<AuditLog, Long> {
 
     @Query("""
-        SELECT a FROM AuditLog a
+        SELECT a FROM AuditLog a LEFT JOIN FETCH a.user
         WHERE (CAST(:role AS string) IS NULL OR CAST(a.user.role AS string) = :role)
           AND (CAST(:search AS string) IS NULL OR :search = '' OR
                LOWER(a.user.firstName) LIKE LOWER(CONCAT('%',:search,'%')) OR

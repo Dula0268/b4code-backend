@@ -138,6 +138,13 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(RuntimeException.class)
     public ResponseEntity<ErrorResponse> handleRuntimeException(RuntimeException ex) {
+        try {
+            java.nio.file.Files.writeString(
+                java.nio.file.Paths.get("error.log"), 
+                ex.toString() + "\n" + java.util.Arrays.toString(ex.getStackTrace()), 
+                java.nio.file.StandardOpenOption.CREATE, java.nio.file.StandardOpenOption.APPEND);
+        } catch (Exception ignored) {}
+
         ErrorResponse errorResponse = ErrorResponse.builder()
                 .status(HttpStatus.INTERNAL_SERVER_ERROR.value())
                 .message(ex.getMessage())
@@ -152,6 +159,13 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleGeneralException(Exception ex) {
+        try {
+            java.nio.file.Files.writeString(
+                java.nio.file.Paths.get("error.log"), 
+                ex.toString() + "\n" + java.util.Arrays.toString(ex.getStackTrace()), 
+                java.nio.file.StandardOpenOption.CREATE, java.nio.file.StandardOpenOption.APPEND);
+        } catch (Exception ignored) {}
+
         ErrorResponse errorResponse = ErrorResponse.builder()
                 .status(HttpStatus.INTERNAL_SERVER_ERROR.value())
                 .message("An unexpected error occurred. Please try again later.")

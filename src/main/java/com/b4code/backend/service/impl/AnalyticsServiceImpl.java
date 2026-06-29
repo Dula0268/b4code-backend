@@ -80,16 +80,25 @@ public class AnalyticsServiceImpl implements AnalyticsService {
 
         long registeredUsers = userRepository.count();
         long propertyCount = propertyRepository.count();
+        long newPropertiesThisWeek = propertyRepository.countByCreatedAtAfter(java.time.LocalDateTime.now().minusDays(7));
         BigDecimal commission = transactionRepository.sumPlatformCommission();
-        long totalBookings = transactionRepository.count();
+        long totalBookings = bookingRepository.count();
+        long activeBookings = bookingRepository.countActiveBookings();
+        long cancelledBookings = bookingRepository.countCancelledBookings();
+        Double avgLeadTime = bookingRepository.getAverageLeadTime();
+
+        double cancellationRate = totalBookings > 0 
+                ? ((double) cancelledBookings / totalBookings) * 100.0 
+                : 0.0;
 
         return PlatformSummaryDto.builder()
-                .avgLeadTimeDays(0.0) // Mock 0 until we have actual stay-start dates
-                .avgLeadTimeChange(0.0)
-                .cancellationRate(0.0)
+                .avgLeadTimeDays(avgLeadTime != null ? Math.round(avgLeadTime * 10.0) / 10.0 : 0.0)
+                .avgLeadTimeChange(0.0) // Requires historical lead time data
+                .cancellationRate(Math.round(cancellationRate * 10.0) / 10.0)
                 .totalBookings(totalBookings)
-                .activeBookings(totalBookings) // For now, all bookings are active
-                .newListingsThisWeek(propertyCount)
+                .activeBookings(activeBookings)
+                .newListingsThisWeek(newPropertiesThisWeek)
+                .totalProperties(propertyCount)
                 .registeredUsers(registeredUsers)
                 .registeredUsersGrowthPct(0.0)
                 .platformCommission(commission)
@@ -164,12 +173,34 @@ public class AnalyticsServiceImpl implements AnalyticsService {
     @Cacheable(value = "analytics", key = "'bookings-chart'")
     public List<BookingChartPointDto> getBookingsChart() {
         log.debug("Computing bookings chart (cache miss)");
-        return transactionRepository.getMonthlyRevenueTrend()
-                .stream()
-                .map(row -> BookingChartPointDto.builder()
-                        .month((String) row[0])
-                        .value(((BigDecimal) row[1]).setScale(2, RoundingMode.HALF_UP))
-                        .build())
+        
+        // Initialize 12 months with 0
+        String[] months = {"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
+        java.util.Map<String, BigDecimal> monthMap = new java.util.LinkedHashMap<>();
+        for (String m : months) {
+            monthMap.put(m, BigDecimal.ZERO);
+        }
+
+        // Override with actual data
+        List<Object[]> dbData = transactionRepository.getMonthlyRevenueTrend();
+        for (Object[] row : dbData) {
+            String month = (String) row[0];
+            BigDecimal val = (BigDecimal) row[1];
+            if (monthMap.containsKey(month)) {
+                monthMap.put(month, val);
+            }
+        }
+
+        return monthMap.entrySet().stream()
+                .map(e -> {
+                    BigDecimal gross = e.getValue().setScale(2, RoundingMode.HALF_UP);
+                    BigDecimal net = gross.multiply(BigDecimal.valueOf(0.8)).setScale(2, RoundingMode.HALF_UP);
+                    return BookingChartPointDto.builder()
+                        .month(e.getKey())
+                        .value(gross)
+                        .netRevenue(net)
+                        .build();
+                })
                 .toList();
     }
 }

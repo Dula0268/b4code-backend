@@ -10,6 +10,7 @@ import org.springframework.stereotype.Repository;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Repository
@@ -170,4 +171,6 @@ public interface PropertyRepository extends JpaRepository<Property, Long> {
 
     @Query("SELECT MAX(r.pricePerNight) FROM Room r")
     BigDecimal findMaxPrice();
+
+    long countByCreatedAtAfter(LocalDateTime date);
 }
