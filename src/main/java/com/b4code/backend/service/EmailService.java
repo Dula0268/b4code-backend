@@ -82,6 +82,101 @@ public class EmailService {
         }
     }
 
+    @Async
+    public void sendUpcomingStayReminder(com.b4code.backend.models.Booking booking) {
+        String toEmail = booking.getGuestEmail();
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+
+            helper.setFrom(fromEmail, "Prime Stay");
+            helper.setTo(toEmail);
+            helper.setSubject("Upcoming Stay Reminder: " + booking.getProperty().getName());
+
+            String htmlContent = buildUpcomingStayReminderHtml(booking);
+            helper.setText(htmlContent, true);
+
+            mailSender.send(message);
+            log.info("Upcoming stay reminder email sent to: {}", toEmail);
+        } catch (Exception e) {
+            log.error("Failed to send upcoming stay reminder email to {}: {}", toEmail, e.getMessage());
+        }
+    }
+
+    private String buildUpcomingStayReminderHtml(com.b4code.backend.models.Booking booking) {
+        String guestName = booking.getGuestName() != null ? booking.getGuestName() : "Guest";
+        String propertyName = booking.getProperty().getName();
+        String address = booking.getProperty().getAddressLine1() != null ? booking.getProperty().getAddressLine1() : booking.getProperty().getAddress();
+        if (booking.getProperty().getCity() != null) {
+            address = address != null ? address + ", " + booking.getProperty().getCity() : booking.getProperty().getCity();
+        }
+
+        return """
+            <!DOCTYPE html>
+            <html lang="en">
+            <head>
+              <meta charset="UTF-8" />
+              <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+            </head>
+            <body style="margin:0;padding:0;background:#f5f5f5;font-family:'Segoe UI',Arial,sans-serif;">
+              <table width="100%%" cellpadding="0" cellspacing="0" style="background:#f5f5f5;padding:40px 0;">
+                <tr>
+                  <td align="center">
+                    <table width="520" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08);">
+                      <!-- Header -->
+                      <tr>
+                        <td style="background:linear-gradient(135deg,#9a3300,#c44a00);padding:36px 40px;text-align:center;">
+                          <h1 style="margin:0;color:#ffffff;font-size:26px;font-weight:800;letter-spacing:-0.5px;">PRIME STAY</h1>
+                          <p style="margin:6px 0 0;color:rgba(255,255,255,0.8);font-size:13px;">Upcoming Stay Reminder</p>
+                        </td>
+                      </tr>
+                      <!-- Body -->
+                      <tr>
+                        <td style="padding:40px;">
+                          <h2 style="margin:0 0 12px;color:#1d1d1d;font-size:20px;font-weight:700;">Hello %s,</h2>
+                          <p style="margin:0 0 24px;color:#555555;font-size:15px;line-height:1.6;">
+                            Your check-in date is tomorrow! We are excited to host you at <strong>%s</strong>.
+                          </p>
+                          
+                          <!-- Booking Card -->
+                          <div style="background:#fdfaf8;border:1px solid #f3e8e2;border-radius:12px;padding:24px;margin:0 0 28px;">
+                            <table width="100%%" cellpadding="0" cellspacing="0">
+                              <tr>
+                                <td style="padding-bottom:12px;color:#828282;font-size:12px;text-transform:uppercase;letter-spacing:1px;">Property Address</td>
+                              </tr>
+                              <tr>
+                                <td style="padding-bottom:20px;color:#9a3300;font-size:18px;font-weight:700;">%s</td>
+                              </tr>
+                              <tr>
+                                <td style="padding-bottom:8px;color:#1d1d1d;font-size:14px;"><strong>Check-In Date:</strong> %s</td>
+                              </tr>
+                              <tr>
+                                <td style="color:#1d1d1d;font-size:14px;"><strong>Confirmation No:</strong> %s</td>
+                              </tr>
+                            </table>
+                          </div>
+                          
+                          <p style="margin:0 0 28px;color:#555555;font-size:14px;line-height:1.6;">
+                            Safe travels and we look forward to your arrival!
+                          </p>
+                          
+                          <hr style="border:none;border-top:1px solid #eeeeee;margin:0 0 24px;"/>
+                          
+                          <p style="margin:0;color:#aaaaaa;font-size:12px;line-height:1.6;text-align:center;">
+                            Thank you for choosing Prime Stay Sri Lanka.<br/>
+                            &copy; 2025 All rights reserved.
+                          </p>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+            </body>
+            </html>
+            """.formatted(guestName, propertyName, address, booking.getCheckIn().toString(), booking.getConfirmationCode());
+    }
+
     private String buildBookingConfirmationHtml(String guestName, String confirmationNumber, 
                                                String propertyName, String checkIn, String checkOut, String totalAmount) {
         return """
