@@ -57,7 +57,4 @@ public class Room {
     @Builder.Default
     private RoomStatus status = RoomStatus.AVAILABLE;
 
-    @Column(nullable = false, columnDefinition = "boolean default true")
-    @Builder.Default
-    private Boolean isAvailable = true;
 }

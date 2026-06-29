@@ -20,4 +20,10 @@ public interface RoomDateInventoryRepository extends JpaRepository<RoomDateInven
             @Param("roomId") Long roomId,
             @Param("startDate") LocalDate startDate,
             @Param("endDate") LocalDate endDate);
+
+    @Query("SELECT COALESCE(MAX(ri.bookedQuantity), 0) FROM RoomDateInventory ri WHERE ri.room.id = :roomId AND ri.date >= :startDate AND ri.date < :endDate")
+    Integer getMaxBookedQuantity(
+            @Param("roomId") Long roomId,
+            @Param("startDate") LocalDate startDate,
+            @Param("endDate") LocalDate endDate);
 }

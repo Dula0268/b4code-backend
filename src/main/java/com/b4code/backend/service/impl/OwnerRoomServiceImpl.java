@@ -93,7 +93,6 @@ public class OwnerRoomServiceImpl implements OwnerRoomService {
                 .pricePerNight(request.getPricePerNight() != null ? request.getPricePerNight() : BigDecimal.ZERO)
                 .inventory(request.getInventory() != null ? request.getInventory() : 1)
                 .status(parseRoomStatus(request.getStatus()))
-                .isAvailable(true)
                 .build();
 
         Room saved = roomRepository.save(room);
@@ -143,8 +142,8 @@ public class OwnerRoomServiceImpl implements OwnerRoomService {
     @Transactional
     public OwnerRoomDto toggleAvailability(String ownerEmail, Long roomId) {
         Room room = resolveOwnedRoom(ownerEmail, roomId);
-        boolean next = !(Boolean.TRUE.equals(room.getIsAvailable()));
-        room.setIsAvailable(next);
+        boolean next = room.getStatus() != RoomStatus.AVAILABLE;
+        room.setStatus(next ? RoomStatus.AVAILABLE : RoomStatus.MAINTENANCE);
         Room saved = roomRepository.save(room);
         log.info("Owner {} toggled room id={} availability → {}", ownerEmail, roomId, next);
         return OwnerRoomDto.fromEntity(saved);

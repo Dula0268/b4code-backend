@@ -21,7 +21,6 @@ public class OwnerRoomDto {
     private String currency;
     private Integer inventory;
     private String status;
-    private Boolean isAvailable;
     private String imageUrl;
 
     public static OwnerRoomDto fromEntity(Room r) {
@@ -43,7 +42,6 @@ public class OwnerRoomDto {
                 .currency("LKR")
                 .inventory(r.getInventory())
                 .status(r.getStatus() != null ? r.getStatus().name() : "AVAILABLE")
-                .isAvailable(r.getIsAvailable() != null ? r.getIsAvailable() : true)
                 .imageUrl(imgUrl)
                 .build();
     }
