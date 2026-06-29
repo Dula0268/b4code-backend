@@ -22,6 +22,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
 import com.b4code.backend.dao.BookingRepository;
+import com.b4code.backend.dao.RoomDateInventoryRepository;
 
 @Service
 public class SearchService {
@@ -31,6 +32,7 @@ public class SearchService {
     private final PropertyRepository propertyRepository;
     private final ReviewRepository reviewRepository;
     private final BookingRepository bookingRepository;
+    private final RoomDateInventoryRepository roomDateInventoryRepository;
 
     // Icon mapping for property types
     private static final Map<String, String> PROPERTY_TYPE_ICONS = Map.of(
@@ -42,10 +44,11 @@ public class SearchService {
         "Cabin", "TreePine"
     );
 
-    public SearchService(PropertyRepository propertyRepository, ReviewRepository reviewRepository, BookingRepository bookingRepository) {
+    public SearchService(PropertyRepository propertyRepository, ReviewRepository reviewRepository, BookingRepository bookingRepository, RoomDateInventoryRepository roomDateInventoryRepository) {
         this.propertyRepository = propertyRepository;
         this.reviewRepository = reviewRepository;
         this.bookingRepository = bookingRepository;
+        this.roomDateInventoryRepository = roomDateInventoryRepository;
     }
 
     // ─── Paginated Search ────────────────────────────────────────────────
@@ -282,7 +285,7 @@ public class SearchService {
                 ? property.getRooms().stream()
                     .filter(r -> {
                         if (checkIn == null || checkOut == null) return true;
-                        int booked = bookingRepository.getBookedQuantityForDates(r.getId(), checkIn, checkOut);
+                        int booked = roomDateInventoryRepository.getMaxBookedQuantity(r.getId(), checkIn, checkOut);
                         return (r.getInventory() - booked) > 0;
                     })
                     .collect(Collectors.toList())
@@ -399,13 +402,13 @@ public class SearchService {
                 ? property.getRooms().stream()
                     .filter(r -> {
                         if (checkIn == null || checkOut == null) return true;
-                        int booked = bookingRepository.getBookedQuantityForDates(r.getId(), checkIn, checkOut);
+                        int booked = roomDateInventoryRepository.getMaxBookedQuantity(r.getId(), checkIn, checkOut);
                         return (r.getInventory() - booked) > 0;
                     })
                     .map(r -> {
                         int availableCount = r.getInventory() != null ? r.getInventory() : 3;
                         if (checkIn != null && checkOut != null) {
-                            int booked = bookingRepository.getBookedQuantityForDates(r.getId(), checkIn, checkOut);
+                            int booked = roomDateInventoryRepository.getMaxBookedQuantity(r.getId(), checkIn, checkOut);
                             availableCount -= booked;
                         }
                     return RoomDTO.builder()
