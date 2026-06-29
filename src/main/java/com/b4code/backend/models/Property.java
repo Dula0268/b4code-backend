@@ -119,6 +119,10 @@ public class Property {
     @Builder.Default
     private String houseRules = "No smoking indoors.\nNo pets allowed.\nNo parties or events.";
 
+    @Column(name = "service_charge_rate")
+    @Builder.Default
+    private Double serviceChargeRate = 10.0;
+
     // Admin & Reviews
     @CreationTimestamp
     @Column(updatable = false)

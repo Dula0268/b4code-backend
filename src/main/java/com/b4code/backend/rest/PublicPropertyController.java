@@ -1,5 +1,6 @@
 package com.b4code.backend.rest;
 
+import com.b4code.backend.dto.PropertyDto;
 import com.b4code.backend.dto.PropertySimpleDto;
 import com.b4code.backend.service.PropertyService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -26,6 +27,25 @@ public class PublicPropertyController {
     @Operation(summary = "Get list of all approved properties (names and IDs only)")
     public ResponseEntity<List<PropertySimpleDto>> getPropertiesList() {
         return ResponseEntity.ok(propertyService.getPublicPropertiesList());
+    }
+
+    @GetMapping("/{id}/service-charge")
+    @Operation(summary = "Get the service charge rate for a property")
+    public ResponseEntity<java.util.Map<String, Double>> getServiceChargeRate(@org.springframework.web.bind.annotation.PathVariable Long id) {
+        PropertyDto property = propertyService.getPropertyById(id);
+        Double rate = property.getServiceChargeRate() != null ? property.getServiceChargeRate() : 10.0;
+        return ResponseEntity.ok(java.util.Map.of("serviceChargeRate", rate));
+    }
+
+    @GetMapping("/{id}/charges")
+    @Operation(summary = "Get all charges (service charge, tax) for a property")
+    public ResponseEntity<java.util.Map<String, Double>> getCharges(@org.springframework.web.bind.annotation.PathVariable Long id) {
+        PropertyDto property = propertyService.getPropertyById(id);
+        Double serviceRate = property.getServiceChargeRate() != null ? property.getServiceChargeRate() : 10.0;
+        return ResponseEntity.ok(java.util.Map.of(
+            "serviceChargeRate", serviceRate,
+            "taxRate", 5.0 // Keeping tax fixed for now as requested
+        ));
     }
 }
 

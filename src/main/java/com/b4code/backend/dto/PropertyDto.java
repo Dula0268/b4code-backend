@@ -26,6 +26,7 @@ public class PropertyDto {
     private LocalDateTime createdAt;
     private PropertyStatus status;
     private String mainImageUrl;
+    private Double serviceChargeRate;
 
     public static PropertyDto fromEntity(Property p) {
         if (p == null) return null;
@@ -41,6 +42,7 @@ public class PropertyDto {
                 .ownerId(p.getOwnerId())
                 .createdAt(p.getCreatedAt())
                 .status(p.getStatus())
+                .serviceChargeRate(p.getServiceChargeRate())
                 .build();
     }
 
@@ -53,6 +55,9 @@ public class PropertyDto {
         property.setLatitude(this.latitude);
         property.setLongitude(this.longitude);
         property.setOwnerId(this.ownerId);
+        if (this.serviceChargeRate != null) {
+            property.setServiceChargeRate(this.serviceChargeRate);
+        }
         // Do not update createdAt or status here as they are managed by system/admin
     }
 
@@ -66,6 +71,9 @@ public class PropertyDto {
         property.setLatitude(this.latitude);
         property.setLongitude(this.longitude);
         property.setOwnerId(this.ownerId);
+        if (this.serviceChargeRate != null) {
+            property.setServiceChargeRate(this.serviceChargeRate);
+        }
         // Default status is set via builder/entity
         return property;
     }
