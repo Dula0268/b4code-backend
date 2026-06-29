@@ -7,5 +7,6 @@ import java.math.BigDecimal;
 public class BookingChartPointDto {
     private String month;       
     private BigDecimal value;   
+    private BigDecimal netRevenue;
 }
 
