@@ -26,6 +26,7 @@ import java.util.Map;
 public class ModerationController {
 
     private final ModerationService moderationService;
+    private final com.b4code.backend.service.ModerationExportService moderationExportService;
 
     // ── GET tab badge counts (reviews + disputes)
     @GetMapping("/counts")
@@ -125,20 +126,53 @@ public class ModerationController {
         return ResponseEntity.ok(moderationService.getHistory(action, search, from, to, page, size));
     }
 
-    // ── EXPORT history
-    @GetMapping("/history/export")
-    @PreAuthorize("hasRole('ADMIN')")
-    @Operation(summary = "Export moderation history to CSV")
-    public void exportHistory(
-            @RequestParam(required = false) ModerationAction action,
-            @RequestParam(required = false) String search,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime from,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime to,
-            jakarta.servlet.http.HttpServletResponse response) throws java.io.IOException {
-        moderationService.exportHistoryToCsv(action, search, from, to, response);
+    // ── EXPORT Reviews
+    @GetMapping(value = "/reviews/export/csv", produces = "text/csv")
+    @PreAuthorize("hasAnyRole('ADMIN','STAFF')")
+    @Operation(summary = "Export review queue to CSV")
+    public ResponseEntity<byte[]> exportReviewsCsv(
+            @RequestParam(required = false) FlagType flagType,
+            @RequestParam(required = false) Integer rating) {
+        byte[] data = moderationExportService.exportReviewsToCsv(flagType, rating);
+        return ResponseEntity.ok()
+                .header("Content-Disposition", "attachment; filename=\"review-queue.csv\"")
+                .body(data);
+    }
+
+    @GetMapping(value = "/reviews/export/pdf", produces = "application/pdf")
+    @PreAuthorize("hasAnyRole('ADMIN','STAFF')")
+    @Operation(summary = "Export review queue to PDF")
+    public ResponseEntity<byte[]> exportReviewsPdf(
+            @RequestParam(required = false) FlagType flagType,
+            @RequestParam(required = false) Integer rating) {
+        byte[] data = moderationExportService.exportReviewsToPdf(flagType, rating);
+        return ResponseEntity.ok()
+                .header("Content-Disposition", "attachment; filename=\"review-queue.pdf\"")
+                .body(data);
+    }
+
+    // ── EXPORT Disputes
+    @GetMapping(value = "/disputes/export/csv", produces = "text/csv")
+    @PreAuthorize("hasAnyRole('ADMIN','STAFF')")
+    @Operation(summary = "Export disputes to CSV")
+    public ResponseEntity<byte[]> exportDisputesCsv(
+            @RequestParam(required = false) DisputeStatus status,
+            @RequestParam(required = false) String search) {
+        byte[] data = moderationExportService.exportDisputesToCsv(status, search);
+        return ResponseEntity.ok()
+                .header("Content-Disposition", "attachment; filename=\"disputes.csv\"")
+                .body(data);
+    }
+
+    @GetMapping(value = "/disputes/export/pdf", produces = "application/pdf")
+    @PreAuthorize("hasAnyRole('ADMIN','STAFF')")
+    @Operation(summary = "Export disputes to PDF")
+    public ResponseEntity<byte[]> exportDisputesPdf(
+            @RequestParam(required = false) DisputeStatus status,
+            @RequestParam(required = false) String search) {
+        byte[] data = moderationExportService.exportDisputesToPdf(status, search);
+        return ResponseEntity.ok()
+                .header("Content-Disposition", "attachment; filename=\"disputes.pdf\"")
+                .body(data);
     }
 }
-
-
-
-
