@@ -24,6 +24,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 @Service
 @Slf4j
@@ -46,8 +47,9 @@ public class OwnerPropertyServiceImpl implements OwnerPropertyService {
         }
 
         String searchTerm = (search == null || search.isBlank()) ? null : search.trim();
-        Page<Property> pageResult = propertyRepository.findByOwnerWithFilters(
-                owner.getId(), searchTerm, statusEnum, PageRequest.of(zeroPage, size));
+        Page<Property> pageResult = (statusEnum == null)
+                ? propertyRepository.findByOwnerAllStatuses(owner.getId(), searchTerm, PageRequest.of(zeroPage, size))
+                : propertyRepository.findByOwnerWithFilters(owner.getId(), searchTerm, statusEnum, PageRequest.of(zeroPage, size));
 
         List<OwnerPropertyDto> dtos = pageResult.getContent().stream()
                 .map(OwnerPropertyDto::fromEntity)
@@ -116,6 +118,22 @@ public class OwnerPropertyServiceImpl implements OwnerPropertyService {
         if (request.getImageUrl() != null) property.setImageUrl(request.getImageUrl());
 
         if (request.getImageUrls() != null) {
+            // Collect IDs of images about to be deleted so we can clear room FKs first.
+            // Some legacy images may be referenced by a room's image_id column;
+            // deleting them without nulling that FK would cause a constraint violation.
+            Set<Long> removingIds = property.getImages().stream()
+                    .map(Image::getId)
+                    .filter(id -> id != null)
+                    .collect(java.util.stream.Collectors.toSet());
+
+            if (!removingIds.isEmpty()) {
+                property.getRooms().forEach(room -> {
+                    if (room.getImage() != null && removingIds.contains(room.getImage().getId())) {
+                        room.setImage(null);
+                    }
+                });
+            }
+
             property.getImages().clear();
             List<String> urls = request.getImageUrls().stream()
                     .filter(u -> u != null && !u.isBlank())

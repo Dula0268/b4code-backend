@@ -161,6 +161,20 @@ public interface PropertyRepository extends JpaRepository<Property, Long> {
             @Param("status") com.b4code.backend.models.enums.PropertyStatus status,
             Pageable pageable);
 
+    @Query("""
+            SELECT p FROM Property p
+            WHERE p.ownerId = :ownerId
+              AND (:search IS NULL OR :search = ''
+                   OR LOWER(p.name)         LIKE LOWER(CONCAT('%', :search, '%'))
+                   OR LOWER(p.city)         LIKE LOWER(CONCAT('%', :search, '%'))
+                   OR LOWER(p.addressLine1) LIKE LOWER(CONCAT('%', :search, '%')))
+            ORDER BY p.id DESC
+            """)
+    Page<Property> findByOwnerAllStatuses(
+            @Param("ownerId") Long ownerId,
+            @Param("search") String search,
+            Pageable pageable);
+
     @Query("SELECT MIN(r.pricePerNight) FROM Room r")
     BigDecimal findMinPrice();
 

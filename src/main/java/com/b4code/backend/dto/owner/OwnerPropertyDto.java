@@ -40,8 +40,11 @@ public class OwnerPropertyDto {
     private Integer roomCount;
 
     public static OwnerPropertyDto fromEntity(Property p) {
-        BigDecimal minPrice = p.getRooms().stream()
+        List<Room> rooms = p.getRooms() != null ? p.getRooms() : List.of();
+
+        BigDecimal minPrice = rooms.stream()
                 .map(Room::getPricePerNight)
+                .filter(price -> price != null)
                 .min(Comparator.naturalOrder())
                 .orElse(null);
 
@@ -50,17 +53,24 @@ public class OwnerPropertyDto {
                 : "—";
 
         String statusStr = toStatusString(p.getStatus());
-        boolean statusOn = p.getStatus() == PropertyStatus.ACTIVE;
+        boolean statusOn = p.getStatus() == PropertyStatus.ACTIVE
+                || p.getStatus() == PropertyStatus.APPROVED;
 
         List<String> amenityNames = p.getAmenities() == null ? List.of()
                 : p.getAmenities().stream().map(Amenity::getName).toList();
 
         List<String> photoUrls = new java.util.ArrayList<>();
-        if (p.getImages() != null) {
-            p.getImages().stream()
-                    .filter(img -> img.getUrl() != null && img.getType() == com.b4code.backend.models.ImageType.PROPERTY)
-                    .map(com.b4code.backend.models.Image::getUrl)
-                    .forEach(photoUrls::add);
+        try {
+            if (p.getImages() != null) {
+                p.getImages().stream()
+                        .filter(img -> img.getUrl() != null
+                                && img.getType() != null
+                                && img.getType().name().equals("PROPERTY"))
+                        .map(com.b4code.backend.models.Image::getUrl)
+                        .forEach(photoUrls::add);
+            }
+        } catch (Exception ignored) {
+            // images not available in this context — fall back to imageUrl
         }
         if (photoUrls.isEmpty() && p.getImageUrl() != null) {
             photoUrls.add(p.getImageUrl());
@@ -90,7 +100,7 @@ public class OwnerPropertyDto {
                 .propertyType(p.getPropertyType())
                 .amenities(amenityNames)
                 .photoUrls(photoUrls)
-                .roomCount(p.getRooms() != null ? p.getRooms().size() : 0)
+                .roomCount(rooms.size())
                 .build();
     }
 
