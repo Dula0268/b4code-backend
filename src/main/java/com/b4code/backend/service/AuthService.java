@@ -76,6 +76,9 @@ public class AuthService {
 
         if (role == UserRole.STAFF && request.getPropertyId() != null) {
             user.setPropertyId(request.getPropertyId());
+            if (request.getStaffRole() != null) {
+                user.setStaffRole(request.getStaffRole());
+            }
         }
 
         // Everyone starts as PENDING until email is verified via OTP
@@ -112,7 +115,8 @@ public class AuthService {
                 user.getLastName(),
                 user.getPhone(),
                 user.getAvatarUrl(),
-                user.getNationalIdUrl());
+                user.getNationalIdUrl(),
+                user.getStaffRole());
 
         return new AuthResponse(token, refreshToken, user.getEmail(),
                 user.getRole().name(), user.getId(), user.getStatus().name(), user.getPropertyId(), profile);
@@ -170,7 +174,8 @@ public class AuthService {
                 user.getLastName(),
                 user.getPhone(),
                 user.getAvatarUrl(),
-                user.getNationalIdUrl());
+                user.getNationalIdUrl(),
+                user.getStaffRole());
 
         return new AuthResponse(
                 token,
@@ -327,7 +332,8 @@ public class AuthService {
                 user.getLastName(),
                 user.getPhone(),
                 user.getAvatarUrl(),
-                user.getNationalIdUrl());
+                user.getNationalIdUrl(),
+                user.getStaffRole());
 
         return new AuthResponse(
                 token,

@@ -20,6 +20,7 @@ import java.util.Map;
 public class SettingsController {
 
     private final SettingsService settingsService;
+    private final com.b4code.backend.dao.UserRepository userRepository;
 
     // ── Admin-only endpoints ─────────────────────────────────────────────────
 
@@ -55,6 +56,14 @@ public class SettingsController {
 
         // Capitalise first letter only: STAFF → Staff, OWNER → Owner
         String roleName = rawRole.charAt(0) + rawRole.substring(1).toLowerCase();
+
+        // If the role is Staff, they might have a specific sub-role (e.g., Kitchen Staff)
+        if ("Staff".equals(roleName)) {
+            com.b4code.backend.models.User user = userRepository.findByEmail(authentication.getName()).orElse(null);
+            if (user != null && user.getStaffRole() != null && !user.getStaffRole().isBlank()) {
+                roleName = user.getStaffRole();
+            }
+        }
 
         return ResponseEntity.ok(settingsService.getRolePermissions(roleName));
     }
