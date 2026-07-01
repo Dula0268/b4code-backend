@@ -27,5 +27,9 @@ public interface MenuItemRepository extends JpaRepository<MenuItem, Long> {
     @Modifying
     @Query("DELETE FROM MenuItem m WHERE m.menu.id = :menuId")
     void deleteByMenuId(@Param("menuId") Long menuId);
+
+    @Modifying
+    @Query("UPDATE MenuItem m SET m.menu = null WHERE m.menu.id = :menuId")
+    void unlinkByMenuId(@Param("menuId") Long menuId);
 }
 
