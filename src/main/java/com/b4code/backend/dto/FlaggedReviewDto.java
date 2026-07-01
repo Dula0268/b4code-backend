@@ -29,16 +29,23 @@ public class FlaggedReviewDto {
             DateTimeFormatter.ofPattern("MMM dd, yyyy hh:mm a");
 
     public static FlaggedReviewDto fromEntity(FlaggedReview r) {
+        String propName = r.getProperty() != null ? r.getProperty().getName() : (r.getReview() != null && r.getReview().getProperty() != null ? r.getReview().getProperty().getName() : (r.getPropertyId() != null ? "Property ID: " + r.getPropertyId() : null));
+        Long propId = r.getPropertyId() != null ? r.getPropertyId() : (r.getReview() != null && r.getReview().getProperty() != null ? r.getReview().getProperty().getId() : null);
+        String gName = r.getGuestName() != null ? r.getGuestName() : (r.getReview() != null && r.getReview().getGuest() != null ? r.getReview().getGuest().getFullName() : null);
+        String initial = gName != null && !gName.isEmpty() ? gName.substring(0, 1) : null;
+        String text = r.getReviewText() != null ? r.getReviewText() : (r.getReview() != null ? r.getReview().getComment() : null);
+        Double ratingVal = r.getRating() != null ? r.getRating() : (r.getReview() != null && r.getReview().getOverallRating() != null ? Double.valueOf(r.getReview().getOverallRating()) : null);
+
         return FlaggedReviewDto.builder()
                 .id(r.getId())
-                .propertyId(r.getReview() != null && r.getReview().getProperty() != null ? r.getReview().getProperty().getId() : null)
-                .propertyName(r.getReview() != null && r.getReview().getProperty() != null ? r.getReview().getProperty().getName() : null)
+                .propertyId(propId)
+                .propertyName(propName)
                 .guestId(r.getReview() != null && r.getReview().getGuest() != null ? r.getReview().getGuest().getId() : null)
-                .guestName(r.getReview() != null && r.getReview().getGuest() != null ? r.getReview().getGuest().getFullName() : null)
-                .guestInitial(r.getReview() != null && r.getReview().getGuest() != null && r.getReview().getGuest().getFirstName() != null ? r.getReview().getGuest().getFirstName().substring(0, 1) : null)
+                .guestName(gName)
+                .guestInitial(initial)
                 .guestAvatarColor(r.getReview() != null && r.getReview().getGuest() != null ? r.getReview().getGuest().getAvatarUrl() : null)
-                .reviewText(r.getReview() != null ? r.getReview().getComment() : null)
-                .rating(r.getReview() != null && r.getReview().getOverallRating() != null ? Double.valueOf(r.getReview().getOverallRating()) : null)
+                .reviewText(text)
+                .rating(ratingVal)
                 .flagType(r.getFlagType() != null ? r.getFlagType().name() : null)
                 .ownerId(r.getOwner() != null ? r.getOwner().getId() : null)
                 .ownerName(r.getOwner() != null ? r.getOwner().getFullName() : null)
