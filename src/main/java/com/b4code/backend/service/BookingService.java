@@ -30,6 +30,7 @@ import java.util.stream.Collectors;
 @Slf4j
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class BookingService {
 
     private static final BigDecimal TAX_RATE = new BigDecimal("0.10"); // 10%
@@ -158,6 +159,7 @@ public class BookingService {
     // ──────────────────────────────────────────
     // Get by Confirmation Number
     // ──────────────────────────────────────────
+    @Transactional(readOnly = true)
     public BookingResponse getByConfirmationNumber(String confirmationNumber) {
         Booking booking = bookingRepository.findByConfirmationCode(confirmationNumber)
                 .orElseThrow(() -> new ResourceNotFoundException(
@@ -168,6 +170,7 @@ public class BookingService {
     // ──────────────────────────────────────────
     // Get all bookings for a guest (by email)
     // ──────────────────────────────────────────
+    @Transactional(readOnly = true)
     public List<BookingResponse> getGuestBookings(String email) {
         return bookingRepository.findByGuestEmailOrderByCreatedAtDesc(email)
                 .stream()
@@ -327,7 +330,7 @@ public class BookingService {
                 .previousTotalAmount(previousTotal)
                 .newTotalAmount(newTotal)
                 .refundAmount((isPaidOnline && difference.compareTo(BigDecimal.ZERO) < 0) ? difference.abs() : BigDecimal.ZERO)
-                .additionalAmountDue((isPaidOnline && difference.compareTo(BigDecimal.ZERO) > 0) ? difference : BigDecimal.ZERO)
+                .additionalAmountDue((difference.compareTo(BigDecimal.ZERO) > 0) ? difference : BigDecimal.ZERO)
                 .build();
     }
 
