@@ -3,7 +3,10 @@ package com.b4code.backend.rest;
 import com.b4code.backend.dto.owner.OwnerRoomDto;
 import com.b4code.backend.dto.owner.OwnerRoomListDto;
 import com.b4code.backend.dto.owner.OwnerRoomRequest;
+import com.b4code.backend.dto.owner.PhysicalRoomDto;
 import com.b4code.backend.service.OwnerRoomService;
+
+import java.util.List;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -24,14 +27,16 @@ public class OwnerRoomController {
     private final OwnerRoomService ownerRoomService;
 
     @GetMapping
-    @Operation(summary = "List all rooms for the authenticated owner")
+    @Operation(summary = "List rooms for the authenticated owner with search and pagination")
     public ResponseEntity<OwnerRoomListDto> listRooms(
             Principal principal,
-            @RequestParam(required = false) String status,
-            @RequestParam(required = false) String search) {
+            @RequestParam(required = false)          String status,
+            @RequestParam(required = false)          String search,
+            @RequestParam(defaultValue = "1")        int page,
+            @RequestParam(defaultValue = "10")       int size) {
 
         return ResponseEntity.ok(
-                ownerRoomService.listRooms(principal.getName(), status, search));
+                ownerRoomService.listRooms(principal.getName(), status, search, page, size));
     }
 
     @GetMapping("/{id}")
@@ -90,5 +95,37 @@ public class OwnerRoomController {
             @PathVariable Long id) {
 
         return ResponseEntity.ok(ownerRoomService.toggleAvailability(principal.getName(), id));
+    }
+
+    // ── Physical room units (individual door-numbered units) ─────────────────
+
+    @GetMapping("/{id}/units")
+    @Operation(summary = "List all physical units (door numbers) for a room type")
+    public ResponseEntity<List<PhysicalRoomDto>> listPhysicalRooms(
+            Principal principal,
+            @PathVariable Long id) {
+
+        return ResponseEntity.ok(ownerRoomService.listPhysicalRooms(principal.getName(), id));
+    }
+
+    @GetMapping("/units/by-property")
+    @Operation(summary = "List all physical units for every room in a property")
+    public ResponseEntity<List<PhysicalRoomDto>> listPhysicalRoomsByProperty(
+            Principal principal,
+            @RequestParam Long propertyId) {
+
+        return ResponseEntity.ok(ownerRoomService.listPhysicalRoomsByProperty(principal.getName(), propertyId));
+    }
+
+    @PatchMapping("/{id}/units/{unitId}/status")
+    @Operation(summary = "Update the status of an individual physical unit (CLEAN / DIRTY / OUT_OF_ORDER)")
+    public ResponseEntity<PhysicalRoomDto> updatePhysicalRoomStatus(
+            Principal principal,
+            @PathVariable Long id,
+            @PathVariable Long unitId,
+            @RequestParam String status) {
+
+        return ResponseEntity.ok(
+                ownerRoomService.updatePhysicalRoomStatus(principal.getName(), id, unitId, status));
     }
 }

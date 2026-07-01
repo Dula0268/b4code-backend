@@ -2,6 +2,7 @@ package com.b4code.backend.service.impl;
 
 import com.b4code.backend.dao.BankAccountRepository;
 import com.b4code.backend.dao.NotificationPrefRepository;
+import com.b4code.backend.dao.OwnerBankDetailsRepository;
 import com.b4code.backend.dao.PropertyRepository;
 import com.b4code.backend.dao.PropertySettingRepository;
 import com.b4code.backend.dao.ReservationRestrictionRepository;
@@ -9,12 +10,14 @@ import com.b4code.backend.dao.UserRepository;
 import com.b4code.backend.dto.owner.BankAccountDto;
 import com.b4code.backend.dto.owner.BankAccountRequest;
 import com.b4code.backend.dto.owner.NotificationPrefDto;
+import com.b4code.backend.dto.owner.OwnerBankDetailsDto;
 import com.b4code.backend.dto.owner.PropertySettingDto;
 import com.b4code.backend.dto.owner.ReservationRestrictionDto;
 import com.b4code.backend.dto.owner.RestrictionRequest;
 import com.b4code.backend.exceptions.CustomException;
 import com.b4code.backend.models.BankAccount;
 import com.b4code.backend.models.NotificationPref;
+import com.b4code.backend.models.OwnerBankDetails;
 import com.b4code.backend.models.Property;
 import com.b4code.backend.models.PropertySetting;
 import com.b4code.backend.models.ReservationRestriction;
@@ -35,6 +38,7 @@ import java.util.List;
 public class OwnerSettingsServiceImpl implements OwnerSettingsService {
 
     private final BankAccountRepository bankAccountRepository;
+    private final OwnerBankDetailsRepository ownerBankDetailsRepository;
     private final NotificationPrefRepository notificationPrefRepository;
     private final PropertySettingRepository propertySettingRepository;
     private final ReservationRestrictionRepository restrictionRepository;
@@ -66,6 +70,29 @@ public class OwnerSettingsServiceImpl implements OwnerSettingsService {
                 .isPrimary(request.getIsPrimary() != null ? request.getIsPrimary() : false)
                 .build();
         return BankAccountDto.fromEntity(bankAccountRepository.save(account));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public OwnerBankDetailsDto getOwnerBankDetails(String ownerEmail) {
+        User owner = resolveOwner(ownerEmail);
+        return ownerBankDetailsRepository.findByOwnerId(owner.getId())
+                .map(OwnerBankDetailsDto::fromEntity)
+                .orElse(OwnerBankDetailsDto.builder().ownerId(owner.getId()).build());
+    }
+
+    @Override
+    @Transactional
+    public OwnerBankDetailsDto saveOwnerBankDetails(String ownerEmail, OwnerBankDetailsDto dto) {
+        User owner = resolveOwner(ownerEmail);
+        OwnerBankDetails details = ownerBankDetailsRepository.findByOwnerId(owner.getId())
+                .orElse(OwnerBankDetails.builder().ownerId(owner.getId()).build());
+        if (dto.getAccountHolderName() != null) details.setAccountHolderName(dto.getAccountHolderName());
+        if (dto.getAccountNumber() != null)     details.setAccountNumber(dto.getAccountNumber());
+        if (dto.getBankName() != null)          details.setBankName(dto.getBankName());
+        if (dto.getBranchName() != null)        details.setBranchName(dto.getBranchName());
+        log.info("Owner {} saved bank details", ownerEmail);
+        return OwnerBankDetailsDto.fromEntity(ownerBankDetailsRepository.save(details));
     }
 
     @Override

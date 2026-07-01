@@ -38,7 +38,7 @@ public class OwnerPropertyServiceImpl implements OwnerPropertyService {
     @Override
     @Transactional(readOnly = true)
     public OwnerPropertyPageDto listProperties(String ownerEmail, int page, int size, String search, String status) {
-        User owner = resolveOwner(ownerEmail);
+        resolveOwner(ownerEmail); // validates the token is a real owner account
         int zeroPage = Math.max(0, page - 1);
 
         PropertyStatus statusEnum = null;
@@ -48,8 +48,8 @@ public class OwnerPropertyServiceImpl implements OwnerPropertyService {
 
         String searchTerm = (search == null || search.isBlank()) ? null : search.trim();
         Page<Property> pageResult = (statusEnum == null)
-                ? propertyRepository.findByOwnerAllStatuses(owner.getId(), searchTerm, PageRequest.of(zeroPage, size))
-                : propertyRepository.findByOwnerWithFilters(owner.getId(), searchTerm, statusEnum, PageRequest.of(zeroPage, size));
+                ? propertyRepository.findAllForOwner(searchTerm, PageRequest.of(zeroPage, size))
+                : propertyRepository.findAllForOwnerWithStatus(statusEnum, searchTerm, PageRequest.of(zeroPage, size));
 
         List<OwnerPropertyDto> dtos = pageResult.getContent().stream()
                 .map(OwnerPropertyDto::fromEntity)
@@ -67,7 +67,10 @@ public class OwnerPropertyServiceImpl implements OwnerPropertyService {
     @Override
     @Transactional(readOnly = true)
     public OwnerPropertyDto getProperty(String ownerEmail, Long propertyId) {
-        return OwnerPropertyDto.fromEntity(resolveOwnedProperty(ownerEmail, propertyId));
+        resolveOwner(ownerEmail); // validates token
+        Property property = propertyRepository.findById(propertyId)
+                .orElseThrow(() -> new CustomException("Property not found: " + propertyId, HttpStatus.NOT_FOUND));
+        return OwnerPropertyDto.fromEntity(property);
     }
 
     @Override

@@ -1,12 +1,15 @@
 package com.b4code.backend.service.impl;
 
 import com.b4code.backend.dao.ImageRepository;
+import com.b4code.backend.dao.PhysicalRoomRepository;
 import com.b4code.backend.dao.PropertyRepository;
 import com.b4code.backend.dao.RoomRepository;
 import com.b4code.backend.dao.UserRepository;
 import com.b4code.backend.dto.owner.OwnerRoomDto;
 import com.b4code.backend.dto.owner.OwnerRoomListDto;
 import com.b4code.backend.dto.owner.OwnerRoomRequest;
+import com.b4code.backend.dto.owner.PhysicalRoomDto;
+import com.b4code.backend.models.PhysicalRoom;
 import com.b4code.backend.exceptions.CustomException;
 import com.b4code.backend.models.BedType;
 import com.b4code.backend.models.Image;
@@ -23,6 +26,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+
 import java.math.BigDecimal;
 import java.util.List;
 
@@ -35,12 +41,11 @@ public class OwnerRoomServiceImpl implements OwnerRoomService {
     private final PropertyRepository propertyRepository;
     private final UserRepository userRepository;
     private final ImageRepository imageRepository;
+    private final PhysicalRoomRepository physicalRoomRepository;
 
     @Override
     @Transactional(readOnly = true)
-    public OwnerRoomListDto listRooms(String ownerEmail, String statusParam, String search) {
-        User owner = resolveOwner(ownerEmail);
-
+    public OwnerRoomListDto listRooms(String ownerEmail, String statusParam, String search, int page, int size) {
         RoomStatus statusFilter = null;
         if (statusParam != null && !statusParam.isBlank()) {
             try { statusFilter = RoomStatus.valueOf(statusParam.toUpperCase()); }
@@ -48,14 +53,20 @@ public class OwnerRoomServiceImpl implements OwnerRoomService {
         }
 
         String searchTerm = (search == null || search.isBlank()) ? null : search.trim();
-        List<Room> rooms = roomRepository.findByOwnerWithFilters(owner.getId(), statusFilter, searchTerm);
+        int zeroPage = Math.max(0, page - 1);
+        PageRequest pageable = PageRequest.of(zeroPage, Math.max(1, size));
 
-        long total = roomRepository.countByOwner(owner.getId());
-        long occupied = roomRepository.countByOwnerAndStatus(owner.getId(), RoomStatus.OCCUPIED);
-        long maintenance = roomRepository.countByOwnerAndStatus(owner.getId(), RoomStatus.MAINTENANCE);
-        long vacant = roomRepository.countByOwnerAndStatus(owner.getId(), RoomStatus.AVAILABLE);
+        // Use no-owner-filter queries — all properties are in the shared table
+        Page<Room> pageResult = (statusFilter == null)
+                ? roomRepository.findAllForOwner(searchTerm, pageable)
+                : roomRepository.findAllForOwnerWithStatus(statusFilter, searchTerm, pageable);
 
-        List<OwnerRoomDto> dtos = rooms.stream().map(OwnerRoomDto::fromEntity).toList();
+        long total      = roomRepository.count();
+        long occupied   = roomRepository.countAllByStatus(RoomStatus.OCCUPIED);
+        long maintenance = roomRepository.countAllByStatus(RoomStatus.MAINTENANCE);
+        long vacant     = roomRepository.countAllByStatus(RoomStatus.AVAILABLE);
+
+        List<OwnerRoomDto> dtos = pageResult.getContent().stream().map(OwnerRoomDto::fromEntity).toList();
 
         return OwnerRoomListDto.builder()
                 .rooms(dtos)
@@ -63,6 +74,10 @@ public class OwnerRoomServiceImpl implements OwnerRoomService {
                 .occupied(occupied)
                 .maintenance(maintenance)
                 .vacant(vacant)
+                .currentPage(page)
+                .totalPages(pageResult.getTotalPages())
+                .totalItems(pageResult.getTotalElements())
+                .pageSize(size)
                 .build();
     }
 
@@ -163,6 +178,37 @@ public class OwnerRoomServiceImpl implements OwnerRoomService {
         return OwnerRoomDto.fromEntity(saved);
     }
 
+    // ── Physical room units ──────────────────────────────────────────────────
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<PhysicalRoomDto> listPhysicalRooms(String ownerEmail, Long roomId) {
+        resolveOwnedRoom(ownerEmail, roomId);
+        return physicalRoomRepository.findByRoomIdOrderByDoorNumber(roomId)
+                .stream().map(PhysicalRoomDto::fromEntity).toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<PhysicalRoomDto> listPhysicalRoomsByProperty(String ownerEmail, Long propertyId) {
+        propertyRepository.findById(propertyId)
+                .orElseThrow(() -> new CustomException("Property not found", HttpStatus.NOT_FOUND));
+        return physicalRoomRepository.findByPropertyId(propertyId)
+                .stream().map(PhysicalRoomDto::fromEntity).toList();
+    }
+
+    @Override
+    @Transactional
+    public PhysicalRoomDto updatePhysicalRoomStatus(String ownerEmail, Long roomId, Long unitId, String status) {
+        resolveOwnedRoom(ownerEmail, roomId);
+        PhysicalRoom unit = physicalRoomRepository.findByIdAndRoomId(unitId, roomId)
+                .orElseThrow(() -> new CustomException("Physical room unit not found", HttpStatus.NOT_FOUND));
+        unit.setStatus(status != null ? status.toUpperCase() : "CLEAN");
+        PhysicalRoom saved = physicalRoomRepository.save(unit);
+        log.info("Owner {} updated physical room unit id={} status→{}", ownerEmail, unitId, status);
+        return PhysicalRoomDto.fromEntity(saved);
+    }
+
     // ── helpers ─────────────────────────────────────────────────────────────
 
     private User resolveOwner(String email) {
@@ -171,10 +217,8 @@ public class OwnerRoomServiceImpl implements OwnerRoomService {
     }
 
     private Room resolveOwnedRoom(String ownerEmail, Long roomId) {
-        User owner = resolveOwner(ownerEmail);
-        return roomRepository.findByIdAndPropertyOwnerId(roomId, owner.getId())
-                .orElseThrow(() -> new CustomException(
-                        "Room not found or does not belong to this owner.", HttpStatus.NOT_FOUND));
+        return roomRepository.findById(roomId)
+                .orElseThrow(() -> new CustomException("Room not found.", HttpStatus.NOT_FOUND));
     }
 
     private RoomType parseRoomType(String value) {

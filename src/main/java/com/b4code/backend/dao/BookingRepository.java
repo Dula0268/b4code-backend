@@ -101,4 +101,30 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
           AND b.status IN ('CONFIRMED', 'CHECKED_IN', 'COMPLETED')
         """)
     long countActiveByOwner(@Param("ownerId") Long ownerId);
+
+    // Global counts — all properties (no owner filter)
+    @Query("SELECT COUNT(b) FROM Booking b WHERE b.status IN ('CONFIRMED', 'CHECKED_IN', 'COMPLETED')")
+    long countActiveAll();
+
+    @Query("SELECT COUNT(b) FROM Booking b")
+    long countAll();
+
+    @Query("SELECT SUM(b.totalAmount) FROM Booking b WHERE b.status IN ('CONFIRMED', 'CHECKED_IN', 'COMPLETED')")
+    java.math.BigDecimal sumRevenueAll();
+
+    @Query("""
+        SELECT b FROM Booking b
+        LEFT JOIN FETCH b.property
+        WHERE b.status <> 'CANCELLED'
+        ORDER BY b.createdAt DESC
+        """)
+    List<Booking> findRecentAll(org.springframework.data.domain.Pageable pageable);
+
+    @Query("""
+        SELECT b FROM Booking b
+        WHERE b.property IS NOT NULL
+          AND CAST(b.checkIn AS date) = CAST(CURRENT_DATE AS date)
+          AND b.status IN ('CONFIRMED', 'CHECKED_IN')
+        """)
+    List<Booking> findTodayCheckIns();
 }

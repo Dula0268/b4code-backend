@@ -30,17 +30,19 @@ public class OwnerDashboardServiceImpl implements OwnerDashboardService {
     @Override
     @Transactional(readOnly = true)
     public OwnerDashboardDto getDashboard(String ownerEmail) {
-        User owner = userRepository.findByEmail(ownerEmail)
+        userRepository.findByEmail(ownerEmail)
                 .orElseThrow(() -> new CustomException("Owner not found", HttpStatus.NOT_FOUND));
-        Long ownerId = owner.getId();
 
-        long totalProperties = propertyRepository.findByOwnerId(ownerId).size();
-        long totalRooms = roomRepository.countByOwner(ownerId);
-        long activeBookings = bookingRepository.countActiveByOwner(ownerId);
-        BigDecimal revenue = bookingRepository.sumRevenueByOwner(ownerId);
+        long totalProperties = propertyRepository.count();
+        long totalRooms      = roomRepository.count();
+        long activeBookings  = bookingRepository.countActiveAll();
+        long totalBookings   = bookingRepository.countAll();
+        long todayCheckIns   = bookingRepository.findTodayCheckIns().size();
+
+        BigDecimal revenue = bookingRepository.sumRevenueAll();
         if (revenue == null) revenue = BigDecimal.ZERO;
 
-        List<Booking> recent = bookingRepository.findRecentByOwner(ownerId, PageRequest.of(0, 5));
+        List<Booking> recent = bookingRepository.findRecentAll(PageRequest.of(0, 5));
         List<OwnerDashboardDto.RecentBookingDto> recentDtos = recent.stream()
                 .map(b -> OwnerDashboardDto.RecentBookingDto.builder()
                         .id(b.getId())
@@ -55,11 +57,12 @@ public class OwnerDashboardServiceImpl implements OwnerDashboardService {
                 .toList();
 
         return OwnerDashboardDto.builder()
-                .totalBookings(bookingRepository.countActiveByOwner(ownerId))
-                .activeBookings(activeBookings)
-                .totalRevenue(revenue.toPlainString())
                 .totalProperties(totalProperties)
                 .totalRooms(totalRooms)
+                .activeBookings(activeBookings)
+                .totalBookings(totalBookings)
+                .todayCheckIns(todayCheckIns)
+                .totalRevenue(revenue.toPlainString())
                 .recentBookings(recentDtos)
                 .build();
     }

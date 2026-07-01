@@ -2,6 +2,7 @@ package com.b4code.backend.service.impl;
 
 import com.b4code.backend.dao.AvailabilityRepository;
 import com.b4code.backend.dao.PropertyRepository;
+import com.b4code.backend.dao.RoomBookingDailyRepository;
 import com.b4code.backend.dao.RoomRepository;
 import com.b4code.backend.dao.UserRepository;
 import com.b4code.backend.dto.owner.AvailabilityBulkUpdateRequest;
@@ -10,6 +11,7 @@ import com.b4code.backend.exceptions.CustomException;
 import com.b4code.backend.models.Availability;
 import com.b4code.backend.models.Property;
 import com.b4code.backend.models.Room;
+import com.b4code.backend.models.RoomBookingDaily;
 import com.b4code.backend.models.User;
 import com.b4code.backend.service.OwnerAvailabilityService;
 import lombok.RequiredArgsConstructor;
@@ -29,6 +31,7 @@ import java.util.stream.Collectors;
 public class OwnerAvailabilityServiceImpl implements OwnerAvailabilityService {
 
     private final AvailabilityRepository availabilityRepository;
+    private final RoomBookingDailyRepository roomBookingDailyRepository;
     private final RoomRepository roomRepository;
     private final PropertyRepository propertyRepository;
     private final UserRepository userRepository;
@@ -36,27 +39,23 @@ public class OwnerAvailabilityServiceImpl implements OwnerAvailabilityService {
     @Override
     @Transactional(readOnly = true)
     public List<AvailabilityDayDto> getWeeklyCalendar(String ownerEmail, Long propertyId, String baseDateStr) {
-        verifyOwnsProperty(ownerEmail, propertyId);
+        verifyPropertyExists(propertyId);
         LocalDate base = baseDateStr != null ? LocalDate.parse(baseDateStr) : LocalDate.now();
-        LocalDate from = base;
-        LocalDate to = base.plusDays(6);
-        return buildDtos(propertyId, from, to);
+        return buildDtos(propertyId, base, base.plusDays(6));
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<AvailabilityDayDto> getMonthlyCalendar(String ownerEmail, Long propertyId, int year, int month) {
-        verifyOwnsProperty(ownerEmail, propertyId);
+        verifyPropertyExists(propertyId);
         YearMonth ym = YearMonth.of(year, month);
-        LocalDate from = ym.atDay(1);
-        LocalDate to = ym.atEndOfMonth();
-        return buildDtos(propertyId, from, to);
+        return buildDtos(propertyId, ym.atDay(1), ym.atEndOfMonth());
     }
 
     @Override
     @Transactional
     public void bulkUpdate(String ownerEmail, AvailabilityBulkUpdateRequest request) {
-        verifyOwnsProperty(ownerEmail, request.getPropertyId());
+        verifyPropertyExists(request.getPropertyId());
         List<Room> rooms = roomRepository.findByPropertyId(request.getPropertyId());
 
         for (String dateStr : request.getDates()) {
@@ -74,20 +73,34 @@ public class OwnerAvailabilityServiceImpl implements OwnerAvailabilityService {
     }
 
     private List<AvailabilityDayDto> buildDtos(Long propertyId, LocalDate from, LocalDate to) {
+        // availability overrides (custom status / price / notes)
         List<Availability> records = availabilityRepository.findByPropertyAndDateRange(propertyId, from, to);
-        Map<String, Availability> index = records.stream()
+        Map<String, Availability> availIndex = records.stream()
                 .collect(Collectors.toMap(
                         a -> a.getRoom().getId() + "_" + a.getDate(),
                         a -> a,
                         (a, b) -> a));
 
+        // booking density from room_booking_daily
+        List<RoomBookingDaily> dailyRecords = roomBookingDailyRepository.findByPropertyAndDateRange(propertyId, from, to);
+        Map<String, Integer> bookingIndex = dailyRecords.stream()
+                .collect(Collectors.toMap(
+                        r -> r.getRoom().getId() + "_" + r.getDate(),
+                        RoomBookingDaily::getBookedQuantity,
+                        Integer::sum));
+
         List<Room> rooms = roomRepository.findByPropertyId(propertyId);
         List<AvailabilityDayDto> result = new ArrayList<>();
+
         for (Room room : rooms) {
+            int totalInventory = room.getInventory() != null ? room.getInventory() : 0;
             LocalDate d = from;
             while (!d.isAfter(to)) {
                 String key = room.getId() + "_" + d;
-                Availability a = index.get(key);
+                Availability a = availIndex.get(key);
+                int booked = bookingIndex.getOrDefault(key, 0);
+                int available = Math.max(0, totalInventory - booked);
+
                 result.add(AvailabilityDayDto.builder()
                         .roomId(room.getId())
                         .roomName(room.getName())
@@ -96,6 +109,9 @@ public class OwnerAvailabilityServiceImpl implements OwnerAvailabilityService {
                         .customPrice(a != null && a.getCustomPrice() != null ? a.getCustomPrice().toPlainString() : null)
                         .notes(a != null ? a.getNotes() : null)
                         .availabilityId(a != null ? a.getId() : null)
+                        .inventory(totalInventory)
+                        .bookedQuantity(booked)
+                        .availableQuantity(available)
                         .build());
                 d = d.plusDays(1);
             }
@@ -103,17 +119,13 @@ public class OwnerAvailabilityServiceImpl implements OwnerAvailabilityService {
         return result;
     }
 
+    private void verifyPropertyExists(Long propertyId) {
+        propertyRepository.findById(propertyId)
+                .orElseThrow(() -> new CustomException("Property not found", HttpStatus.NOT_FOUND));
+    }
+
     private User resolveOwner(String email) {
         return userRepository.findByEmail(email)
                 .orElseThrow(() -> new CustomException("Owner not found", HttpStatus.NOT_FOUND));
-    }
-
-    private void verifyOwnsProperty(String ownerEmail, Long propertyId) {
-        User owner = resolveOwner(ownerEmail);
-        Property property = propertyRepository.findById(propertyId)
-                .orElseThrow(() -> new CustomException("Property not found", HttpStatus.NOT_FOUND));
-        if (!owner.getId().equals(property.getOwnerId())) {
-            throw new CustomException("Access denied", HttpStatus.FORBIDDEN);
-        }
     }
 }

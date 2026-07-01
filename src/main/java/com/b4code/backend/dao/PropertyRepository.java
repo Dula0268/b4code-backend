@@ -175,6 +175,33 @@ public interface PropertyRepository extends JpaRepository<Property, Long> {
             @Param("search") String search,
             Pageable pageable);
 
+    // Owner management — all properties, no owner filter (single shared table)
+    @Query("""
+            SELECT p FROM Property p
+            WHERE (:search IS NULL OR :search = ''
+                   OR LOWER(p.name)         LIKE LOWER(CONCAT('%', :search, '%'))
+                   OR LOWER(p.city)         LIKE LOWER(CONCAT('%', :search, '%'))
+                   OR LOWER(p.addressLine1) LIKE LOWER(CONCAT('%', :search, '%')))
+            ORDER BY p.id DESC
+            """)
+    Page<Property> findAllForOwner(
+            @Param("search") String search,
+            Pageable pageable);
+
+    @Query("""
+            SELECT p FROM Property p
+            WHERE p.status = :status
+              AND (:search IS NULL OR :search = ''
+                   OR LOWER(p.name)         LIKE LOWER(CONCAT('%', :search, '%'))
+                   OR LOWER(p.city)         LIKE LOWER(CONCAT('%', :search, '%'))
+                   OR LOWER(p.addressLine1) LIKE LOWER(CONCAT('%', :search, '%')))
+            ORDER BY p.id DESC
+            """)
+    Page<Property> findAllForOwnerWithStatus(
+            @Param("status") com.b4code.backend.models.enums.PropertyStatus status,
+            @Param("search") String search,
+            Pageable pageable);
+
     @Query("SELECT MIN(r.pricePerNight) FROM Room r")
     BigDecimal findMinPrice();
 

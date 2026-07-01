@@ -12,4 +12,8 @@ public class OwnerRoomListDto {
     private long occupied;
     private long maintenance;
     private long vacant;
+    private int currentPage;
+    private int totalPages;
+    private long totalItems;
+    private int pageSize;
 }

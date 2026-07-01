@@ -3,6 +3,7 @@ package com.b4code.backend.rest;
 import com.b4code.backend.dto.owner.BankAccountDto;
 import com.b4code.backend.dto.owner.BankAccountRequest;
 import com.b4code.backend.dto.owner.NotificationPrefDto;
+import com.b4code.backend.dto.owner.OwnerBankDetailsDto;
 import com.b4code.backend.dto.owner.PropertySettingDto;
 import com.b4code.backend.dto.owner.ReservationRestrictionDto;
 import com.b4code.backend.dto.owner.RestrictionRequest;
@@ -41,6 +42,22 @@ public class OwnerSettingsController {
 
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ownerSettingsService.addBankAccount(principal.getName(), request));
+    }
+
+    // ── Owner primary bank details (owner.owner_bank_details) ────────────────
+
+    @GetMapping("/bank-details")
+    @Operation(summary = "Get the owner's primary bank payout details")
+    public ResponseEntity<OwnerBankDetailsDto> getOwnerBankDetails(Principal principal) {
+        return ResponseEntity.ok(ownerSettingsService.getOwnerBankDetails(principal.getName()));
+    }
+
+    @PutMapping("/bank-details")
+    @Operation(summary = "Create or update the owner's primary bank payout details")
+    public ResponseEntity<OwnerBankDetailsDto> saveOwnerBankDetails(
+            Principal principal,
+            @RequestBody OwnerBankDetailsDto dto) {
+        return ResponseEntity.ok(ownerSettingsService.saveOwnerBankDetails(principal.getName(), dto));
     }
 
     @GetMapping("/notifications")

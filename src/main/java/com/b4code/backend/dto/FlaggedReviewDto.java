@@ -6,7 +6,7 @@ import lombok.*;
 
 import java.time.format.DateTimeFormatter;
 
-@Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
+@Data @Builder
 public class FlaggedReviewDto {
 
     private Long id;
