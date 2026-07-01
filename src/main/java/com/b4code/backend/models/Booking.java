@@ -67,8 +67,7 @@ public class Booking {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    @Builder.Default
-    private BookingStatus status = BookingStatus.CONFIRMED;
+    private BookingStatus status;
 
     @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal taxAmount;
@@ -94,6 +93,6 @@ public class Booking {
     }
 
     public enum BookingStatus {
-        CONFIRMED, CANCELLED, COMPLETED, CHECKED_IN
+        PENDING, CONFIRMED, CANCELLED, COMPLETED, CHECKED_IN
     }
 }

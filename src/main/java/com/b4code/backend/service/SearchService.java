@@ -22,6 +22,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
 import com.b4code.backend.dao.BookingRepository;
+import com.b4code.backend.dao.RoomDateInventoryRepository;
 
 @Service
 public class SearchService {
@@ -31,6 +32,7 @@ public class SearchService {
     private final PropertyRepository propertyRepository;
     private final ReviewRepository reviewRepository;
     private final BookingRepository bookingRepository;
+    private final RoomDateInventoryRepository roomDateInventoryRepository;
 
     // Icon mapping for property types
     private static final Map<String, String> PROPERTY_TYPE_ICONS = Map.of(
@@ -42,10 +44,11 @@ public class SearchService {
         "Cabin", "TreePine"
     );
 
-    public SearchService(PropertyRepository propertyRepository, ReviewRepository reviewRepository, BookingRepository bookingRepository) {
+    public SearchService(PropertyRepository propertyRepository, ReviewRepository reviewRepository, BookingRepository bookingRepository, RoomDateInventoryRepository roomDateInventoryRepository) {
         this.propertyRepository = propertyRepository;
         this.reviewRepository = reviewRepository;
         this.bookingRepository = bookingRepository;
+        this.roomDateInventoryRepository = roomDateInventoryRepository;
     }
 
     // ─── Paginated Search ────────────────────────────────────────────────
@@ -262,7 +265,7 @@ public class SearchService {
             if (amLower.equals("free cancellation")) {
                 return property.getFreeCancellation() != null && property.getFreeCancellation();
             }
-            if (amLower.equals("breakfast included")) {
+            if (amLower.equals("breakfast included") || amLower.equals("breakfast")) {
                 return property.getBreakfastIncluded() != null && property.getBreakfastIncluded();
             }
             if (amLower.equals("pet-friendly")) {
@@ -282,7 +285,7 @@ public class SearchService {
                 ? property.getRooms().stream()
                     .filter(r -> {
                         if (checkIn == null || checkOut == null) return true;
-                        int booked = bookingRepository.getBookedQuantityForDates(r.getId(), checkIn, checkOut);
+                        int booked = roomDateInventoryRepository.getMaxBookedQuantity(r.getId(), checkIn, checkOut);
                         return (r.getInventory() - booked) > 0;
                     })
                     .collect(Collectors.toList())
@@ -302,13 +305,13 @@ public class SearchService {
 
         int maxGuests = 2; // Defaulting since maxOccupancy is removed
 
-        // Extract amenity labels for search card
+        // Extract amenity labels for search card (only advanced filters as requested)
         List<String> amenityLabels = new ArrayList<>();
-        if (property.getAmenities() != null && !property.getAmenities().isEmpty()) {
-            for (com.b4code.backend.models.Amenity am : property.getAmenities()) {
-                amenityLabels.add(am.getName());
-            }
-        }
+        
+        if (Boolean.TRUE.equals(property.getFreeCancellation())) amenityLabels.add("Free Cancellation");
+        if (Boolean.TRUE.equals(property.getBreakfastIncluded())) amenityLabels.add("Breakfast Included");
+        if (Boolean.TRUE.equals(property.getPetFriendly())) amenityLabels.add("Pet-Friendly");
+        if (Boolean.TRUE.equals(property.getAccessibility())) amenityLabels.add("Accessibility");
         
         Double avgRating = reviewRepository.calculateAverageRating(property.getId());
         Long reviewCount = reviewRepository.countByPropertyId(property.getId());
@@ -316,7 +319,7 @@ public class SearchService {
         String primaryImage = "/images/placeholder-property.jpg";
         if (property.getImages() != null && !property.getImages().isEmpty()) {
             primaryImage = property.getImages().stream()
-                .filter(img -> com.b4code.backend.models.ImageType.PROPERTY.equals(img.getType()))
+                .filter(img -> com.b4code.backend.models.ImageType.PROPERTY.equals(img.getType()) || com.b4code.backend.models.ImageType.GALLERY.equals(img.getType()))
                 .map(com.b4code.backend.models.Image::getUrl)
                 .findFirst()
                 .orElse(property.getImages().get(0).getUrl());
@@ -347,7 +350,10 @@ public class SearchService {
     private PropertyDetailResult mapToPropertyDetailResult(Property property, LocalDate checkIn, LocalDate checkOut) {
         // Gallery images
         List<String> galleryImages = property.getImages() != null
-                ? property.getImages().stream().map(com.b4code.backend.models.Image::getUrl).collect(java.util.stream.Collectors.toList())
+                ? property.getImages().stream()
+                    .filter(img -> com.b4code.backend.models.ImageType.PROPERTY.equals(img.getType()) || com.b4code.backend.models.ImageType.GALLERY.equals(img.getType()))
+                    .map(com.b4code.backend.models.Image::getUrl)
+                    .collect(java.util.stream.Collectors.toList())
                 : new java.util.ArrayList<>();
             
         String primaryImage = galleryImages.isEmpty() ? "/images/placeholder-property.jpg" : galleryImages.get(0);
@@ -396,13 +402,13 @@ public class SearchService {
                 ? property.getRooms().stream()
                     .filter(r -> {
                         if (checkIn == null || checkOut == null) return true;
-                        int booked = bookingRepository.getBookedQuantityForDates(r.getId(), checkIn, checkOut);
+                        int booked = roomDateInventoryRepository.getMaxBookedQuantity(r.getId(), checkIn, checkOut);
                         return (r.getInventory() - booked) > 0;
                     })
                     .map(r -> {
                         int availableCount = r.getInventory() != null ? r.getInventory() : 3;
                         if (checkIn != null && checkOut != null) {
-                            int booked = bookingRepository.getBookedQuantityForDates(r.getId(), checkIn, checkOut);
+                            int booked = roomDateInventoryRepository.getMaxBookedQuantity(r.getId(), checkIn, checkOut);
                             availableCount -= booked;
                         }
                     return RoomDTO.builder()

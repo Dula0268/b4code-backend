@@ -10,6 +10,7 @@ import org.springframework.stereotype.Repository;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Repository
@@ -27,36 +28,38 @@ public interface PropertyRepository extends JpaRepository<Property, Long> {
               AND r.pricePerNight <= :maxPrice
 
               AND (
-                    :hasDates = false OR NOT EXISTS (
-                        SELECT b FROM Booking b
-                        WHERE b.room = r
-                            AND b.checkIn  < :checkOut
-                            AND b.checkOut > :checkIn
-                    )
-              )
-              AND (
-                  SELECT COUNT(r2) FROM Room r2 WHERE r2.property = p
-
-
-                  AND (
-                      :hasDates = false OR NOT EXISTS (
-                          SELECT b FROM Booking b
-                          WHERE b.room = r2
-                              AND b.checkIn  < :checkOut
-                              AND b.checkOut > :checkIn
-                      )
-                  )
+                  SELECT COALESCE(SUM(
+                      r2.inventory - CASE WHEN :hasDates = true THEN (
+                          SELECT COALESCE(MAX(ri.bookedQuantity), 0) FROM RoomDateInventory ri
+                          WHERE ri.room = r2
+                              AND ri.date >= :checkIn
+                              AND ri.date < :checkOut
+                      ) ELSE 0 END
+                  ), 0) FROM Room r2 WHERE r2.property = p
+                  AND r2.inventory > CASE WHEN :hasDates = true THEN (
+                      SELECT COALESCE(MAX(ri.bookedQuantity), 0) FROM RoomDateInventory ri
+                      WHERE ri.room = r2
+                          AND ri.date >= :checkIn
+                          AND ri.date < :checkOut
+                  ) ELSE 0 END
               ) >= :rooms
               AND (
-                  SELECT SUM(r3.maxOccupancy) FROM Room r3 WHERE r3.property = p
-                  AND (
-                      :hasDates = false OR NOT EXISTS (
-                          SELECT b FROM Booking b
-                          WHERE b.room = r3
-                              AND b.checkIn  < :checkOut
-                              AND b.checkOut > :checkIn
+                  SELECT COALESCE(SUM(
+                      r3.maxOccupancy * (
+                          r3.inventory - CASE WHEN :hasDates = true THEN (
+                              SELECT COALESCE(MAX(ri.bookedQuantity), 0) FROM RoomDateInventory ri
+                              WHERE ri.room = r3
+                                  AND ri.date >= :checkIn
+                                  AND ri.date < :checkOut
+                          ) ELSE 0 END
                       )
-                  )
+                  ), 0) FROM Room r3 WHERE r3.property = p
+                  AND r3.inventory > CASE WHEN :hasDates = true THEN (
+                      SELECT COALESCE(MAX(ri.bookedQuantity), 0) FROM RoomDateInventory ri
+                      WHERE ri.room = r3
+                          AND ri.date >= :checkIn
+                          AND ri.date < :checkOut
+                  ) ELSE 0 END
               ) >= :guests
             """)
     Page<Property> searchAvailableProperties(
@@ -81,36 +84,38 @@ public interface PropertyRepository extends JpaRepository<Property, Long> {
               AND r.pricePerNight >= :minPrice
               AND r.pricePerNight <= :maxPrice
               AND (
-                    :hasDates = false OR NOT EXISTS (
-                        SELECT b FROM Booking b
-                        WHERE b.room = r
-                            AND b.checkIn  < :checkOut
-                            AND b.checkOut > :checkIn
-                    )
-              )
-              AND (
-                  SELECT COUNT(r2) FROM Room r2 WHERE r2.property = p
-
-
-                  AND (
-                      :hasDates = false OR NOT EXISTS (
-                          SELECT b FROM Booking b
-                          WHERE b.room = r2
-                              AND b.checkIn  < :checkOut
-                              AND b.checkOut > :checkIn
-                      )
-                  )
+                  SELECT COALESCE(SUM(
+                      r2.inventory - CASE WHEN :hasDates = true THEN (
+                          SELECT COALESCE(MAX(ri.bookedQuantity), 0) FROM RoomDateInventory ri
+                          WHERE ri.room = r2
+                              AND ri.date >= :checkIn
+                              AND ri.date < :checkOut
+                      ) ELSE 0 END
+                  ), 0) FROM Room r2 WHERE r2.property = p
+                  AND r2.inventory > CASE WHEN :hasDates = true THEN (
+                      SELECT COALESCE(MAX(ri.bookedQuantity), 0) FROM RoomDateInventory ri
+                      WHERE ri.room = r2
+                          AND ri.date >= :checkIn
+                          AND ri.date < :checkOut
+                  ) ELSE 0 END
               ) >= :rooms
               AND (
-                  SELECT SUM(r3.maxOccupancy) FROM Room r3 WHERE r3.property = p
-                  AND (
-                      :hasDates = false OR NOT EXISTS (
-                          SELECT b FROM Booking b
-                          WHERE b.room = r3
-                              AND b.checkIn  < :checkOut
-                              AND b.checkOut > :checkIn
+                  SELECT COALESCE(SUM(
+                      r3.maxOccupancy * (
+                          r3.inventory - CASE WHEN :hasDates = true THEN (
+                              SELECT COALESCE(MAX(ri.bookedQuantity), 0) FROM RoomDateInventory ri
+                              WHERE ri.room = r3
+                                  AND ri.date >= :checkIn
+                                  AND ri.date < :checkOut
+                          ) ELSE 0 END
                       )
-                  )
+                  ), 0) FROM Room r3 WHERE r3.property = p
+                  AND r3.inventory > CASE WHEN :hasDates = true THEN (
+                      SELECT COALESCE(MAX(ri.bookedQuantity), 0) FROM RoomDateInventory ri
+                      WHERE ri.room = r3
+                          AND ri.date >= :checkIn
+                          AND ri.date < :checkOut
+                  ) ELSE 0 END
               ) >= :guests
             """)
     List<Property> searchAvailablePropertiesList(
@@ -166,4 +171,6 @@ public interface PropertyRepository extends JpaRepository<Property, Long> {
 
     @Query("SELECT MAX(r.pricePerNight) FROM Room r")
     BigDecimal findMaxPrice();
+
+    long countByCreatedAtAfter(LocalDateTime date);
 }

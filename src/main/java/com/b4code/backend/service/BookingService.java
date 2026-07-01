@@ -44,6 +44,7 @@ public class BookingService {
     private final PaymentService paymentService;
     private final com.b4code.backend.dao.DisputeRepository disputeRepository;
     private final com.b4code.backend.dao.UserRepository userRepository;
+    private final com.b4code.backend.dao.RoomDateInventoryRepository roomDateInventoryRepository;
 
     // ──────────────────────────────────────────
     // Price Preview (called before confirming)
@@ -68,9 +69,14 @@ public class BookingService {
             throw new IllegalArgumentException("Check-out must be after check-in");
         }
 
-        int bookedQuantity = bookingRepository.getBookedQuantityForDates(
+        List<com.b4code.backend.models.RoomDateInventory> dailyInventories = roomDateInventoryRepository.findByRoomIdAndDates(
                 room.getId(), request.getCheckIn(), request.getCheckOut());
-        if (room.getInventory() - bookedQuantity < request.getRoomQuantity()) {
+        
+        int peakBooked = dailyInventories.stream()
+                .mapToInt(com.b4code.backend.models.RoomDateInventory::getBookedQuantity)
+                .max().orElse(0);
+
+        if (room.getInventory() - peakBooked < request.getRoomQuantity()) {
             throw new RoomNotAvailableException("Room is not available for the selected dates with the requested quantity");
         }
 
@@ -93,9 +99,13 @@ public class BookingService {
                 .taxAmount(price.getTaxAmount())
                 .promoCode(request.getPromoCodes() != null && !request.getPromoCodes().isEmpty() ? String.join(",", request.getPromoCodes()) : null)
                 .paymentMethod(request.getPaymentMethod())
+                .status(request.getPaymentMethod() == Booking.PaymentMethod.ONLINE_CARD ? Booking.BookingStatus.PENDING : Booking.BookingStatus.CONFIRMED)
                 .build();
 
         Booking saved = bookingRepository.save(booking);
+
+        // Update daily inventory
+        updateInventory(room, request.getCheckIn(), request.getCheckOut(), request.getRoomQuantity());
 
         if (request.getPromoCodes() != null && !request.getPromoCodes().isEmpty()) {
             for (String codeStr : request.getPromoCodes()) {
@@ -131,7 +141,7 @@ public class BookingService {
     // after PayHere redirect, since notify_url
     // cannot reach localhost in development)
     // ──────────────────────────────────────────
-    @Transactional(readOnly = true)
+    @Transactional
     public void sendReceiptEmail(String confirmationCode) {
         Booking booking = bookingRepository.findByConfirmationCode(confirmationCode)
                 .orElseThrow(() -> new com.b4code.backend.exceptions.ResourceNotFoundException(
@@ -140,6 +150,12 @@ public class BookingService {
         if (booking.getPaymentMethod() != Booking.PaymentMethod.ONLINE_CARD) {
             log.info("[EMAIL] Skipping receipt email – booking {} is pay-at-property", confirmationCode);
             return;
+        }
+
+        if (booking.getStatus() == Booking.BookingStatus.PENDING) {
+            booking.setStatus(Booking.BookingStatus.CONFIRMED);
+            bookingRepository.save(booking);
+            log.info("[BOOKING] Confirmed booking {} after payment redirect", confirmationCode);
         }
 
         String propertyName = booking.getRoom().getProperty().getName();
@@ -186,7 +202,9 @@ public class BookingService {
         Booking booking = bookingRepository.findById(bookingId)
                 .orElseThrow(() -> new ResourceNotFoundException("Booking not found: " + bookingId));
 
-        if (booking.getStatus() == BookingStatus.CANCELLED) {
+        BookingStatus oldStatus = booking.getStatus();
+        
+        if (oldStatus == BookingStatus.CANCELLED) {
             throw new IllegalStateException("Booking is already cancelled");
         }
 
@@ -194,9 +212,12 @@ public class BookingService {
         booking.setCancellationReason(request.getReason());
         Booking saved = bookingRepository.save(booking);
 
+        // Free up daily inventory
+        updateInventory(booking.getRoom(), booking.getCheckIn(), booking.getCheckOut(), -booking.getRoomQuantity());
+
         // Calculate refund amount
         Property property = booking.getProperty();
-        BigDecimal totalPaid = booking.getPaymentMethod() == Booking.PaymentMethod.ONLINE_CARD 
+        BigDecimal totalPaid = (oldStatus != BookingStatus.PENDING && booking.getPaymentMethod() == Booking.PaymentMethod.ONLINE_CARD)
             ? booking.getTotalAmount() 
             : BigDecimal.ZERO;
         BigDecimal fee = BigDecimal.ZERO;
@@ -281,9 +302,19 @@ public class BookingService {
             throw new IllegalArgumentException("Room does not belong to the selected property");
         }
 
-        int bookedQuantity = bookingRepository.getBookedQuantityForDatesExcludingId(
-                booking.getId(), room.getId(), request.getCheckInDate(), request.getCheckOutDate());
-        if (room.getInventory() - bookedQuantity < booking.getRoomQuantity()) {
+        // Free up old inventory temporarily to check new availability
+        updateInventory(booking.getRoom(), booking.getCheckIn(), booking.getCheckOut(), -booking.getRoomQuantity());
+
+        List<com.b4code.backend.models.RoomDateInventory> dailyInventories = roomDateInventoryRepository.findByRoomIdAndDates(
+                room.getId(), request.getCheckInDate(), request.getCheckOutDate());
+        
+        int peakBooked = dailyInventories.stream()
+                .mapToInt(com.b4code.backend.models.RoomDateInventory::getBookedQuantity)
+                .max().orElse(0);
+
+        if (room.getInventory() - peakBooked < booking.getRoomQuantity()) {
+            // Revert the temporary inventory freeing
+            updateInventory(booking.getRoom(), booking.getCheckIn(), booking.getCheckOut(), booking.getRoomQuantity());
             throw new RoomNotAvailableException("Room is not available for the selected dates with the current quantity");
         }
 
@@ -305,6 +336,9 @@ public class BookingService {
                 request.getPaymentMethod() != null ? request.getPaymentMethod() : booking.getPaymentMethod());
 
         Booking saved = bookingRepository.save(booking);
+
+        // Consume new inventory
+        updateInventory(room, request.getCheckInDate(), request.getCheckOutDate(), booking.getRoomQuantity());
 
         boolean isPaidOnline = saved.getPaymentMethod() == Booking.PaymentMethod.ONLINE_CARD;
 
@@ -396,9 +430,6 @@ public class BookingService {
         }
 
         String displayStatus = booking.getStatus().name();
-        if (booking.getStatus() == Booking.BookingStatus.CONFIRMED && booking.getCheckOut().isBefore(LocalDate.now())) {
-            displayStatus = "COMPLETED";
-        }
 
         BookingResponse response = BookingResponse.builder()
                 .id(booking.getId())
@@ -442,5 +473,19 @@ public class BookingService {
 
     private Room findRoomOrThrow(Long id) {
         return roomRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Room not found: " + id));
+    }
+
+    private void updateInventory(Room room, LocalDate checkIn, LocalDate checkOut, int deltaQuantity) {
+        for (LocalDate date = checkIn; date.isBefore(checkOut); date = date.plusDays(1)) {
+            com.b4code.backend.models.RoomDateInventory inventory = roomDateInventoryRepository.findByRoomIdAndDate(room.getId(), date)
+                    .orElse(com.b4code.backend.models.RoomDateInventory.builder()
+                            .room(room)
+                            .date(date)
+                            .bookedQuantity(0)
+                            .build());
+            
+            inventory.setBookedQuantity(inventory.getBookedQuantity() + deltaQuantity);
+            roomDateInventoryRepository.save(inventory);
+        }
     }
 }

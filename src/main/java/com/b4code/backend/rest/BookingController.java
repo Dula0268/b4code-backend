@@ -19,6 +19,13 @@ import java.util.List;
 public class BookingController {
 
     private final BookingService bookingService;
+    private final com.b4code.backend.service.BookingReminderService bookingReminderService;
+
+    @PostMapping("/trigger-reminders")
+    public ResponseEntity<String> triggerReminders() {
+        bookingReminderService.sendRemindersForUpcomingBookings();
+        return ResponseEntity.ok("Reminders triggered");
+    }
 
     /**
      * GET /api/guest/bookings/price-preview

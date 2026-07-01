@@ -42,6 +42,9 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
     );
 
     List<Booking> findByGuestEmailOrderByCreatedAtDesc(String guestEmail);
+    
+    @Query("SELECT b FROM Booking b WHERE b.checkIn = :checkIn AND b.status = :status")
+    List<Booking> findByCheckInAndStatus(@Param("checkIn") LocalDate checkIn, @Param("status") Booking.BookingStatus status);
 
     Optional<Booking> findByConfirmationCode(String confirmationCode);
 
@@ -111,4 +114,13 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
           AND b.status IN ('CONFIRMED', 'CHECKED_IN', 'COMPLETED')
         """)
     long countActiveByOwner(@Param("ownerId") Long ownerId);
+
+    @Query("SELECT COUNT(b) FROM Booking b WHERE b.status IN ('CONFIRMED', 'CHECKED_IN')")
+    long countActiveBookings();
+
+    @Query("SELECT COUNT(b) FROM Booking b WHERE b.status = 'CANCELLED'")
+    long countCancelledBookings();
+
+    @Query(value = "SELECT COALESCE(AVG(b.check_in - CAST(b.created_at AS DATE)), 0) FROM guest.bookings b", nativeQuery = true)
+    Double getAverageLeadTime();
 }
