@@ -46,7 +46,7 @@ public class AuthService {
     public AuthResponse register(RegisterRequest request) {
 
         if (userRepository.findByEmail(request.getEmail()).isPresent()) {
-            throw new CustomException("Email already registered", HttpStatus.CONFLICT);
+            throw new CustomException("This email is already registered. Please log in instead.", HttpStatus.CONFLICT);
         }
 
         User user = new User();
@@ -126,7 +126,7 @@ public class AuthService {
     public AuthResponse login(LoginRequest request) {
 
         User user = userRepository.findByEmail(request.getEmail().toLowerCase())
-                .orElseThrow(() -> new CustomException("Email not found", HttpStatus.NOT_FOUND));
+                .orElseThrow(() -> new CustomException("We couldn't find an account with this email address.", HttpStatus.NOT_FOUND));
 
         boolean passwordMatches = passwordEncoder.matches(
                 request.getPassword(),
@@ -143,18 +143,18 @@ public class AuthService {
 
             auditLogRepository.save(log);
 
-            throw new CustomException("Incorrect password", HttpStatus.UNAUTHORIZED);
+            throw new CustomException("The password you entered is incorrect. Please try again.", HttpStatus.UNAUTHORIZED);
         }
 
         // Block login for specific statuses
         if (user.getStatus() == UserStatus.REJECTED) {
-            throw new CustomException("Your account has been rejected. Please contact support.", HttpStatus.FORBIDDEN);
+            throw new CustomException("Your account registration was not approved. Please contact support.", HttpStatus.FORBIDDEN);
         }
         if (user.getStatus() == UserStatus.SUSPENDED) {
             throw new CustomException("Your account has been suspended.", HttpStatus.FORBIDDEN);
         }
         if (user.getStatus() == UserStatus.PENDING) {
-            throw new CustomException("Your account is still pending approval.", HttpStatus.FORBIDDEN);
+            throw new CustomException("Your account is still pending approval from the property owner.", HttpStatus.FORBIDDEN);
         }
 
         AuditLog log = new AuditLog();
@@ -193,7 +193,7 @@ public class AuthService {
     public String forgotPassword(String email) {
 
         User user = userRepository.findByEmail(email.toLowerCase())
-                .orElseThrow(() -> new CustomException("User not found", HttpStatus.NOT_FOUND));
+                .orElseThrow(() -> new CustomException("We couldn't find an account with this email address.", HttpStatus.NOT_FOUND));
 
         // Remove old token first
         passwordResetTokenRepository.deleteByUser(user);
@@ -221,11 +221,11 @@ public class AuthService {
 
         PasswordResetToken resetToken = passwordResetTokenRepository.findByToken(token)
                 .orElseThrow(
-                        () -> new CustomException("Invalid or expired password reset token", HttpStatus.BAD_REQUEST));
+                        () -> new CustomException("This password reset link is invalid or has expired. Please request a new one.", HttpStatus.BAD_REQUEST));
 
         if (resetToken.isExpired()) {
             passwordResetTokenRepository.delete(resetToken);
-            throw new CustomException("Password reset token has expired", HttpStatus.BAD_REQUEST);
+            throw new CustomException("This password reset link has expired. Please request a new one.", HttpStatus.BAD_REQUEST);
         }
 
         User user = resetToken.getUser();
@@ -249,19 +249,19 @@ public class AuthService {
     @Transactional
     public void verifyEmail(String email, String code) {
         User user = userRepository.findByEmail(email.toLowerCase())
-                .orElseThrow(() -> new CustomException("User not found", HttpStatus.NOT_FOUND));
+                .orElseThrow(() -> new CustomException("We couldn't find an account with this email address.", HttpStatus.NOT_FOUND));
 
         VerificationOTP otp = verificationOTPRepository.findByUser(user)
                 .orElseThrow(
-                        () -> new CustomException("No verification code found for this user", HttpStatus.BAD_REQUEST));
+                        () -> new CustomException("We couldn't find a valid verification code. Please request a new one.", HttpStatus.BAD_REQUEST));
 
         if (otp.isExpired()) {
             verificationOTPRepository.delete(otp);
-            throw new CustomException("Verification code has expired", HttpStatus.BAD_REQUEST);
+            throw new CustomException("This verification code has expired. Please request a new one.", HttpStatus.BAD_REQUEST);
         }
 
         if (!otp.getOtp().equals(code)) {
-            throw new CustomException("Invalid verification code", HttpStatus.BAD_REQUEST);
+            throw new CustomException("The verification code you entered is incorrect. Please try again.", HttpStatus.BAD_REQUEST);
         }
 
         // Logic for role-based activation
@@ -293,7 +293,7 @@ public class AuthService {
     public AuthResponse roomLogin(com.b4code.backend.dto.RoomLoginRequest request) {
         Long roomId = Long.parseLong(request.getRoomNumber());
         com.b4code.backend.models.Booking booking = bookingRepository.findActiveBookingByRoom(request.getPropertyId(), roomId)
-                .orElseThrow(() -> new CustomException("No active reservation found for this room.", HttpStatus.NOT_FOUND));
+                .orElseThrow(() -> new CustomException("We couldn't find an active reservation for this room number. Please check the number and try again.", HttpStatus.NOT_FOUND));
 
         // Strict name verification removed to allow family members to order.
         // We log them in using the primary booking email so the charge correctly routes to the room.
