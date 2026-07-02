@@ -36,7 +36,7 @@ public class StaffReviewController {
             FROM staff.item_reviews ir
             JOIN staff.orders o ON o.id = ir.order_id
             JOIN staff.menu_items mi ON mi.id = ir.menu_item_id
-            LEFT JOIN admin.flagged_reviews fr ON fr.review_id = ir.id AND fr.property_id = o.property_id
+            LEFT JOIN admin.flagged_reviews fr ON fr.item_review_id = ir.id AND fr.property_id = o.property_id
             WHERE o.property_id = ?
             ORDER BY ir.created_at DESC
         """;
@@ -75,7 +75,7 @@ public class StaffReviewController {
         String sql = """
             INSERT INTO admin.flagged_reviews (
                 flag_type, status, flagged_at, updated_at, 
-                owner_id, review_id, flag_reason, guest_name, 
+                owner_id, item_review_id, flag_reason, guest_name, 
                 property_id, rating, review_text
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """;
