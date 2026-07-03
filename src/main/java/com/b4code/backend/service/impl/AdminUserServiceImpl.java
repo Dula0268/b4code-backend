@@ -9,6 +9,7 @@ import com.b4code.backend.exceptions.CustomException;
 import com.b4code.backend.models.User;
 import com.b4code.backend.dao.UserRepository;
 import com.b4code.backend.service.AdminUserService;
+import com.b4code.backend.service.EmailService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -29,7 +30,7 @@ public class AdminUserServiceImpl implements AdminUserService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
-    private final com.b4code.backend.dao.AuditLogRepository auditLogRepository;
+    private final EmailService emailService;
 
     // ── GET ALL USERS ──────────────────────────────────
 
@@ -183,6 +184,24 @@ public class AdminUserServiceImpl implements AdminUserService {
     private User findActiveUserOrThrow(Long id) {
         return userRepository.findByIdAndDeletedFalse(id)
                 .orElseThrow(() -> new CustomException("User not found", HttpStatus.NOT_FOUND));
+    }
+
+    // ── SEND RESET PASSWORD LINK ───────────────────────────────────────────────
+
+    @Override
+    @Transactional
+    public void sendResetPasswordLink(Long id) {
+        log.info("Sending reset password link to user id={}", id);
+        User user = findActiveUserOrThrow(id);
+        
+        // Generate a dummy secure token for the reset link
+        String resetToken = java.util.UUID.randomUUID().toString();
+        String resetLink = "http://localhost:3000/auth/reset-password?token=" + resetToken;
+        
+        // Use EmailService to send the actual email
+        emailService.sendPasswordResetEmail(user.getEmail(), resetLink);
+        
+        log.info("Reset password link sent successfully to email={}", user.getEmail());
     }
 }
 

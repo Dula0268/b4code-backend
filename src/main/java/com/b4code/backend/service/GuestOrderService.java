@@ -114,4 +114,26 @@ public class GuestOrderService {
         
         return savedOrder;
     }
+
+    @Transactional
+    public Order confirmPayment(Long orderId) {
+        Order order = getOrderById(orderId);
+        if (order.getStatus() != OrderStatus.PAYMENT_PENDING) {
+            return order; // Already processed
+        }
+        
+        OrderStatus oldStatus = order.getStatus();
+        order.setStatus(OrderStatus.PLACED);
+        order.setUpdatedBy(order.getGuestName() != null ? order.getGuestName() : "GUEST");
+        Order savedOrder = orderRepository.save(order);
+        
+        OrderStatusLog log = new OrderStatusLog();
+        log.setOrder(savedOrder);
+        log.setOldStatus(oldStatus);
+        log.setNewStatus(OrderStatus.PLACED);
+        log.setChangedBy(order.getGuestName() != null ? order.getGuestName() : "GUEST");
+        orderStatusLogRepository.save(log);
+        
+        return savedOrder;
+    }
 }

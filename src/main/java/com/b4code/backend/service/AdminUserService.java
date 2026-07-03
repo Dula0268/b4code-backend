@@ -21,4 +21,6 @@ public interface AdminUserService {
     java.util.List<com.b4code.backend.dto.AuditLogDto> getUserActivityLogs(Long userId, int limit);
 
     void deleteUser(Long id);
+
+    void sendResetPasswordLink(Long id);
 }

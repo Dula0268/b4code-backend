@@ -30,6 +30,7 @@ import java.util.stream.Collectors;
 @Slf4j
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class BookingService {
 
     private static final BigDecimal TAX_RATE = new BigDecimal("0.10"); // 10%
@@ -116,20 +117,26 @@ public class BookingService {
             }
         }
 
-        // Send confirmation email with itinerary
-        try {
-            String propertyName = saved.getProperty().getName();
-            String roomName = saved.getRoom().getRoomType().name();
-            emailService.sendBookingConfirmationEmail(
-                    saved.getGuestEmail(),
-                    saved.getGuestName(),
-                    saved.getConfirmationCode(),
-                    propertyName + " – " + roomName,
-                    saved.getCheckIn().toString(),
-                    saved.getCheckOut().toString(),
-                    saved.getTotalAmount().toString());
-        } catch (Exception e) {
-            log.error("Failed to send booking confirmation email to {}", saved.getGuestEmail(), e);
+        // Send confirmation email for pay-at-property bookings only.
+        // For ONLINE_CARD payments the email is sent by sendReceiptEmail()
+        // which the frontend calls after PayHere confirms the payment.
+        if (saved.getPaymentMethod() != Booking.PaymentMethod.ONLINE_CARD) {
+            try {
+                String propertyName = saved.getProperty().getName();
+                String roomName = saved.getRoom().getRoomType().name();
+                emailService.sendBookingConfirmationEmail(
+                        saved.getGuestEmail(),
+                        saved.getGuestName(),
+                        saved.getConfirmationCode(),
+                        propertyName + " – " + roomName,
+                        saved.getCheckIn().toString(),
+                        saved.getCheckOut().toString(),
+                        saved.getTotalAmount().toString());
+            } catch (Exception e) {
+                log.error("Failed to send booking confirmation email to {}", saved.getGuestEmail(), e);
+            }
+        } else {
+            log.info("[BOOKING] ONLINE_CARD booking {} created with PENDING status. Email will be sent after PayHere confirms payment.", saved.getConfirmationCode());
         }
 
         return mapToResponse(saved);
@@ -317,6 +324,9 @@ public class BookingService {
             throw new RoomNotAvailableException("Room is not available for the selected dates with the current quantity");
         }
 
+        String oldRoomType = booking.getRoom().getRoomType().name();
+        String oldDates = booking.getCheckIn().toString() + " to " + booking.getCheckOut().toString();
+
         List<String> currentPromoCodes = booking.getPromoCode() != null ? Arrays.asList(booking.getPromoCode().split(",")) : null;
         PriceBreakdown newPrice = calculatePrice(room, request.getCheckInDate(), request.getCheckOutDate(),
                 booking.getRoomQuantity(), currentPromoCodes, false);
@@ -358,12 +368,34 @@ public class BookingService {
             disputeRepository.save(dispute);
         }
 
+        // Send booking modification email to guest
+        try {
+            String propertyName = saved.getProperty().getName();
+            String newRoomType = saved.getRoom().getRoomType().name();
+            String newDates = saved.getCheckIn().toString() + " to " + saved.getCheckOut().toString();
+            String diffStr = difference.compareTo(BigDecimal.ZERO) >= 0 ? difference.toString() : "-" + difference.abs().toString();
+            emailService.sendBookingModificationEmail(
+                    saved.getGuestEmail(),
+                    saved.getGuestName(),
+                    saved.getConfirmationCode(),
+                    propertyName,
+                    oldRoomType,
+                    newRoomType,
+                    oldDates,
+                    newDates,
+                    diffStr,
+                    saved.getTotalAmount().toString()
+            );
+        } catch (Exception e) {
+            log.error("Failed to send booking modification email for booking {}", saved.getConfirmationCode(), e);
+        }
+
         return ModifyBookingResponse.builder()
                 .booking(mapToResponse(saved))
                 .previousTotalAmount(previousTotal)
                 .newTotalAmount(newTotal)
                 .refundAmount((isPaidOnline && difference.compareTo(BigDecimal.ZERO) < 0) ? difference.abs() : BigDecimal.ZERO)
-                .additionalAmountDue((isPaidOnline && difference.compareTo(BigDecimal.ZERO) > 0) ? difference : BigDecimal.ZERO)
+                .additionalAmountDue((difference.compareTo(BigDecimal.ZERO) > 0) ? difference : BigDecimal.ZERO)
                 .build();
     }
 

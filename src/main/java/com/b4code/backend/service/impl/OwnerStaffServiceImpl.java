@@ -60,6 +60,8 @@ public class OwnerStaffServiceImpl implements OwnerStaffService {
                                 ? propertyNameMap.getOrDefault(staff.getPropertyId(), "Unknown Property")
                                 : "No Property Assigned")
                         .status(staff.getStatus().name())
+                        .role(staff.getStaffRole() != null ? staff.getStaffRole() : "N/A")
+                        .registeredAt(staff.getCreatedAt() != null ? staff.getCreatedAt().toString() : "Unknown")
                         .build())
                 .collect(Collectors.toList());
     }
