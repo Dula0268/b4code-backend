@@ -70,5 +70,16 @@ public class GuestOrderController {
         log.info("Cancelling order: {}", orderId);
         return ResponseEntity.ok(OrderMapper.toResponse(guestOrderService.cancelOrder(orderId)));
     }
+
+    @Operation(summary = "Simulate payment webhook", description = "For local dev: confirms an online payment and transitions it to PLACED")
+    @PostMapping("/{orderId}/simulate-payment")
+    public ResponseEntity<OrderResponse> simulatePayment(@PathVariable Long orderId) {
+        log.info("Simulating successful payment for order: {}", orderId);
+        Order savedOrder = guestOrderService.confirmPayment(orderId);
+        OrderResponse response = OrderMapper.toResponse(savedOrder);
+        // Broadcast the new order since it's now officially placed
+        orderSseService.sendPropertyEvent(savedOrder.getPropertyId(), "new-order", response);
+        return ResponseEntity.ok(response);
+    }
 }
 

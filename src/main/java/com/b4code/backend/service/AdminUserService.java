@@ -19,4 +19,6 @@ public interface AdminUserService {
     UserDto updateUserStatus(Long id, UserStatusUpdateDto statusUpdate);
 
     void deleteUser(Long id);
+
+    void sendResetPasswordLink(Long id);
 }

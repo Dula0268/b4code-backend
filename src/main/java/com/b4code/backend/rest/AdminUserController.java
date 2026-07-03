@@ -146,4 +146,15 @@ public class AdminUserController {
             return password;
         }
     }
+
+    // ── SEND RESET PASSWORD LINK ───────────────────────────────────────────────
+
+    @PostMapping("/{id}/send-reset-password")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Send reset password link", description = "Sends a password reset email to the user")
+    public ResponseEntity<Void> sendResetPasswordLink(@PathVariable Long id) {
+        log.info("POST /api/admin/users/{}/send-reset-password", id);
+        userService.sendResetPasswordLink(id);
+        return ResponseEntity.ok().build();
+    }
 }
