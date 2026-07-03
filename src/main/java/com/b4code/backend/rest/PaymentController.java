@@ -54,11 +54,10 @@ public class PaymentController {
 
     private Long getUserIdFromAuthentication(Authentication authentication) {
         if (authentication == null || !authentication.isAuthenticated()) {
-            return 1L; // Fallback for dev/unauthenticated
+            return null; // Anonymous users (e.g. food orders) can make payments without a linked account
         }
-        // Assuming your User entity is the principal or you can extract it
-        // If you use JWT, the ID might be in the claims or you fetch by email
-        return 1L; // For now, keeping as 1L but through a helper to fix properly later
+        // For JWT-authenticated users, userId resolution can be added here
+        return null;
     }
 
     // Get payment by ID
