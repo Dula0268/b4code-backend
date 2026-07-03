@@ -29,7 +29,57 @@ public class DbMigrationRunner implements CommandLineRunner {
         log.info("🔧 Running DB migration fixes...");
         dropAllLegacyNotNullConstraints();
         dropDisputesFkConstraints();
+        ensureStaffRolesAndPermissions();
         log.info("✅ DB migration fixes complete.");
+    }
+
+    private void ensureStaffRolesAndPermissions() {
+        try {
+            // 1. Ensure staff_role column exists in users table
+            jdbcTemplate.execute("ALTER TABLE app_auth.users ADD COLUMN IF NOT EXISTS staff_role VARCHAR(255);");
+            log.info("✅ Ensured staff_role column exists in app_auth.users");
+
+            // 2. Seed default permissions for Kitchen Staff, Property Staff, Staff Admin
+            jdbcTemplate.execute("""
+                INSERT INTO app_auth.role_permissions (role_name, section, permission_key, label, description, enabled)
+                VALUES 
+                  ('Kitchen Staff', 'user', 'order_management', 'Order Management', 'Manage guest food orders', true),
+                  ('Kitchen Staff', 'user', 'menu_management', 'Menu Management', 'Add and edit menu items', true),
+                  ('Kitchen Staff', 'user', 'qr_management', 'QR Management', 'Generate and print QR codes', true),
+                  ('Kitchen Staff', 'user', 'guest_messages', 'Guest Messages', 'Communicate with guests', true),
+                  ('Kitchen Staff', 'user', 'analytics', 'Analytics Dashboard', 'View property performance metrics', false),
+                  ('Kitchen Staff', 'user', 'reviews', 'Review Management', 'View and respond to guest reviews', false)
+                ON CONFLICT (role_name, permission_key) DO NOTHING;
+            """);
+
+            jdbcTemplate.execute("""
+                INSERT INTO app_auth.role_permissions (role_name, section, permission_key, label, description, enabled)
+                VALUES 
+                  ('Property Staff', 'user', 'order_management', 'Order Management', 'Manage guest food orders', false),
+                  ('Property Staff', 'user', 'menu_management', 'Menu Management', 'Add and edit menu items', false),
+                  ('Property Staff', 'user', 'qr_management', 'QR Management', 'Generate and print QR codes', false),
+                  ('Property Staff', 'user', 'guest_messages', 'Guest Messages', 'Communicate with guests', true),
+                  ('Property Staff', 'user', 'analytics', 'Analytics Dashboard', 'View property performance metrics', true),
+                  ('Property Staff', 'user', 'reviews', 'Review Management', 'View and respond to guest reviews', true)
+                ON CONFLICT (role_name, permission_key) DO NOTHING;
+            """);
+
+            jdbcTemplate.execute("""
+                INSERT INTO app_auth.role_permissions (role_name, section, permission_key, label, description, enabled)
+                VALUES 
+                  ('Staff Admin', 'user', 'order_management', 'Order Management', 'Manage guest food orders', true),
+                  ('Staff Admin', 'user', 'menu_management', 'Menu Management', 'Add and edit menu items', true),
+                  ('Staff Admin', 'user', 'qr_management', 'QR Management', 'Generate and print QR codes', true),
+                  ('Staff Admin', 'user', 'guest_messages', 'Guest Messages', 'Communicate with guests', true),
+                  ('Staff Admin', 'user', 'analytics', 'Analytics Dashboard', 'View property performance metrics', true),
+                  ('Staff Admin', 'user', 'reviews', 'Review Management', 'View and respond to guest reviews', true)
+                ON CONFLICT (role_name, permission_key) DO NOTHING;
+            """);
+
+            log.info("✅ Seeded default permissions for staff sub-roles");
+        } catch (Exception e) {
+            log.warn("⚠ Could not configure staff roles and permissions: {}", e.getMessage());
+        }
     }
 
     /**

@@ -43,6 +43,9 @@ public class User {
     @Column(name = "national_id_url")
     private String nationalIdUrl;
 
+    @Column(name = "staff_role")
+    private String staffRole;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private UserRole role;

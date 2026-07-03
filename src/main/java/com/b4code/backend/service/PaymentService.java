@@ -6,8 +6,11 @@ import com.b4code.backend.dto.PaymentResponse;
 import com.b4code.backend.models.Payment;
 import com.b4code.backend.dao.PaymentRepository;
 import com.b4code.backend.dao.BookingRepository;
+import com.b4code.backend.dao.OrderRepository;
 import com.b4code.backend.models.Booking;
+import com.b4code.backend.models.Order;
 import com.b4code.backend.models.User;
+import com.b4code.backend.models.enums.OrderStatus;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -24,6 +27,8 @@ public class PaymentService {
 
     private final PaymentRepository paymentRepository;
     private final BookingRepository bookingRepository;
+    private final OrderRepository orderRepository;
+    private final OrderSseService orderSseService;
     private final EmailService emailService;
 
     @Value("${payhere.merchant-id}")
@@ -53,6 +58,9 @@ public class PaymentService {
             Booking booking = new Booking();
             booking.setId(request.getBookingId());
             payment.setBooking(booking);
+        }
+        if (request.getFoodOrderId() != null) {
+            payment.setFoodOrderId(request.getFoodOrderId());
         }
         payment.setAmount(request.getAmount());
         payment.setCurrency(request.getCurrency() != null ? request.getCurrency() : "LKR");
@@ -116,11 +124,21 @@ public class PaymentService {
                 if (notify.getCard_no() != null)
                     payment.setCardLastFour(notify.getCard_no());
 
-                // Update linked booking status to CONFIRMED when payment succeeds
+                // Update linked booking status when payment succeeds (placeholder for future use)
                 if (payment.getBooking() != null && payment.getBooking().getId() != null) {
                     bookingRepository.findById(payment.getBooking().getId()).ifPresent(booking -> {
-                        // Status and email fields were removed from Booking.
-                        // We can no longer update status or send confirmation emails automatically.
+                        // Booking status management handled by admin/owner flows
+                    });
+                }
+                // Update linked food order status from PAYMENT_PENDING -> PLACED
+                if (payment.getFoodOrderId() != null) {
+                    orderRepository.findById(payment.getFoodOrderId()).ifPresent(order -> {
+                        if (order.getStatus() == OrderStatus.PAYMENT_PENDING) {
+                            order.setStatus(OrderStatus.PLACED);
+                            Order savedOrder = orderRepository.save(order);
+                            // Broadcast SSE event so staff dashboard sees the new order
+                            orderSseService.sendPropertyEvent(savedOrder.getPropertyId(), "new-order", savedOrder);
+                        }
                     });
                 }
             }
@@ -199,9 +217,13 @@ public class PaymentService {
     }
 
     private String buildPayHereParams(Payment payment, PaymentRequest request, String hash) {
-        String finalReturnUrl = returnUrl;
+        // Use different base return URLs for food orders vs booking payments
+        String baseReturnUrl = (payment.getFoodOrderId() != null)
+                ? returnUrl.replace("/guest/booking", "/guest/order/confirmation")
+                : returnUrl;
+        String finalReturnUrl = baseReturnUrl;
         if (request.getReturnParams() != null && !request.getReturnParams().isBlank()) {
-            finalReturnUrl = returnUrl + (returnUrl.contains("?") ? "&" : "?") + request.getReturnParams();
+            finalReturnUrl = baseReturnUrl + (baseReturnUrl.contains("?") ? "&" : "?") + request.getReturnParams();
         }
         try {
             return "merchant_id=" + merchantId +
@@ -209,7 +231,7 @@ public class PaymentService {
                     "&cancel_url=" + java.net.URLEncoder.encode(cancelUrl, "UTF-8") +
                     "&notify_url=" + java.net.URLEncoder.encode("http://localhost:8080/api/payments/notify", "UTF-8") +
                     "&order_id=" + payment.getOrderId() +
-                    "&items=PrimeStay+Booking" +
+                    "&items=" + (payment.getFoodOrderId() != null ? "Food+Order" : "PrimeStay+Booking") +
                     "&currency=" + payment.getCurrency() +
                     "&amount=" + String.format(java.util.Locale.US, "%.2f", payment.getAmount()) +
                     "&first_name=" + (request.getFirstName() != null ? request.getFirstName() : "Guest") +

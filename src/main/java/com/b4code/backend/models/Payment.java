@@ -18,7 +18,7 @@ public class Payment {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_fk", nullable = false)
+    @JoinColumn(name = "user_fk", nullable = true)
     private User user;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -40,6 +40,9 @@ public class Payment {
 
     @Column(unique = true)
     private String orderId;
+
+    @Column(name = "food_order_id")
+    private Long foodOrderId;
 
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "transaction_fk")

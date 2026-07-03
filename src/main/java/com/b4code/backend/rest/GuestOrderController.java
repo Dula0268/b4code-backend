@@ -33,7 +33,10 @@ public class GuestOrderController {
         log.info("Placing new order for guest: {} at property: {}", request.getGuestId(), request.getPropertyId());
         Order savedOrder = guestOrderService.placeOrder(request);
         OrderResponse response = OrderMapper.toResponse(savedOrder);
-        orderSseService.sendPropertyEvent(savedOrder.getPropertyId(), "new-order", response);
+        // Only broadcast to staff when payment is complete (not for pending online payments)
+        if (savedOrder.getStatus() != com.b4code.backend.models.enums.OrderStatus.PAYMENT_PENDING) {
+            orderSseService.sendPropertyEvent(savedOrder.getPropertyId(), "new-order", response);
+        }
         return ResponseEntity.ok(response);
     }
 

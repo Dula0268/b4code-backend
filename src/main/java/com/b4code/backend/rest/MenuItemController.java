@@ -105,7 +105,7 @@ public class MenuItemController {
         return menuItemRepository.findById(id)
                 .map(item -> {
                     if (request.getMenuId() != null) {
-                        menuRepository.findById(request.getMenuId()).ifPresent(item::setMenu);
+                        menuRepository.findById(request.getMenuId()).ifPresent(menu -> item.setMenu(menu));
                     }
                     if (request.getCategoryId() != null) {
                         menuCategoryRepository.findById(request.getCategoryId()).ifPresent(item::setCategory);
