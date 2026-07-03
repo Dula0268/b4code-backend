@@ -39,7 +39,7 @@ public class PropertyServiceImpl implements PropertyService {
         log.debug("Fetching properties — search='{}', status={}, page={}, size={}", search, status, page, size);
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "id"));
         String searchTerm = (search == null || search.isBlank()) ? null : search.trim();
-        Page<Property> pageResult = propertyRepository.findAllWithFilters(searchTerm, pageable);
+        Page<Property> pageResult = propertyRepository.findAllWithFilters(searchTerm, status, pageable);
         List<PropertyDto> content = pageResult.getContent().stream().map(this::convertToDto).toList();
         return PropertyPageDto.builder()
                 .content(content)

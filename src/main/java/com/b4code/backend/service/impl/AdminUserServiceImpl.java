@@ -30,6 +30,7 @@ public class AdminUserServiceImpl implements AdminUserService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final com.b4code.backend.dao.AuditLogRepository auditLogRepository;
     private final EmailService emailService;
 
     // ── GET ALL USERS ──────────────────────────────────
@@ -141,8 +142,28 @@ public class AdminUserServiceImpl implements AdminUserService {
         user.setStatus(statusUpdate.getStatus());
 
         User saved = userRepository.save(user);
+
+        com.b4code.backend.models.AuditLog logEntry = new com.b4code.backend.models.AuditLog();
+        logEntry.setUser(saved);
+        logEntry.setAction(statusUpdate.getStatus() == UserStatus.SUSPENDED ? "ACCOUNT_SUSPENDED" : "ACCOUNT_REACTIVATED");
+        logEntry.setEntity("USER_MANAGEMENT");
+        logEntry.setEntityDetail("Status updated to " + statusUpdate.getStatus());
+        logEntry.setTimestamp(java.time.LocalDateTime.now());
+        auditLogRepository.save(logEntry);
+
         log.info("User id={} status updated to {}", id, statusUpdate.getStatus());
         return UserDto.fromEntity(saved);
+    }
+
+    // ── GET USER ACTIVITY LOGS ──────────────────────────────────────────────────
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<com.b4code.backend.dto.AuditLogDto> getUserActivityLogs(Long userId, int limit) {
+        log.info("Fetching recent activity logs for user id={}", userId);
+        Pageable pageable = PageRequest.of(0, limit);
+        List<com.b4code.backend.models.AuditLog> logs = auditLogRepository.findTopRecentByUserId(userId, pageable);
+        return logs.stream().map(com.b4code.backend.dto.AuditLogDto::fromEntity).toList();
     }
 
     // ── DELETE USER ────────────────────────────────────────────────────────────

@@ -28,4 +28,7 @@ public interface AuditLogRepository extends JpaRepository<AuditLog, Long> {
             @Param("role") String role,
             @Param("search") String search,
             Pageable pageable);
+
+    @Query("SELECT a FROM AuditLog a WHERE a.user.id = :userId ORDER BY a.timestamp DESC")
+    java.util.List<AuditLog> findTopRecentByUserId(@Param("userId") Long userId, Pageable pageable);
 }
