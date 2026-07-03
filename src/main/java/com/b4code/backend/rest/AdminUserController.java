@@ -107,6 +107,19 @@ public class AdminUserController {
         return ResponseEntity.ok(updated);
     }
 
+    // ── GET USER ACTIVITY ─────────────────────────────────────────────────────
+
+    @GetMapping("/{id}/activity")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
+    @Operation(summary = "Get user activity", description = "Returns recent activity logs for a specific user")
+    public ResponseEntity<java.util.List<com.b4code.backend.dto.AuditLogDto>> getUserActivity(
+            @Parameter(description = "User's database ID") @PathVariable Long id,
+            @Parameter(description = "Number of logs to return") @RequestParam(defaultValue = "10") int limit) {
+        log.info("GET /api/admin/users/{}/activity — limit={}", id, limit);
+        java.util.List<com.b4code.backend.dto.AuditLogDto> activity = userService.getUserActivityLogs(id, limit);
+        return ResponseEntity.ok(activity);
+    }
+
     // ── DELETE USER ───────────────────────────────────────────────────────────
 
     @DeleteMapping("/{id}")

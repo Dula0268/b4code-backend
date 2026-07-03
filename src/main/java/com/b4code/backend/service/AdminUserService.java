@@ -18,5 +18,7 @@ public interface AdminUserService {
 
     UserDto updateUserStatus(Long id, UserStatusUpdateDto statusUpdate);
 
+    java.util.List<com.b4code.backend.dto.AuditLogDto> getUserActivityLogs(Long userId, int limit);
+
     void deleteUser(Long id);
 }
