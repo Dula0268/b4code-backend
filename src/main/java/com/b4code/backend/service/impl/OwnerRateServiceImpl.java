@@ -3,16 +3,22 @@ package com.b4code.backend.service.impl;
 import com.b4code.backend.dao.DiscountRepository;
 import com.b4code.backend.dao.PropertyRepository;
 import com.b4code.backend.dao.RatePlanRepository;
+import com.b4code.backend.dao.RoomRepository;
+import com.b4code.backend.dao.SeasonalPricingRepository;
 import com.b4code.backend.dao.UserRepository;
 import com.b4code.backend.dto.owner.DiscountDto;
 import com.b4code.backend.dto.owner.DiscountRequest;
 import com.b4code.backend.dto.owner.RateOverviewDto;
 import com.b4code.backend.dto.owner.RatePlanDto;
 import com.b4code.backend.dto.owner.RatePlanRequest;
+import com.b4code.backend.dto.owner.RoomPriceDto;
+import com.b4code.backend.dto.owner.SeasonalPricingDto;
+import com.b4code.backend.dto.owner.SeasonalPricingRequest;
 import com.b4code.backend.exceptions.CustomException;
 import com.b4code.backend.models.Discount;
 import com.b4code.backend.models.Property;
 import com.b4code.backend.models.RatePlan;
+import com.b4code.backend.models.SeasonalPricing;
 import com.b4code.backend.models.User;
 import com.b4code.backend.service.OwnerRateService;
 import lombok.RequiredArgsConstructor;
@@ -20,29 +26,51 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import lombok.extern.slf4j.Slf4j;
+
+import java.util.Collections;
 import java.util.List;
 
 @Service
+@Slf4j
 @RequiredArgsConstructor
 public class OwnerRateServiceImpl implements OwnerRateService {
 
     private final RatePlanRepository ratePlanRepository;
     private final DiscountRepository discountRepository;
     private final PropertyRepository propertyRepository;
+    private final RoomRepository roomRepository;
     private final UserRepository userRepository;
+    private final SeasonalPricingRepository seasonalPricingRepository;
 
     @Override
     @Transactional(readOnly = true)
     public RateOverviewDto getRateOverview(String ownerEmail, Long propertyId) {
-        verifyOwnsProperty(ownerEmail, propertyId);
+        // Validate owner exists — no strict ownerId check (matches OwnerPropertyServiceImpl pattern)
+        resolveOwner(ownerEmail);
+        propertyRepository.findById(propertyId)
+                .orElseThrow(() -> new CustomException("Property not found", HttpStatus.NOT_FOUND));
+
+        List<RoomPriceDto> rooms = roomRepository.findByPropertyId(propertyId).stream()
+                .map(r -> RoomPriceDto.builder()
+                        .id(r.getId())
+                        .name(r.getName())
+                        .pricePerNight(r.getPricePerNight() != null ? r.getPricePerNight().toPlainString() : "0")
+                        .status(r.getStatus() != null ? r.getStatus().name() : "AVAILABLE")
+                        .build())
+                .toList();
+
         List<RatePlanDto> plans = ratePlanRepository.findByPropertyIdOrderByCreatedAtDesc(propertyId)
                 .stream().map(RatePlanDto::fromEntity).toList();
         List<DiscountDto> discounts = discountRepository.findByPropertyIdOrderByCreatedAtDesc(propertyId)
                 .stream().map(DiscountDto::fromEntity).toList();
+
         return RateOverviewDto.builder()
                 .propertyId(propertyId)
+                .rooms(rooms)
                 .ratePlans(plans)
                 .discounts(discounts)
+                .seasonalPricing(Collections.emptyList())
                 .build();
     }
 
@@ -144,13 +172,49 @@ public class OwnerRateServiceImpl implements OwnerRateService {
         discountRepository.delete(d);
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public List<SeasonalPricingDto> getSeasonalPricing(String ownerEmail, Long propertyId) {
+        resolveOwner(ownerEmail);
+        return seasonalPricingRepository.findByPropertyIdOrderByStartDateAsc(propertyId)
+                .stream().map(SeasonalPricingDto::fromEntity).toList();
+    }
+
+    @Override
+    @Transactional
+    public SeasonalPricingDto createSeasonalPricing(String ownerEmail, SeasonalPricingRequest request) {
+        resolveOwner(ownerEmail);
+        Property property = propertyRepository.findById(request.getPropertyId())
+                .orElseThrow(() -> new CustomException("Property not found", HttpStatus.NOT_FOUND));
+        SeasonalPricing s = SeasonalPricing.builder()
+                .property(property)
+                .name(request.getName())
+                .startDate(request.getStartDate())
+                .endDate(request.getEndDate())
+                .percentageAdjustment(request.getPercentageAdjustment())
+                .build();
+        try {
+            return SeasonalPricingDto.fromEntity(seasonalPricingRepository.save(s));
+        } catch (Exception e) {
+            log.error("Failed to save seasonal pricing — run the DB migration first: {}", e.getMessage());
+            throw new CustomException(
+                "Seasonal pricing table not found. Run: CREATE TABLE IF NOT EXISTS owner.seasonal_pricing (...)",
+                HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    @Override
+    @Transactional
+    public void deleteSeasonalPricing(String ownerEmail, Long id) {
+        resolveOwner(ownerEmail);
+        SeasonalPricing s = seasonalPricingRepository.findById(id)
+                .orElseThrow(() -> new CustomException("Seasonal pricing not found", HttpStatus.NOT_FOUND));
+        seasonalPricingRepository.delete(s);
+    }
+
     private User resolveOwner(String email) {
         return userRepository.findByEmail(email)
                 .orElseThrow(() -> new CustomException("Owner not found", HttpStatus.NOT_FOUND));
-    }
-
-    private void verifyOwnsProperty(String ownerEmail, Long propertyId) {
-        resolveOwnedProperty(ownerEmail, propertyId);
     }
 
     private Property resolveOwnedProperty(String ownerEmail, Long propertyId) {

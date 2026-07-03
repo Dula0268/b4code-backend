@@ -1,5 +1,6 @@
 package com.b4code.backend.rest;
 
+import com.b4code.backend.dao.RoomRepository;
 import com.b4code.backend.dto.owner.OwnerRoomDto;
 import com.b4code.backend.dto.owner.OwnerRoomListDto;
 import com.b4code.backend.dto.owner.OwnerRoomRequest;
@@ -7,6 +8,7 @@ import com.b4code.backend.dto.owner.PhysicalRoomDto;
 import com.b4code.backend.service.OwnerRoomService;
 
 import java.util.List;
+import java.util.Map;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -25,6 +27,7 @@ import java.security.Principal;
 public class OwnerRoomController {
 
     private final OwnerRoomService ownerRoomService;
+    private final RoomRepository roomRepository;
 
     @GetMapping
     @Operation(summary = "List rooms for the authenticated owner with search and pagination")
@@ -106,6 +109,17 @@ public class OwnerRoomController {
             @PathVariable Long id) {
 
         return ResponseEntity.ok(ownerRoomService.listPhysicalRooms(principal.getName(), id));
+    }
+
+    @GetMapping("/by-property")
+    @Operation(summary = "List room types for a property (for dropdown selection)")
+    public ResponseEntity<List<Map<String, Object>>> listRoomsByProperty(
+            @RequestParam Long propertyId) {
+
+        List<Map<String, Object>> rooms = roomRepository.findByPropertyId(propertyId).stream()
+                .map(r -> Map.<String, Object>of("id", r.getId(), "name", r.getName()))
+                .toList();
+        return ResponseEntity.ok(rooms);
     }
 
     @GetMapping("/units/by-property")

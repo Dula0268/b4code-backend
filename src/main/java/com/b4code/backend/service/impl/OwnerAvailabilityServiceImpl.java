@@ -1,17 +1,17 @@
 package com.b4code.backend.service.impl;
 
 import com.b4code.backend.dao.AvailabilityRepository;
+import com.b4code.backend.dao.BookingRepository;
 import com.b4code.backend.dao.PropertyRepository;
-import com.b4code.backend.dao.RoomBookingDailyRepository;
 import com.b4code.backend.dao.RoomRepository;
 import com.b4code.backend.dao.UserRepository;
 import com.b4code.backend.dto.owner.AvailabilityBulkUpdateRequest;
 import com.b4code.backend.dto.owner.AvailabilityDayDto;
 import com.b4code.backend.exceptions.CustomException;
 import com.b4code.backend.models.Availability;
+import com.b4code.backend.models.Booking;
 import com.b4code.backend.models.Property;
 import com.b4code.backend.models.Room;
-import com.b4code.backend.models.RoomBookingDaily;
 import com.b4code.backend.models.User;
 import com.b4code.backend.service.OwnerAvailabilityService;
 import lombok.RequiredArgsConstructor;
@@ -22,6 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -31,7 +32,7 @@ import java.util.stream.Collectors;
 public class OwnerAvailabilityServiceImpl implements OwnerAvailabilityService {
 
     private final AvailabilityRepository availabilityRepository;
-    private final RoomBookingDailyRepository roomBookingDailyRepository;
+    private final BookingRepository bookingRepository;
     private final RoomRepository roomRepository;
     private final PropertyRepository propertyRepository;
     private final UserRepository userRepository;
@@ -73,7 +74,7 @@ public class OwnerAvailabilityServiceImpl implements OwnerAvailabilityService {
     }
 
     private List<AvailabilityDayDto> buildDtos(Long propertyId, LocalDate from, LocalDate to) {
-        // availability overrides (custom status / price / notes)
+        // availability overrides (custom status / price / notes set by owner)
         List<Availability> records = availabilityRepository.findByPropertyAndDateRange(propertyId, from, to);
         Map<String, Availability> availIndex = records.stream()
                 .collect(Collectors.toMap(
@@ -81,13 +82,21 @@ public class OwnerAvailabilityServiceImpl implements OwnerAvailabilityService {
                         a -> a,
                         (a, b) -> a));
 
-        // booking density from room_booking_daily
-        List<RoomBookingDaily> dailyRecords = roomBookingDailyRepository.findByPropertyAndDateRange(propertyId, from, to);
-        Map<String, Integer> bookingIndex = dailyRecords.stream()
-                .collect(Collectors.toMap(
-                        r -> r.getRoom().getId() + "_" + r.getDate(),
-                        RoomBookingDaily::getBookedQuantity,
-                        Integer::sum));
+        // booking density — read directly from booking table (single source of truth)
+        // expand each booking across its nights to build a roomId_date → bookedQty map
+        List<Booking> activeBookings = bookingRepository.findActiveBookingsForPropertyAndDateRange(
+                propertyId, from, to.plusDays(1));
+        Map<String, Integer> bookingIndex = new HashMap<>();
+        for (Booking b : activeBookings) {
+            int qty = b.getRoomQuantity() != null ? b.getRoomQuantity() : 1;
+            LocalDate night = b.getCheckIn().isBefore(from) ? from : b.getCheckIn();
+            LocalDate end   = b.getCheckOut().isAfter(to) ? to.plusDays(1) : b.getCheckOut();
+            while (night.isBefore(end)) {
+                String key = b.getRoom().getId() + "_" + night;
+                bookingIndex.merge(key, qty, Integer::sum);
+                night = night.plusDays(1);
+            }
+        }
 
         List<Room> rooms = roomRepository.findByPropertyId(propertyId);
         List<AvailabilityDayDto> result = new ArrayList<>();

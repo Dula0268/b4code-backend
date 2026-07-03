@@ -44,6 +44,8 @@ public class PromoCode {
 
     private Long propertyId;
 
+    private Long roomId;
+
     public boolean isValid() {
         LocalDate today = LocalDate.now();
         if (!active) return false;

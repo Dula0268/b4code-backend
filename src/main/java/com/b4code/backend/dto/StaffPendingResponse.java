@@ -19,4 +19,5 @@ public class StaffPendingResponse {
     private String phone;
     private String propertyName;
     private String status;
+    private String createdAt;
 }

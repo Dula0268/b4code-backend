@@ -2,6 +2,7 @@ package com.b4code.backend.rest;
 
 import com.b4code.backend.dto.owner.ManualBookingRequest;
 import com.b4code.backend.dto.owner.OwnerReservationDto;
+import com.b4code.backend.dto.owner.OwnerReservationPageDto;
 import com.b4code.backend.service.OwnerReservationService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -12,7 +13,6 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.security.Principal;
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/owner/reservations")
@@ -24,8 +24,8 @@ public class OwnerReservationController {
     private final OwnerReservationService ownerReservationService;
 
     @GetMapping
-    @Operation(summary = "List all reservations for the authenticated owner's properties")
-    public ResponseEntity<List<OwnerReservationDto>> listReservations(
+    @Operation(summary = "List all reservations with KPI summary")
+    public ResponseEntity<OwnerReservationPageDto> listReservations(
             Principal principal,
             @RequestParam(required = false) String search,
             @RequestParam(required = false) String status) {
@@ -51,6 +51,15 @@ public class OwnerReservationController {
 
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ownerReservationService.createManualBooking(principal.getName(), request));
+    }
+
+    @PatchMapping("/{id}/confirm")
+    @Operation(summary = "Confirm a pending reservation")
+    public ResponseEntity<OwnerReservationDto> confirm(
+            Principal principal,
+            @PathVariable Long id) {
+
+        return ResponseEntity.ok(ownerReservationService.confirm(principal.getName(), id));
     }
 
     @PatchMapping("/{id}/check-in")

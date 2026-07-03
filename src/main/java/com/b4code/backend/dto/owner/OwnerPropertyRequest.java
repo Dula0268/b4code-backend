@@ -23,4 +23,8 @@ public class OwnerPropertyRequest {
     private List<String> amenities;
     private String imageUrl;
     private List<String> imageUrls;
+    private Boolean freeCancellation;
+    private Boolean breakfastIncluded;
+    private Boolean petFriendly;
+    private Boolean accessibility;
 }

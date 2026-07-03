@@ -35,7 +35,6 @@ public class OwnerStaffServiceImpl implements OwnerStaffService {
             return List.of();
         }
 
-        // Build a lookup map: propertyId -> propertyName
         Map<Long, String> propertyNameMap = ownerProperties.stream()
                 .collect(Collectors.toMap(Property::getId, Property::getName));
 
@@ -50,17 +49,35 @@ public class OwnerStaffServiceImpl implements OwnerStaffService {
         );
 
         return pendingStaff.stream()
-                .map(staff -> StaffPendingResponse.builder()
-                        .id(staff.getId())
-                        .email(staff.getEmail())
-                        .firstName(staff.getFirstName())
-                        .lastName(staff.getLastName())
-                        .phone(staff.getPhone())
-                        .propertyName(staff.getPropertyId() != null
-                                ? propertyNameMap.getOrDefault(staff.getPropertyId(), "Unknown Property")
-                                : "No Property Assigned")
-                        .status(staff.getStatus().name())
-                        .build())
+                .map(staff -> toResponse(staff, propertyNameMap))
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<StaffPendingResponse> getAllStaff(String ownerEmail) {
+        User owner = userRepository.findByEmail(ownerEmail)
+                .orElseThrow(() -> new CustomException("Owner not found", HttpStatus.NOT_FOUND));
+
+        List<Property> ownerProperties = propertyRepository.findByOwnerId(owner.getId());
+
+        if (ownerProperties.isEmpty()) {
+            return List.of();
+        }
+
+        Map<Long, String> propertyNameMap = ownerProperties.stream()
+                .collect(Collectors.toMap(Property::getId, Property::getName));
+
+        List<Long> propertyIds = ownerProperties.stream()
+                .map(Property::getId)
+                .collect(Collectors.toList());
+
+        List<User> staff = userRepository.findByPropertyIdInAndRoleAndDeletedFalse(
+                propertyIds,
+                UserRole.STAFF
+        );
+
+        return staff.stream()
+                .map(s -> toResponse(s, propertyNameMap))
                 .collect(Collectors.toList());
     }
 
@@ -72,6 +89,21 @@ public class OwnerStaffServiceImpl implements OwnerStaffService {
     @Override
     public void rejectStaff(String ownerEmail, Long staffId) {
         updateStaffStatus(ownerEmail, staffId, UserStatus.REJECTED);
+    }
+
+    private StaffPendingResponse toResponse(User staff, Map<Long, String> propertyNameMap) {
+        return StaffPendingResponse.builder()
+                .id(staff.getId())
+                .email(staff.getEmail())
+                .firstName(staff.getFirstName())
+                .lastName(staff.getLastName() != null ? staff.getLastName() : "")
+                .phone(staff.getPhone())
+                .propertyName(staff.getPropertyId() != null
+                        ? propertyNameMap.getOrDefault(staff.getPropertyId(), "Unknown Property")
+                        : "No Property Assigned")
+                .status(staff.getStatus().name())
+                .createdAt(staff.getCreatedAt() != null ? staff.getCreatedAt().toString() : null)
+                .build();
     }
 
     private void updateStaffStatus(String ownerEmail, Long staffId, UserStatus newStatus) {
@@ -100,4 +132,3 @@ public class OwnerStaffServiceImpl implements OwnerStaffService {
         userRepository.save(staff);
     }
 }
-

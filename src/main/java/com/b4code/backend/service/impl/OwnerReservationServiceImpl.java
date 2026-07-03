@@ -6,6 +6,7 @@ import com.b4code.backend.dao.RoomRepository;
 import com.b4code.backend.dao.UserRepository;
 import com.b4code.backend.dto.owner.ManualBookingRequest;
 import com.b4code.backend.dto.owner.OwnerReservationDto;
+import com.b4code.backend.dto.owner.OwnerReservationPageDto;
 import com.b4code.backend.exceptions.CustomException;
 import com.b4code.backend.models.Booking;
 import com.b4code.backend.models.Property;
@@ -19,6 +20,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
@@ -34,16 +36,47 @@ public class OwnerReservationServiceImpl implements OwnerReservationService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<OwnerReservationDto> listReservations(String ownerEmail, String search, String statusParam) {
-        User owner = resolveOwner(ownerEmail);
+    public OwnerReservationPageDto listReservations(String ownerEmail, String search, String statusParam) {
+        // Validate owner exists — no strict ownerId filter (matches OwnerPropertyServiceImpl pattern)
+        resolveOwner(ownerEmail);
+
         Booking.BookingStatus status = null;
         if (statusParam != null && !statusParam.isBlank()) {
             try { status = Booking.BookingStatus.valueOf(statusParam.toUpperCase()); }
             catch (IllegalArgumentException ignored) {}
         }
         String searchTerm = (search == null || search.isBlank()) ? null : search.trim();
-        return bookingRepository.findByOwnerWithFilters(owner.getId(), status, searchTerm)
-                .stream().map(OwnerReservationDto::fromEntity).toList();
+
+        List<Booking> bookings = bookingRepository.findAllWithFilters(status, searchTerm);
+        List<OwnerReservationDto> dtos = bookings.stream().map(OwnerReservationDto::fromEntity).toList();
+
+        LocalDate today = LocalDate.now();
+        LocalDate monthStart = today.withDayOfMonth(1);
+
+        int confirmed = (int) bookings.stream().filter(b -> b.getStatus() == Booking.BookingStatus.CONFIRMED).count();
+        int pending   = (int) bookings.stream().filter(b -> b.getStatus() == Booking.BookingStatus.PENDING).count();
+        int cancelled = (int) bookings.stream().filter(b -> b.getStatus() == Booking.BookingStatus.CANCELLED).count();
+        int checkInsToday = (int) bookings.stream()
+                .filter(b -> b.getCheckIn() != null && b.getCheckIn().equals(today)
+                          && (b.getStatus() == Booking.BookingStatus.CONFIRMED
+                           || b.getStatus() == Booking.BookingStatus.CHECKED_IN))
+                .count();
+        int thisMonth = (int) bookings.stream()
+                .filter(b -> b.getCreatedAt() != null
+                          && !b.getCreatedAt().toLocalDate().isBefore(monthStart))
+                .count();
+
+        return OwnerReservationPageDto.builder()
+                .reservations(dtos)
+                .totalItems(dtos.size())
+                .totalPages(1)
+                .currentPage(1)
+                .confirmed(confirmed)
+                .pending(pending)
+                .checkInsToday(checkInsToday)
+                .cancellations(cancelled)
+                .totalBookingsThisMonth(thisMonth)
+                .build();
     }
 
     @Override
@@ -96,6 +129,17 @@ public class OwnerReservationServiceImpl implements OwnerReservationService {
         Booking saved = bookingRepository.save(booking);
         log.info("Owner {} created manual booking id={}", ownerEmail, saved.getId());
         return OwnerReservationDto.fromEntity(saved);
+    }
+
+    @Override
+    @Transactional
+    public OwnerReservationDto confirm(String ownerEmail, Long id) {
+        Booking booking = resolveOwnedBooking(ownerEmail, id);
+        if (booking.getStatus() != Booking.BookingStatus.PENDING) {
+            throw new CustomException("Only PENDING bookings can be confirmed", HttpStatus.BAD_REQUEST);
+        }
+        booking.setStatus(Booking.BookingStatus.CONFIRMED);
+        return OwnerReservationDto.fromEntity(bookingRepository.save(booking));
     }
 
     @Override

@@ -72,6 +72,19 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
 
     @Query("""
         SELECT b FROM Booking b
+        WHERE (:status IS NULL OR b.status = :status)
+          AND (:search IS NULL OR :search = ''
+               OR LOWER(b.guestName) LIKE LOWER(CONCAT('%', :search, '%'))
+               OR LOWER(b.guestEmail) LIKE LOWER(CONCAT('%', :search, '%'))
+               OR LOWER(b.confirmationCode) LIKE LOWER(CONCAT('%', :search, '%')))
+        ORDER BY b.createdAt DESC
+        """)
+    List<Booking> findAllWithFilters(
+            @Param("status") Booking.BookingStatus status,
+            @Param("search") String search);
+
+    @Query("""
+        SELECT b FROM Booking b
         WHERE b.id = :id AND b.property.ownerId = :ownerId
         """)
     java.util.Optional<Booking> findByIdAndPropertyOwnerId(
@@ -127,4 +140,17 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
           AND b.status IN ('CONFIRMED', 'CHECKED_IN')
         """)
     List<Booking> findTodayCheckIns();
+
+    @Query("""
+        SELECT b FROM Booking b
+        JOIN FETCH b.room
+        WHERE b.property.id = :propertyId
+          AND b.status NOT IN ('CANCELLED')
+          AND b.checkIn  < :to
+          AND b.checkOut > :from
+        """)
+    List<Booking> findActiveBookingsForPropertyAndDateRange(
+            @Param("propertyId") Long propertyId,
+            @Param("from") LocalDate from,
+            @Param("to") LocalDate to);
 }

@@ -8,6 +8,8 @@ import java.util.List;
 @Builder
 public class RateOverviewDto {
     private Long propertyId;
+    private List<RoomPriceDto> rooms;
     private List<RatePlanDto> ratePlans;
     private List<DiscountDto> discounts;
+    private List<SeasonalPricingDto> seasonalPricing;
 }

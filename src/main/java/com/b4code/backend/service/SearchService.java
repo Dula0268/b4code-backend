@@ -4,6 +4,7 @@ import com.b4code.backend.dto.SearchDTO.*;
 import com.b4code.backend.models.Property;
 import com.b4code.backend.models.Room;
 import com.b4code.backend.models.Review;
+import com.b4code.backend.models.enums.RoomStatus;
 import com.b4code.backend.dao.PropertyRepository;
 import com.b4code.backend.dao.ReviewRepository;
 import com.b4code.backend.exceptions.ResourceNotFoundException;
@@ -280,6 +281,7 @@ public class SearchService {
     private PropertySearchResult mapToPropertySearchResult(Property property, int guests, LocalDate checkIn, LocalDate checkOut) {
         List<Room> availableRooms = property.getRooms() != null
                 ? property.getRooms().stream()
+                    .filter(r -> r.getStatus() == RoomStatus.AVAILABLE)
                     .filter(r -> {
                         if (checkIn == null || checkOut == null) return true;
                         int booked = bookingRepository.getBookedQuantityForDates(r.getId(), checkIn, checkOut);
@@ -394,6 +396,7 @@ public class SearchService {
         // Rooms
         List<RoomDTO> roomDTOs = property.getRooms() != null
                 ? property.getRooms().stream()
+                    .filter(r -> r.getStatus() == RoomStatus.AVAILABLE)
                     .filter(r -> {
                         if (checkIn == null || checkOut == null) return true;
                         int booked = bookingRepository.getBookedQuantityForDates(r.getId(), checkIn, checkOut);

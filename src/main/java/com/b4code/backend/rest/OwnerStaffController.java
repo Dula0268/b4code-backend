@@ -23,6 +23,11 @@ public class OwnerStaffController {
         return ResponseEntity.ok(ownerStaffService.getPendingStaff(principal.getName()));
     }
 
+    @GetMapping("/all")
+    public ResponseEntity<List<StaffPendingResponse>> getAllStaff(Principal principal) {
+        return ResponseEntity.ok(ownerStaffService.getAllStaff(principal.getName()));
+    }
+
     @PutMapping("/{id}/approve")
     public ResponseEntity<Void> approveStaff(Principal principal, @PathVariable Long id) {
         ownerStaffService.approveStaff(principal.getName(), id);

@@ -5,6 +5,8 @@ import com.b4code.backend.dto.owner.DiscountRequest;
 import com.b4code.backend.dto.owner.RateOverviewDto;
 import com.b4code.backend.dto.owner.RatePlanDto;
 import com.b4code.backend.dto.owner.RatePlanRequest;
+import com.b4code.backend.dto.owner.SeasonalPricingDto;
+import com.b4code.backend.dto.owner.SeasonalPricingRequest;
 import com.b4code.backend.service.OwnerRateService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -91,6 +93,35 @@ public class OwnerRateController {
             @PathVariable Long id) {
 
         ownerRateService.deleteDiscount(principal.getName(), id);
+        return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/seasonal")
+    @Operation(summary = "List seasonal pricing ranges for a property")
+    public ResponseEntity<java.util.List<SeasonalPricingDto>> getSeasonalPricing(
+            Principal principal,
+            @RequestParam Long propertyId) {
+
+        return ResponseEntity.ok(ownerRateService.getSeasonalPricing(principal.getName(), propertyId));
+    }
+
+    @PostMapping("/seasonal")
+    @Operation(summary = "Create a seasonal pricing range")
+    public ResponseEntity<SeasonalPricingDto> createSeasonalPricing(
+            Principal principal,
+            @RequestBody SeasonalPricingRequest request) {
+
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ownerRateService.createSeasonalPricing(principal.getName(), request));
+    }
+
+    @DeleteMapping("/seasonal/{id}")
+    @Operation(summary = "Delete a seasonal pricing range")
+    public ResponseEntity<Void> deleteSeasonalPricing(
+            Principal principal,
+            @PathVariable Long id) {
+
+        ownerRateService.deleteSeasonalPricing(principal.getName(), id);
         return ResponseEntity.noContent().build();
     }
 }

@@ -93,6 +93,10 @@ public class OwnerPropertyServiceImpl implements OwnerPropertyService {
                 .houseRules(request.getHouseRules())
                 .propertyType(request.getPropertyType())
                 .imageUrl(request.getImageUrl())
+                .freeCancellation(request.getFreeCancellation() != null ? request.getFreeCancellation() : false)
+                .breakfastIncluded(request.getBreakfastIncluded() != null ? request.getBreakfastIncluded() : false)
+                .petFriendly(request.getPetFriendly() != null ? request.getPetFriendly() : false)
+                .accessibility(request.getAccessibility() != null ? request.getAccessibility() : false)
                 .status(PropertyStatus.PENDING)
                 .build();
 
@@ -118,7 +122,11 @@ public class OwnerPropertyServiceImpl implements OwnerPropertyService {
         if (request.getCheckOut() != null)      property.setCheckOutTime(request.getCheckOut());
         if (request.getHouseRules() != null)    property.setHouseRules(request.getHouseRules());
         if (request.getPropertyType() != null)  property.setPropertyType(request.getPropertyType());
-        if (request.getImageUrl() != null) property.setImageUrl(request.getImageUrl());
+        if (request.getImageUrl() != null)       property.setImageUrl(request.getImageUrl());
+        if (request.getFreeCancellation() != null) property.setFreeCancellation(request.getFreeCancellation());
+        if (request.getBreakfastIncluded() != null) property.setBreakfastIncluded(request.getBreakfastIncluded());
+        if (request.getPetFriendly() != null)    property.setPetFriendly(request.getPetFriendly());
+        if (request.getAccessibility() != null)  property.setAccessibility(request.getAccessibility());
 
         if (request.getImageUrls() != null) {
             // Collect IDs of images about to be deleted so we can clear room FKs first.

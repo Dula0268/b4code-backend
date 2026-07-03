@@ -38,6 +38,10 @@ public class OwnerPropertyDto {
     private List<String> amenities;
     private List<String> photoUrls;
     private Integer roomCount;
+    private Boolean freeCancellation;
+    private Boolean breakfastIncluded;
+    private Boolean petFriendly;
+    private Boolean accessibility;
 
     public static OwnerPropertyDto fromEntity(Property p) {
         List<Room> rooms = p.getRooms() != null ? p.getRooms() : List.of();
@@ -101,6 +105,10 @@ public class OwnerPropertyDto {
                 .amenities(amenityNames)
                 .photoUrls(photoUrls)
                 .roomCount(rooms.size())
+                .freeCancellation(p.getFreeCancellation() != null ? p.getFreeCancellation() : false)
+                .breakfastIncluded(p.getBreakfastIncluded() != null ? p.getBreakfastIncluded() : false)
+                .petFriendly(p.getPetFriendly() != null ? p.getPetFriendly() : false)
+                .accessibility(p.getAccessibility() != null ? p.getAccessibility() : false)
                 .build();
     }
 

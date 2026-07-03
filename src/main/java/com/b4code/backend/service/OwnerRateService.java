@@ -5,6 +5,9 @@ import com.b4code.backend.dto.owner.DiscountRequest;
 import com.b4code.backend.dto.owner.RateOverviewDto;
 import com.b4code.backend.dto.owner.RatePlanDto;
 import com.b4code.backend.dto.owner.RatePlanRequest;
+import com.b4code.backend.dto.owner.SeasonalPricingDto;
+import com.b4code.backend.dto.owner.SeasonalPricingRequest;
+import java.util.List;
 
 public interface OwnerRateService {
     RateOverviewDto getRateOverview(String ownerEmail, Long propertyId);
@@ -14,4 +17,7 @@ public interface OwnerRateService {
     DiscountDto createDiscount(String ownerEmail, DiscountRequest request);
     DiscountDto updateDiscount(String ownerEmail, Long id, DiscountRequest request);
     void deleteDiscount(String ownerEmail, Long id);
+    List<SeasonalPricingDto> getSeasonalPricing(String ownerEmail, Long propertyId);
+    SeasonalPricingDto createSeasonalPricing(String ownerEmail, SeasonalPricingRequest request);
+    void deleteSeasonalPricing(String ownerEmail, Long id);
 }
