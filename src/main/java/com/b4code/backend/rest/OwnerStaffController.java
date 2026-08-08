@@ -1,5 +1,6 @@
 package com.b4code.backend.rest;
 
+import com.b4code.backend.dto.StaffInviteRequest;
 import com.b4code.backend.dto.StaffPendingResponse;
 import com.b4code.backend.service.OwnerStaffService;
 import lombok.RequiredArgsConstructor;
@@ -38,5 +39,10 @@ public class OwnerStaffController {
     public ResponseEntity<Void> rejectStaff(Principal principal, @PathVariable Long id) {
         ownerStaffService.rejectStaff(principal.getName(), id);
         return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/invite")
+    public ResponseEntity<StaffPendingResponse> inviteStaff(Principal principal, @RequestBody StaffInviteRequest request) {
+        return ResponseEntity.ok(ownerStaffService.inviteStaff(principal.getName(), request));
     }
 }
