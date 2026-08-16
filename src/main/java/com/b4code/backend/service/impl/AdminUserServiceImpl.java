@@ -8,10 +8,13 @@ import com.b4code.backend.models.enums.UserStatus;
 import com.b4code.backend.exceptions.CustomException;
 import com.b4code.backend.models.User;
 import com.b4code.backend.dao.UserRepository;
+import com.b4code.backend.models.PasswordResetToken;
+import com.b4code.backend.dao.PasswordResetTokenRepository;
 import com.b4code.backend.service.AdminUserService;
 import com.b4code.backend.service.EmailService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -32,6 +35,10 @@ public class AdminUserServiceImpl implements AdminUserService {
     private final PasswordEncoder passwordEncoder;
     private final com.b4code.backend.dao.AuditLogRepository auditLogRepository;
     private final EmailService emailService;
+    private final PasswordResetTokenRepository passwordResetTokenRepository;
+
+    @Value("${b4code.frontend.url:http://localhost:3000}")
+    private String frontendUrl;
 
     // ── GET ALL USERS ──────────────────────────────────
 
@@ -174,10 +181,15 @@ public class AdminUserServiceImpl implements AdminUserService {
         log.info("Deleting user id={}", id);
 
         User user = findActiveUserOrThrow(id);
-        user.setDeleted(true);
-        userRepository.save(user);
+        
+        // Clean up metadata to allow hard deletion
+        passwordResetTokenRepository.deleteByUser(user);
+        auditLogRepository.deleteByUser(user);
+        
+        // Attempt hard delete (will throw DataIntegrityViolationException if they have bookings/payments)
+        userRepository.delete(user);
 
-        log.info("User id={} marked as deleted", id);
+        log.info("User id={} completely removed from database", id);
     }
 
     // ── PRIVATE HELPERS ────────────────────────────────────────────────────────
@@ -195,14 +207,65 @@ public class AdminUserServiceImpl implements AdminUserService {
         log.info("Sending reset password link to user id={}", id);
         User user = findActiveUserOrThrow(id);
         
-        // Generate a dummy secure token for the reset link
+        // Remove old token first
+        passwordResetTokenRepository.deleteByUser(user);
+        passwordResetTokenRepository.flush();
+
+        // Generate a secure token for the reset link
         String resetToken = java.util.UUID.randomUUID().toString();
-        String resetLink = "http://localhost:3000/auth/reset-password?token=" + resetToken;
+        
+        PasswordResetToken passwordResetToken = new PasswordResetToken(
+                resetToken,
+                user,
+                30 // 30 minutes expiry
+        );
+        passwordResetTokenRepository.save(passwordResetToken);
+
+        String resetLink = frontendUrl + "/auth/reset-password?token=" + resetToken;
         
         // Use EmailService to send the actual email
         emailService.sendPasswordResetEmail(user.getEmail(), resetLink);
         
         log.info("Reset password link sent successfully to email={}", user.getEmail());
+    }
+
+    // ── INVITE USER ────────────────────────────────────────────────────────────
+
+    @Override
+    @Transactional
+    public void inviteUser(String email, UserRole role) {
+        log.info("Inviting new user with email='{}' and role='{}'", email, role);
+
+        if (userRepository.existsByEmail(email)) {
+            throw new CustomException("Email already in use", HttpStatus.CONFLICT);
+        }
+
+        User user = new User();
+        user.setEmail(email);
+        user.setPasswordHash(passwordEncoder.encode(java.util.UUID.randomUUID().toString())); // Temporary dummy password
+        user.setFirstName("");
+        user.setLastName("");
+        user.setRole(role);
+        user.setStatus(UserStatus.PENDING); // Status is pending until they accept
+
+        User saved = userRepository.save(user);
+
+        // Generate invitation token (using PasswordResetToken model for simplicity, or we could create a new one, but they serve the same purpose here)
+        String inviteToken = java.util.UUID.randomUUID().toString();
+        
+        PasswordResetToken token = new PasswordResetToken(
+                inviteToken,
+                saved,
+                48 * 60 // 48 hours expiry
+        );
+        passwordResetTokenRepository.save(token);
+
+        String inviteLink = frontendUrl + "/auth/reset-password?token=" + inviteToken + "&invite=true";
+        
+        // Use EmailService to send the actual invitation email
+        emailService.sendInvitationEmail(saved.getEmail(), saved.getRole().name(), inviteLink);
+        
+        log.info("Invitation sent successfully to email={}", saved.getEmail());
     }
 }
 
