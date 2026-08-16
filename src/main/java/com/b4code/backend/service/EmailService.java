@@ -61,6 +61,26 @@ public class EmailService {
         }
     }
 
+    @Async
+    public void sendInvitationEmail(String toEmail, String role, String inviteLink) {
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+
+            helper.setFrom(fromEmail, "Prime Stay");
+            helper.setTo(toEmail);
+            helper.setSubject("You've been invited to join Prime Stay!");
+
+            String htmlContent = buildInvitationHtml(role, inviteLink);
+            helper.setText(htmlContent, true);
+
+            mailSender.send(message);
+            log.info("Invitation email sent to: {}", toEmail);
+        } catch (Exception e) {
+            log.error("Failed to send invitation email to {}: {}", toEmail, e.getMessage());
+        }
+    }
+
     public void sendBookingConfirmationEmail(String toEmail, String guestName, String confirmationNumber, 
                                             String propertyName, String checkIn, String checkOut, String totalAmount) {
         try {
@@ -382,6 +402,74 @@ public class EmailService {
             </body>
             </html>
             """.formatted(resetLink, resetLink);
+    }
+
+    private String buildInvitationHtml(String role, String inviteLink) {
+        String formattedRole = role.substring(0, 1).toUpperCase() + role.substring(1).toLowerCase();
+        
+        return """
+            <!DOCTYPE html>
+            <html lang="en">
+            <head>
+              <meta charset="UTF-8" />
+              <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+              <title>Invitation to join Prime Stay</title>
+            </head>
+            <body style="margin:0;padding:0;background:#f5f5f5;font-family:'Segoe UI',Arial,sans-serif;">
+              <table width="100%%" cellpadding="0" cellspacing="0" style="background:#f5f5f5;padding:40px 0;">
+                <tr>
+                  <td align="center">
+                    <table width="520" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08);">
+                      
+                      <!-- Header -->
+                      <tr>
+                        <td style="background:linear-gradient(135deg,#9a3300,#c44a00);padding:36px 40px;text-align:center;">
+                          <h1 style="margin:0;color:#ffffff;font-size:26px;font-weight:800;letter-spacing:-0.5px;">PRIME STAY</h1>
+                          <p style="margin:6px 0 0;color:rgba(255,255,255,0.8);font-size:13px;">Sri Lanka's Premier Hospitality Platform</p>
+                        </td>
+                      </tr>
+                      
+                      <!-- Body -->
+                      <tr>
+                        <td style="padding:40px;">
+                          <h2 style="margin:0 0 12px;color:#1d1d1d;font-size:22px;font-weight:700;">You're Invited!</h2>
+                          <p style="margin:0 0 24px;color:#555555;font-size:15px;line-height:1.6;">
+                            You have been invited to join the Prime Stay administration team as a <strong>%s</strong>. 
+                            Click the button below to accept the invitation, set your name, and choose a secure password for your account.
+                          </p>
+                          
+                          <!-- CTA Button -->
+                          <table cellpadding="0" cellspacing="0" style="margin:0 0 28px;">
+                            <tr>
+                              <td style="background:#9a3300;border-radius:10px;">
+                                <a href="%s" target="_blank"
+                                   style="display:inline-block;padding:14px 32px;color:#ffffff;font-size:15px;font-weight:700;text-decoration:none;letter-spacing:0.3px;">
+                                  Accept Invitation →
+                                </a>
+                              </td>
+                            </tr>
+                          </table>
+                          
+                          <p style="margin:0 0 8px;color:#828282;font-size:13px;">Or copy and paste this link in your browser:</p>
+                          <p style="margin:0 0 28px;color:#9a3300;font-size:12px;word-break:break-all;">%s</p>
+                          
+                          <hr style="border:none;border-top:1px solid #eeeeee;margin:0 0 24px;"/>
+                          
+                          <p style="margin:0;color:#aaaaaa;font-size:12px;line-height:1.6;">
+                            This invitation link will expire in 48 hours.<br/>
+                            If you were not expecting this invitation, you can safely ignore this email.<br/><br/>
+                            &copy; 2025 Prime Stay Sri Lanka. All rights reserved.
+                          </p>
+                        </td>
+                      </tr>
+                      
+                    </table>
+                  </td>
+                </tr>
+              </table>
+            </body>
+            </html>
+            """.formatted(formattedRole, inviteLink, inviteLink);
     }
 
     private String buildBookingModificationHtml(String guestName, String confirmationNumber, 
