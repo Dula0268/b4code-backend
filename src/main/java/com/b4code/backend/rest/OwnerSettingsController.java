@@ -8,6 +8,8 @@ import com.b4code.backend.dto.owner.PropertySettingDto;
 import com.b4code.backend.dto.owner.ReservationRestrictionDto;
 import com.b4code.backend.dto.owner.RestrictionRequest;
 import com.b4code.backend.service.OwnerSettingsService;
+import com.b4code.backend.dto.PayoutDto;
+import com.b4code.backend.dto.owner.PayoutRequestDto;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -132,5 +134,13 @@ public class OwnerSettingsController {
 
         ownerSettingsService.deleteRestriction(principal.getName(), id);
         return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/billing/payout-request")
+    @Operation(summary = "Request a payout from admin")
+    public ResponseEntity<PayoutDto> requestPayout(
+            Principal principal,
+            @RequestBody PayoutRequestDto request) {
+        return ResponseEntity.ok(ownerSettingsService.requestPayout(principal.getName(), request));
     }
 }

@@ -12,6 +12,8 @@ public class OwnerBankDetailsDto {
     private String accountNumber;
     private String bankName;
     private String branchName;
+    private String accountType;
+    private String branchCode;
 
     public static OwnerBankDetailsDto fromEntity(OwnerBankDetails d) {
         return OwnerBankDetailsDto.builder()
@@ -20,6 +22,8 @@ public class OwnerBankDetailsDto {
                 .accountNumber(d.getAccountNumber())
                 .bankName(d.getBankName())
                 .branchName(d.getBranchName())
+                .accountType(d.getAccountType())
+                .branchCode(d.getBranchCode())
                 .build();
     }
 }

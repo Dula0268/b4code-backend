@@ -26,4 +26,10 @@ public class OwnerBankDetails {
 
     @Column(length = 255)
     private String branchName;
+
+    @Column(length = 50)
+    private String accountType;
+
+    @Column(length = 20)
+    private String branchCode;
 }

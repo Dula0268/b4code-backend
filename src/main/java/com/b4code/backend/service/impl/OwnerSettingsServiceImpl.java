@@ -22,7 +22,12 @@ import com.b4code.backend.models.Property;
 import com.b4code.backend.models.PropertySetting;
 import com.b4code.backend.models.ReservationRestriction;
 import com.b4code.backend.models.User;
+import com.b4code.backend.models.Payout;
+import com.b4code.backend.models.enums.PayoutStatus;
 import com.b4code.backend.service.OwnerSettingsService;
+import com.b4code.backend.dao.PayoutRepository;
+import com.b4code.backend.dto.PayoutDto;
+import com.b4code.backend.dto.owner.PayoutRequestDto;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -44,6 +49,7 @@ public class OwnerSettingsServiceImpl implements OwnerSettingsService {
     private final ReservationRestrictionRepository restrictionRepository;
     private final PropertyRepository propertyRepository;
     private final UserRepository userRepository;
+    private final PayoutRepository payoutRepository;
 
     @Override
     @Transactional(readOnly = true)
@@ -91,6 +97,8 @@ public class OwnerSettingsServiceImpl implements OwnerSettingsService {
         if (dto.getAccountNumber() != null)     details.setAccountNumber(dto.getAccountNumber());
         if (dto.getBankName() != null)          details.setBankName(dto.getBankName());
         if (dto.getBranchName() != null)        details.setBranchName(dto.getBranchName());
+        if (dto.getAccountType() != null)       details.setAccountType(dto.getAccountType());
+        if (dto.getBranchCode() != null)        details.setBranchCode(dto.getBranchCode());
         log.info("Owner {} saved bank details", ownerEmail);
         return OwnerBankDetailsDto.fromEntity(ownerBankDetailsRepository.save(details));
     }
@@ -214,5 +222,28 @@ public class OwnerSettingsServiceImpl implements OwnerSettingsService {
 
     private void verifyOwnsProperty(String ownerEmail, Long propertyId) {
         resolveOwnedProperty(ownerEmail, propertyId);
+    }
+
+    @Override
+    @Transactional
+    public PayoutDto requestPayout(String ownerEmail, PayoutRequestDto request) {
+        User owner = resolveOwner(ownerEmail);
+        Property property = resolveOwnedProperty(ownerEmail, request.getPropertyId());
+
+        Payout payout = Payout.builder()
+                .ownerId(owner.getId())
+                .ownerName(owner.getFirstName() + " " + owner.getLastName())
+                .propertyId(property.getId())
+                .propertyName(property.getName())
+                .amount(request.getAmount())
+                .hotelAmount(request.getAmount())
+                .foodAmount(java.math.BigDecimal.ZERO)
+                .commissionAmount(java.math.BigDecimal.ZERO)
+                .commissionRate(java.math.BigDecimal.ZERO)
+                .currency("LKR")
+                .status(PayoutStatus.PENDING)
+                .build();
+
+        return PayoutDto.fromEntity(payoutRepository.save(payout));
     }
 }

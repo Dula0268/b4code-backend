@@ -7,6 +7,8 @@ import com.b4code.backend.dto.owner.OwnerBankDetailsDto;
 import com.b4code.backend.dto.owner.PropertySettingDto;
 import com.b4code.backend.dto.owner.ReservationRestrictionDto;
 import com.b4code.backend.dto.owner.RestrictionRequest;
+import com.b4code.backend.dto.PayoutDto;
+import com.b4code.backend.dto.owner.PayoutRequestDto;
 
 import java.util.List;
 
@@ -26,4 +28,6 @@ public interface OwnerSettingsService {
     ReservationRestrictionDto createRestriction(String ownerEmail, RestrictionRequest request);
     ReservationRestrictionDto updateRestriction(String ownerEmail, Long id, RestrictionRequest request);
     void deleteRestriction(String ownerEmail, Long id);
+
+    PayoutDto requestPayout(String ownerEmail, PayoutRequestDto request);
 }
