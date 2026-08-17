@@ -30,6 +30,7 @@ public class ReviewService {
     private final BookingRepository bookingRepository;
     private final PropertyRepository propertyRepository;
     private final UserRepository userRepository;
+    private final NotificationService notificationService;
 
     /**
      * Create a review (guests can only review completed bookings).
@@ -61,34 +62,38 @@ public class ReviewService {
             throw new IllegalStateException("You can only review completed stays");
         }
 
-        // Prevent duplicate reviews
-        if (reviewRepository.existsByBookingId(booking.getId())) {
-            throw new IllegalStateException("Review already exists for this booking");
-        }
-
         String photoUrlsStr = request.getPhotoUrls() != null
             ? String.join(",", request.getPhotoUrls())
             : null;
 
-        Review review = Review.builder()
-            .booking(booking)
-            .property(booking.getRoom().getProperty())
-            .guest(guest)
-            .overallRating(request.getOverallRating())
-            .cleanlinessRating(request.getCleanlinessRating())
-            .comfortRating(request.getComfortRating())
-            .serviceRating(request.getServiceRating())
-            .diningRating(request.getDiningRating())
-            .locationRating(request.getLocationRating())
-            .valueRating(request.getValueRating())
-            .comment(request.getComment())
-            .photoUrls(photoUrlsStr)
-            .build();
+        Review review = reviewRepository.findByBookingId(booking.getId()).orElseGet(() -> {
+            return Review.builder()
+                .booking(booking)
+                .property(booking.getRoom().getProperty())
+                .guest(guest)
+                .build();
+        });
+
+        review.setOverallRating(request.getOverallRating());
+        review.setCleanlinessRating(request.getCleanlinessRating());
+        review.setComfortRating(request.getComfortRating());
+        review.setServiceRating(request.getServiceRating());
+        review.setDiningRating(request.getDiningRating());
+        review.setLocationRating(request.getLocationRating());
+        review.setValueRating(request.getValueRating());
+        review.setComment(request.getComment());
+        review.setPhotoUrls(photoUrlsStr);
 
         Review saved = reviewRepository.save(review);
 
         // Update property average rating
         updatePropertyRating(booking.getRoom().getProperty().getId());
+
+        // Send Notification
+        notificationService.createNotification(guest, 
+            "Review Submitted", 
+            "Thank you for reviewing your stay at " + booking.getRoom().getProperty().getName() + "!"
+        );
 
         return mapToResponse(saved);
     }
