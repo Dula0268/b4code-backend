@@ -38,3 +38,5 @@ kubernetes/secrets/
 
 .env
 src/main/java/com/b4code/backend/DbFixer.java
+
+node_modules/
