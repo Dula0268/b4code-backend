@@ -115,6 +115,20 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
         """)
     long countActiveByOwner(@Param("ownerId") Long ownerId);
 
+    @Query("SELECT COALESCE(SUM(b.totalAmount), 0) FROM Booking b WHERE b.status IN ('CONFIRMED', 'CHECKED_IN', 'COMPLETED')")
+    java.math.BigDecimal sumPlatformGrossRevenue();
+
+    @Query(value = """
+        SELECT TO_CHAR(b.created_at, 'Mon') AS month,
+               SUM(b.total_amount) AS total
+        FROM guest.bookings b
+        WHERE b.status IN ('CONFIRMED', 'CHECKED_IN', 'COMPLETED')
+        GROUP BY TO_CHAR(b.created_at, 'Mon'),
+                 EXTRACT(MONTH FROM b.created_at)
+        ORDER BY EXTRACT(MONTH FROM b.created_at)
+        """, nativeQuery = true)
+    java.util.List<Object[]> getMonthlyBookingRevenueTrend();
+
     @Query("SELECT COUNT(b) FROM Booking b WHERE b.status IN ('CONFIRMED', 'CHECKED_IN')")
     long countActiveBookings();
 

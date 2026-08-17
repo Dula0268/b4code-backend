@@ -237,7 +237,7 @@ public class BookingService {
 
         if (refundAmount.compareTo(BigDecimal.ZERO) > 0) {
             com.b4code.backend.models.Dispute dispute = new com.b4code.backend.models.Dispute();
-            dispute.setDisputeId(UUID.randomUUID().toString());
+            dispute.setDisputeId("DSP-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase());
             dispute.setBooking(saved);
             dispute.setProperty(property);
             
@@ -353,7 +353,7 @@ public class BookingService {
 
         if (difference.compareTo(BigDecimal.ZERO) < 0 && isPaidOnline) {
             com.b4code.backend.models.Dispute dispute = new com.b4code.backend.models.Dispute();
-            dispute.setDisputeId(UUID.randomUUID().toString());
+            dispute.setDisputeId("DSP-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase());
             dispute.setBooking(saved);
             dispute.setProperty(saved.getProperty());
             
