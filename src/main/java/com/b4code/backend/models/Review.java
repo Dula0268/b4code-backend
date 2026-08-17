@@ -43,6 +43,10 @@ public class Review {
 
     private String photoUrls;
 
+    @Column(length = 2000)
+    private String replyText;
+
+    private LocalDateTime replyCreatedAt;
     @Builder.Default
     @Column(name = "visibility_status")
     private String visibilityStatus = "PUBLIC";
