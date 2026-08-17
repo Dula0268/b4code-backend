@@ -154,7 +154,11 @@ public class AuthService {
             throw new CustomException("Your account has been suspended.", HttpStatus.FORBIDDEN);
         }
         if (user.getStatus() == UserStatus.PENDING) {
-            throw new CustomException("Your account is still pending approval from the property owner.", HttpStatus.FORBIDDEN);
+            if (user.getRole() == UserRole.STAFF) {
+                throw new CustomException("Your account is still pending approval from the property owner.", HttpStatus.FORBIDDEN);
+            } else {
+                throw new CustomException("Please verify your email address before logging in. Check your inbox for the OTP code we sent you.", HttpStatus.FORBIDDEN);
+            }
         }
 
         AuditLog log = new AuditLog();
