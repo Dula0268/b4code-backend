@@ -349,4 +349,56 @@ public class AuthService {
                 user.getPropertyId(),
                 profile);
     }
+
+    // ───────────────────────── REFRESH TOKEN ─────────────────────────
+    public AuthResponse refreshToken(String refreshToken) {
+        if (!jwtUtil.isTokenValid(refreshToken)) {
+            throw new CustomException("Refresh token is invalid or expired. Please log in again.", HttpStatus.UNAUTHORIZED);
+        }
+
+        String email = jwtUtil.extractEmail(refreshToken);
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new CustomException("User not found.", HttpStatus.UNAUTHORIZED));
+
+        if (user.getStatus() == UserStatus.SUSPENDED || user.getStatus() == UserStatus.REJECTED) {
+            throw new CustomException("Your account is not active.", HttpStatus.FORBIDDEN);
+        }
+
+        String newAccessToken = jwtUtil.generateToken(user.getEmail(), user.getRole().name());
+        String newRefreshToken = jwtUtil.generateRefreshToken(user.getEmail());
+
+        UserProfileDto profile = new UserProfileDto(
+                user.getFirstName(),
+                user.getLastName(),
+                user.getPhone(),
+                user.getAvatarUrl(),
+                user.getNationalIdUrl(),
+                user.getStaffRole());
+
+        return new AuthResponse(newAccessToken, newRefreshToken, user.getEmail(),
+                user.getRole().name(), user.getId(), user.getStatus().name(), user.getPropertyId(), profile);
+    }
+
+    // ───────────────────────── RESEND OTP ─────────────────────────
+    @Transactional
+    public void resendOtp(String email) {
+        User user = userRepository.findByEmail(email.toLowerCase())
+                .orElseThrow(() -> new CustomException("We couldn't find an account with this email address.", HttpStatus.NOT_FOUND));
+
+        if (user.getStatus() == UserStatus.ACTIVE) {
+            throw new CustomException("This email is already verified.", HttpStatus.BAD_REQUEST);
+        }
+
+        // Remove any existing OTP for this user
+        verificationOTPRepository.findByUser(user).ifPresent(verificationOTPRepository::delete);
+        verificationOTPRepository.flush();
+
+        // Generate a fresh 6-digit OTP
+        String otpCode = String.format("%06d", new java.util.Random().nextInt(999999));
+        VerificationOTP otp = new VerificationOTP(otpCode, user, 10); // 10 minutes expiry
+        verificationOTPRepository.save(otp);
+
+        // Resend the verification email
+        emailService.sendVerificationOTPEmail(user.getEmail(), user.getFirstName(), otpCode);
+    }
 }

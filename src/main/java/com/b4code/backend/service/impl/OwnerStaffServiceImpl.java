@@ -13,6 +13,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -26,22 +27,32 @@ public class OwnerStaffServiceImpl implements OwnerStaffService {
 
     @Override
     public List<StaffPendingResponse> getPendingStaff(String ownerEmail) {
-        User owner = userRepository.findByEmail(ownerEmail)
-                .orElseThrow(() -> new CustomException("Owner not found", HttpStatus.NOT_FOUND));
-
-        List<Property> ownerProperties = propertyRepository.findByOwnerId(owner.getId());
-
-        if (ownerProperties.isEmpty()) {
+        if (ownerEmail == null || ownerEmail.isBlank()) {
             return List.of();
         }
 
-        // Build a lookup map: propertyId -> propertyName
-        Map<Long, String> propertyNameMap = ownerProperties.stream()
-                .collect(Collectors.toMap(Property::getId, Property::getName));
+        User owner = userRepository.findByEmail(ownerEmail.toLowerCase())
+                .orElseThrow(() -> new CustomException("Owner account not found", HttpStatus.NOT_FOUND));
 
-        List<Long> propertyIds = ownerProperties.stream()
-                .map(Property::getId)
-                .collect(Collectors.toList());
+        List<Property> ownerProperties = propertyRepository.findByOwnerId(owner.getId());
+
+        if (ownerProperties == null || ownerProperties.isEmpty()) {
+            return List.of();
+        }
+
+        // Build a lookup map safely: propertyId -> propertyName (merging duplicates if any)
+        Map<Long, String> propertyNameMap = ownerProperties.stream()
+                .filter(p -> p != null && p.getId() != null)
+                .collect(Collectors.toMap(
+                        Property::getId,
+                        p -> p.getName() != null ? p.getName() : "Unnamed Property",
+                        (existing, replacement) -> existing
+                ));
+
+        List<Long> propertyIds = new ArrayList<>(propertyNameMap.keySet());
+        if (propertyIds.isEmpty()) {
+            return List.of();
+        }
 
         List<User> pendingStaff = userRepository.findByPropertyIdInAndRoleAndStatusAndDeletedFalse(
                 propertyIds,
@@ -49,17 +60,23 @@ public class OwnerStaffServiceImpl implements OwnerStaffService {
                 UserStatus.PENDING
         );
 
+        if (pendingStaff == null || pendingStaff.isEmpty()) {
+            return List.of();
+        }
+
         return pendingStaff.stream()
                 .map(staff -> StaffPendingResponse.builder()
                         .id(staff.getId())
-                        .email(staff.getEmail())
-                        .firstName(staff.getFirstName())
-                        .lastName(staff.getLastName())
-                        .phone(staff.getPhone())
+                        .email(staff.getEmail() != null ? staff.getEmail() : "")
+                        .firstName(staff.getFirstName() != null ? staff.getFirstName() : "")
+                        .lastName(staff.getLastName() != null ? staff.getLastName() : "")
+                        .phone(staff.getPhone() != null ? staff.getPhone() : "")
                         .propertyName(staff.getPropertyId() != null
-                                ? propertyNameMap.getOrDefault(staff.getPropertyId(), "Unknown Property")
+                                ? propertyNameMap.getOrDefault(staff.getPropertyId(), "Assigned Property")
                                 : "No Property Assigned")
-                        .status(staff.getStatus().name())
+                        .status(staff.getStatus() != null ? staff.getStatus().name() : "PENDING")
+                        .role(staff.getStaffRole() != null && !staff.getStaffRole().isBlank() ? staff.getStaffRole() : "Staff Member")
+                        .registeredAt(staff.getCreatedAt() != null ? staff.getCreatedAt().toString() : java.time.LocalDateTime.now().toString())
                         .build())
                 .collect(Collectors.toList());
     }
@@ -75,11 +92,11 @@ public class OwnerStaffServiceImpl implements OwnerStaffService {
     }
 
     private void updateStaffStatus(String ownerEmail, Long staffId, UserStatus newStatus) {
-        User owner = userRepository.findByEmail(ownerEmail)
-                .orElseThrow(() -> new CustomException("Owner not found", HttpStatus.NOT_FOUND));
+        User owner = userRepository.findByEmail(ownerEmail.toLowerCase())
+                .orElseThrow(() -> new CustomException("Owner account not found", HttpStatus.NOT_FOUND));
 
         User staff = userRepository.findById(staffId)
-                .orElseThrow(() -> new CustomException("Staff not found", HttpStatus.NOT_FOUND));
+                .orElseThrow(() -> new CustomException("Staff account not found", HttpStatus.NOT_FOUND));
 
         if (staff.getRole() != UserRole.STAFF) {
             throw new CustomException("User is not a staff member", HttpStatus.BAD_REQUEST);
@@ -93,11 +110,10 @@ public class OwnerStaffServiceImpl implements OwnerStaffService {
                 .orElseThrow(() -> new CustomException("Property not found", HttpStatus.NOT_FOUND));
 
         if (!property.getOwnerId().equals(owner.getId())) {
-            throw new CustomException("You are not the owner of this property", HttpStatus.FORBIDDEN);
+            throw new CustomException("You do not have permission to manage staff for this property", HttpStatus.FORBIDDEN);
         }
 
         staff.setStatus(newStatus);
         userRepository.save(staff);
     }
 }
-
