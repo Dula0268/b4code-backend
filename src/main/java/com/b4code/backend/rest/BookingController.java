@@ -126,6 +126,12 @@ public class BookingController {
         return ResponseEntity.ok(java.util.Map.of("message", "Receipt email sent successfully"));
     }
 
+    @PostMapping("/complaint")
+    public ResponseEntity<com.b4code.backend.dto.DisputeDto> submitComplaint(
+            @Valid @RequestBody com.b4code.backend.dto.ComplaintRequestDto request) {
+        return ResponseEntity.ok(bookingService.createComplaint(request));
+    }
+
     @ExceptionHandler({ com.b4code.backend.exceptions.RoomNotAvailableException.class, IllegalArgumentException.class,
             IllegalStateException.class })
     public ResponseEntity<java.util.Map<String, String>> handleBookingValidations(Exception ex) {
