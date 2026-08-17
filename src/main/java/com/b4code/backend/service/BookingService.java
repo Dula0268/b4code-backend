@@ -33,7 +33,7 @@ import java.util.stream.Collectors;
 @Transactional(readOnly = true)
 public class BookingService {
 
-    private static final BigDecimal TAX_RATE = new BigDecimal("0.10"); // 10%
+    private static final BigDecimal TAX_RATE = new BigDecimal("0.00"); // 0% tax for all properties
 
     private final BookingRepository bookingRepository;
     private final PropertyRepository propertyRepository;
@@ -45,6 +45,8 @@ public class BookingService {
     private final com.b4code.backend.dao.DisputeRepository disputeRepository;
     private final com.b4code.backend.dao.UserRepository userRepository;
     private final com.b4code.backend.dao.RoomDateInventoryRepository roomDateInventoryRepository;
+    private final NotificationService notificationService;
+    private final com.b4code.backend.dao.ReviewRepository reviewRepository;
 
     // ──────────────────────────────────────────
     // Price Preview (called before confirming)
@@ -135,6 +137,14 @@ public class BookingService {
             } catch (Exception e) {
                 log.error("Failed to send booking confirmation email to {}", saved.getGuestEmail(), e);
             }
+            
+            // Send Notification
+            userRepository.findByEmailAndDeletedFalse(saved.getGuestEmail())
+                .ifPresent(u -> notificationService.createNotification(u, 
+                    "Booking Confirmed", 
+                    "Your booking " + saved.getConfirmationCode() + " at " + saved.getProperty().getName() + " is confirmed."
+                ));
+
         } else {
             log.info("[BOOKING] ONLINE_CARD booking {} created with PENDING status. Email will be sent after PayHere confirms payment.", saved.getConfirmationCode());
         }
@@ -176,6 +186,13 @@ public class BookingService {
                 booking.getCheckIn().toString(),
                 booking.getCheckOut().toString(),
                 booking.getTotalAmount().toString());
+                
+        // Send Notification
+        userRepository.findByEmailAndDeletedFalse(booking.getGuestEmail())
+            .ifPresent(u -> notificationService.createNotification(u, 
+                "Booking Confirmed", 
+                "Your booking " + booking.getConfirmationCode() + " at " + booking.getProperty().getName() + " is confirmed."
+            ));
     }
 
     // ──────────────────────────────────────────
@@ -257,10 +274,24 @@ public class BookingService {
             if (disputeRepository != null) {
                 disputeRepository.save(dispute);
             }
+            
+            // Send Notification for Refund Request
+            userRepository.findByEmailAndDeletedFalse(saved.getGuestEmail())
+                .ifPresent(u -> notificationService.createNotification(u, 
+                    "Refund Request Sent", 
+                    "A refund request for " + refundAmount + " has been sent to the property admin due to cancellation of " + saved.getConfirmationCode()
+                ));
         }
 
         // We skip automatic payment gateway refund (paymentService.refundPayment) 
         // to let admin handle it via Dispute dashboard instead.
+        
+        // Send Notification for Cancellation
+        userRepository.findByEmailAndDeletedFalse(saved.getGuestEmail())
+            .ifPresent(u -> notificationService.createNotification(u, 
+                "Booking Cancelled", 
+                "Your booking " + saved.getConfirmationCode() + " has been successfully cancelled."
+            ));
 
         return mapToResponse(saved);
     }
@@ -368,11 +399,12 @@ public class BookingService {
             disputeRepository.save(dispute);
         }
 
+        String newDates = saved.getCheckIn().toString() + " to " + saved.getCheckOut().toString();
+        
         // Send booking modification email to guest
         try {
             String propertyName = saved.getProperty().getName();
             String newRoomType = saved.getRoom().getRoomType().name();
-            String newDates = saved.getCheckIn().toString() + " to " + saved.getCheckOut().toString();
             String diffStr = difference.compareTo(BigDecimal.ZERO) >= 0 ? difference.toString() : "-" + difference.abs().toString();
             emailService.sendBookingModificationEmail(
                     saved.getGuestEmail(),
@@ -389,6 +421,21 @@ public class BookingService {
         } catch (Exception e) {
             log.error("Failed to send booking modification email for booking {}", saved.getConfirmationCode(), e);
         }
+        
+        // Send Notification for Modification
+        userRepository.findByEmailAndDeletedFalse(saved.getGuestEmail())
+            .ifPresent(u -> {
+                notificationService.createNotification(u, 
+                    "Booking Modified", 
+                    "Your booking " + saved.getConfirmationCode() + " has been modified. New dates: " + newDates + "."
+                );
+                if (difference.compareTo(BigDecimal.ZERO) < 0 && isPaidOnline) {
+                    notificationService.createNotification(u, 
+                        "Refund Request Sent", 
+                        "A refund request for " + difference.abs() + " has been sent due to your booking modification."
+                    );
+                }
+            });
 
         return ModifyBookingResponse.builder()
                 .booking(mapToResponse(saved))
@@ -396,6 +443,101 @@ public class BookingService {
                 .newTotalAmount(newTotal)
                 .refundAmount((isPaidOnline && difference.compareTo(BigDecimal.ZERO) < 0) ? difference.abs() : BigDecimal.ZERO)
                 .additionalAmountDue((difference.compareTo(BigDecimal.ZERO) > 0) ? difference : BigDecimal.ZERO)
+                .build();
+    }
+
+    // ──────────────────────────────────────────
+    // Create Complaint
+    // ──────────────────────────────────────────
+    @Transactional
+    public com.b4code.backend.dto.DisputeDto createComplaint(com.b4code.backend.dto.ComplaintRequestDto request) {
+        Booking booking = bookingRepository.findById(request.getBookingId())
+                .orElseThrow(() -> new ResourceNotFoundException("Booking not found: " + request.getBookingId()));
+
+        com.b4code.backend.models.Dispute dispute = new com.b4code.backend.models.Dispute();
+        dispute.setDisputeId(UUID.randomUUID().toString());
+        dispute.setBooking(booking);
+        dispute.setProperty(booking.getProperty());
+        
+        userRepository.findByEmailAndDeletedFalse(booking.getGuestEmail())
+            .ifPresent(dispute::setGuest);
+
+        dispute.setReason(request.getDescription());
+        dispute.setCategory(request.getCategory());
+        dispute.setSeverity(request.getSeverity());
+        dispute.setRelatedOrderRef(request.getRelatedOrderRef());
+        
+        if (request.getPhotoUrls() != null && !request.getPhotoUrls().isEmpty()) {
+            dispute.setPhotoUrls(String.join(",", request.getPhotoUrls()));
+        }
+
+        dispute.setAmount(BigDecimal.ZERO);
+        dispute.setStatus(com.b4code.backend.models.enums.DisputeStatus.OPEN);
+        
+        com.b4code.backend.models.Dispute saved = disputeRepository.save(dispute);
+        
+        // Send Notification
+        userRepository.findByEmailAndDeletedFalse(booking.getGuestEmail())
+            .ifPresent(u -> notificationService.createNotification(u, 
+                "Complaint Submitted", 
+                "Your complaint for booking " + booking.getConfirmationCode() + " has been received and is being reviewed."
+            ));
+
+        return com.b4code.backend.dto.DisputeDto.fromEntity(saved);
+    }
+
+    // ──────────────────────────────────────────
+    // Create Review
+    // ──────────────────────────────────────────
+    @Transactional
+    public com.b4code.backend.dto.ReviewDTO.ReviewResponse createReview(com.b4code.backend.dto.ReviewDTO.CreateReviewRequest request) {
+        Booking booking = bookingRepository.findById(request.getBookingId())
+                .orElseThrow(() -> new ResourceNotFoundException("Booking not found: " + request.getBookingId()));
+
+        com.b4code.backend.models.Review review = new com.b4code.backend.models.Review();
+        review.setBooking(booking);
+        review.setProperty(booking.getProperty());
+        
+        userRepository.findByEmailAndDeletedFalse(booking.getGuestEmail())
+            .ifPresent(review::setGuest);
+
+        review.setOverallRating(request.getOverallRating());
+        review.setCleanlinessRating(request.getCleanlinessRating());
+        review.setComfortRating(request.getComfortRating());
+        review.setServiceRating(request.getServiceRating());
+        review.setDiningRating(request.getDiningRating());
+        review.setLocationRating(request.getLocationRating());
+        review.setValueRating(request.getValueRating());
+        review.setComment(request.getComment());
+        
+        if (request.getPhotoUrls() != null && !request.getPhotoUrls().isEmpty()) {
+            review.setPhotoUrls(String.join(",", request.getPhotoUrls()));
+        }
+
+        com.b4code.backend.models.Review saved = reviewRepository.save(review);
+        
+        // Send Notification
+        userRepository.findByEmailAndDeletedFalse(booking.getGuestEmail())
+            .ifPresent(u -> notificationService.createNotification(u, 
+                "Review Submitted", 
+                "Your review for booking " + booking.getConfirmationCode() + " has been successfully submitted."
+            ));
+
+        return com.b4code.backend.dto.ReviewDTO.ReviewResponse.builder()
+                .id(saved.getId())
+                .bookingId(saved.getBooking().getId())
+                .propertyId(saved.getProperty().getId())
+                .guestId(saved.getGuest() != null ? saved.getGuest().getId() : null)
+                .overallRating(saved.getOverallRating())
+                .cleanlinessRating(saved.getCleanlinessRating())
+                .comfortRating(saved.getComfortRating())
+                .serviceRating(saved.getServiceRating())
+                .diningRating(saved.getDiningRating())
+                .locationRating(saved.getLocationRating())
+                .valueRating(saved.getValueRating())
+                .comment(saved.getComment())
+                .photoUrls(saved.getPhotoUrls() != null ? Arrays.asList(saved.getPhotoUrls().split(",")) : null)
+                .createdAt(saved.getCreatedAt())
                 .build();
     }
 

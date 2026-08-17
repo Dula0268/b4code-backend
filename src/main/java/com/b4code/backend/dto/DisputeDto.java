@@ -19,6 +19,10 @@ public class DisputeDto {
     private String cancellationPolicy;
     private Integer daysUntilAutoClose;
     private String internalNote;
+    private String category;
+    private String severity;
+    private String relatedOrderRef;
+    private String photoUrls;
 
     public static DisputeDto fromEntity(Dispute d) {
         return DisputeDto.builder()
@@ -27,13 +31,17 @@ public class DisputeDto {
                 .guestName(d.getGuest() != null ? d.getGuest().getFullName() : null)
                 .propertyName(d.getProperty() != null ? d.getProperty().getName() : null)
                 .reason(d.getReason())
-                .amount(d.getCurrency() + " " + String.format("%,.2f", d.getAmount()))
+                .amount(d.getCurrency() + " " + String.format("%,.2f", d.getAmount() != null ? d.getAmount() : java.math.BigDecimal.ZERO))
                 .status(toLabel(d.getStatus()))
                 .bookingId(d.getBooking() != null ? String.valueOf(d.getBooking().getId()) : null)
                 .stayDates(d.getStayDates())
                 .cancellationPolicy(d.getCancellationPolicy())
                 .daysUntilAutoClose(d.getDaysUntilAutoClose())
                 .internalNote(d.getInternalNote())
+                .category(d.getCategory())
+                .severity(d.getSeverity())
+                .relatedOrderRef(d.getRelatedOrderRef())
+                .photoUrls(d.getPhotoUrls())
                 .build();
     }
 
