@@ -36,7 +36,11 @@ public class StaffReviewController {
             FROM staff.item_reviews ir
             JOIN staff.orders o ON o.id = ir.order_id
             JOIN staff.menu_items mi ON mi.id = ir.menu_item_id
-            LEFT JOIN admin.flagged_reviews fr ON fr.item_review_id = ir.id AND fr.property_id = o.property_id
+            LEFT JOIN (
+                SELECT item_review_id, property_id, status, admin_note,
+                       ROW_NUMBER() OVER(PARTITION BY item_review_id ORDER BY flagged_at DESC) as rn
+                FROM admin.flagged_reviews
+            ) fr ON fr.item_review_id = ir.id AND fr.property_id = o.property_id AND fr.rn = 1
             WHERE o.property_id = ?
             ORDER BY ir.created_at DESC
         """;

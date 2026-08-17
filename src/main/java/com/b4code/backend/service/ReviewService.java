@@ -164,16 +164,33 @@ public class ReviewService {
         propertyRepository.save(property);
     }
 
+    @Transactional
+    public ReviewResponse replyToReview(Long reviewId, String replyText) {
+        Review review = reviewRepository.findById(reviewId)
+            .orElseThrow(() -> new ResourceNotFoundException("Review not found"));
+        review.setReplyText(replyText);
+        review.setReplyCreatedAt(LocalDateTime.now());
+        return mapToResponse(reviewRepository.save(review));
+    }
+
+    @Transactional
+    public ReviewResponse flagReview(Long reviewId) {
+        Review review = reviewRepository.findById(reviewId)
+            .orElseThrow(() -> new ResourceNotFoundException("Review not found"));
+        review.setVisibilityStatus("FLAGGED");
+        return mapToResponse(reviewRepository.save(review));
+    }
+
     private ReviewResponse mapToResponse(Review r) {
-        List<String> photos = r.getPhotoUrls() != null
+        List<String> photos = r.getPhotoUrls() != null && !r.getPhotoUrls().isEmpty()
             ? Arrays.asList(r.getPhotoUrls().split(","))
             : List.of();
 
         return ReviewResponse.builder()
             .id(r.getId())
-            .bookingId(r.getBooking().getId())
-            .propertyId(r.getProperty().getId())
-            .guestId(r.getGuest().getId())
+            .bookingId(r.getBooking() != null ? r.getBooking().getId() : null)
+            .propertyId(r.getProperty() != null ? r.getProperty().getId() : null)
+            .guestId(r.getGuest() != null ? r.getGuest().getId() : null)
             .overallRating(r.getOverallRating())
             .cleanlinessRating(r.getCleanlinessRating())
             .comfortRating(r.getComfortRating())
@@ -183,6 +200,8 @@ public class ReviewService {
             .valueRating(r.getValueRating())
             .comment(r.getComment())
             .photoUrls(photos)
+            .replyText(r.getReplyText())
+            .visibilityStatus(r.getVisibilityStatus())
             .createdAt(r.getCreatedAt())
             .build();
     }
