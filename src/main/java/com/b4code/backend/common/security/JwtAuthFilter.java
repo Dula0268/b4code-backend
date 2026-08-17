@@ -19,6 +19,7 @@ import java.util.List;
 public class JwtAuthFilter extends OncePerRequestFilter {
 
     private final JwtUtil jwtUtil;
+    private final com.b4code.backend.dao.UserRepository userRepository;
 
     @Override
     protected void doFilterInternal(
@@ -39,6 +40,13 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         if (token != null && jwtUtil.isTokenValid(token)) {
             String email = jwtUtil.extractEmail(token);
             String role = jwtUtil.extractRole(token);
+
+            com.b4code.backend.models.User user = userRepository.findByEmail(email).orElse(null);
+            if (user != null && user.getStatus() == com.b4code.backend.models.enums.UserStatus.SUSPENDED) {
+                // User is suspended, block authentication
+                filterChain.doFilter(request, response);
+                return;
+            }
 
             UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
                     email,

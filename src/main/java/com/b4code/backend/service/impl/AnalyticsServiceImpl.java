@@ -36,11 +36,11 @@ public class AnalyticsServiceImpl implements AnalyticsService {
     public PlatformAnalyticsDto getPlatformAnalytics() {
         log.debug("Computing platform analytics (cache miss)");
 
-        BigDecimal grossBookingValue = transactionRepository.sumTotalRevenue();
-        BigDecimal netRevenue = transactionRepository.sumPlatformCommission();
+        BigDecimal grossBookingValue = bookingRepository.sumPlatformGrossRevenue();
+        BigDecimal netRevenue = grossBookingValue.multiply(BigDecimal.valueOf(COMMISSION_RATE)).divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
 
         // Calculate real Total Bookings
-        long totalBookings = transactionRepository.count(); // Basic count for now
+        long totalBookings = bookingRepository.count(); // Count total bookings in system
 
         // Calculate ADR (Gross / Bookings) or default to 0
         BigDecimal avgDailyRate = totalBookings > 0
@@ -52,8 +52,9 @@ public class AnalyticsServiceImpl implements AnalyticsService {
         // Calculate occupancy based on property count vs bookings (mock logic if no
         // actual stay dates)
         long propertyCount = propertyRepository.count();
-        double occupancyRate = propertyCount > 0 ? Math.min(95.0, (double) totalBookings / (propertyCount * 10) * 100)
+        double rawOccupancyRate = propertyCount > 0 ? Math.min(95.0, (double) totalBookings / (propertyCount * 10) * 100)
                 : 0.0;
+        double occupancyRate = Math.round(rawOccupancyRate * 10.0) / 10.0;
 
         BigDecimal revpar = avgDailyRate.multiply(BigDecimal.valueOf(occupancyRate / 100))
                 .setScale(2, RoundingMode.HALF_UP);
@@ -182,7 +183,7 @@ public class AnalyticsServiceImpl implements AnalyticsService {
         }
 
         // Override with actual data
-        List<Object[]> dbData = transactionRepository.getMonthlyRevenueTrend();
+        List<Object[]> dbData = bookingRepository.getMonthlyBookingRevenueTrend();
         for (Object[] row : dbData) {
             String month = (String) row[0];
             BigDecimal val = (BigDecimal) row[1];

@@ -28,6 +28,7 @@ public class ModerationServiceImpl implements ModerationService {
     private final FlaggedReviewRepository reviewRepository;
     private final DisputeRepository disputeRepository;
     private final ModerationHistoryRepository historyRepository;
+    private final ItemReviewRepository itemReviewRepository;
     private final NotificationService notificationService;
 
     // ── Reviews Queue
@@ -63,7 +64,15 @@ public class ModerationServiceImpl implements ModerationService {
         flaggedReview.setAdminNote(adminNote);
         
         Review review = flaggedReview.getReview();
-        review.setComment("[Removed by Admin] " + (adminNote != null ? adminNote : "Violation of policy"));
+        if (review != null) {
+            review.setComment("[Removed by Admin] " + (adminNote != null ? adminNote : "Violation of policy"));
+        } else if (flaggedReview.getItemReviewId() != null) {
+            ItemReview itemReview = itemReviewRepository.findById(flaggedReview.getItemReviewId()).orElse(null);
+            if (itemReview != null) {
+                itemReview.setComment("[Removed by Admin] " + (adminNote != null ? adminNote : "Violation of policy"));
+                itemReviewRepository.save(itemReview);
+            }
+        }
         
         log.info("Review id={} REMOVED, reason='{}'", id, adminNote);
         FlaggedReviewDto dto = FlaggedReviewDto.fromEntity(reviewRepository.save(flaggedReview));
@@ -227,6 +236,18 @@ public class ModerationServiceImpl implements ModerationService {
     public long getRemovedTodayCount() {
         LocalDateTime startOfDay = LocalDate.now().atStartOfDay();
         return historyRepository.countByActionTakenAndResolvedAtAfter(ModerationAction.REVIEW_REMOVED, startOfDay);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public long getResolvedDisputesCount() {
+        return disputeRepository.countByStatus(DisputeStatus.RESOLVED);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public java.math.BigDecimal getTotalResolvedAmount() {
+        return disputeRepository.sumAmountByStatus(DisputeStatus.RESOLVED);
     }
 
     private FlaggedReview findReviewOrThrow(Long id) {

@@ -30,4 +30,6 @@ public interface ModerationService {
     long getPendingReviewCount();
     long getOpenDisputeCount();
     long getRemovedTodayCount();
+    long getResolvedDisputesCount();
+    java.math.BigDecimal getTotalResolvedAmount();
 }

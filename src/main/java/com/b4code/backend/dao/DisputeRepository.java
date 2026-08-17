@@ -31,5 +31,10 @@ public interface DisputeRepository extends JpaRepository<Dispute, Long> {
 
     long countByStatusNot(DisputeStatus status);
 
+    long countByStatus(DisputeStatus status);
+
+    @Query("SELECT COALESCE(SUM(d.amount), 0) FROM Dispute d WHERE d.status = :status")
+    BigDecimal sumAmountByStatus(@Param("status") DisputeStatus status);
+
     java.util.Optional<Dispute> findTopByBookingIdOrderByOpenedAtDesc(Long bookingId);
 }

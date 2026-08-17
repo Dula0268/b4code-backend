@@ -3,6 +3,7 @@ package com.b4code.backend.rest;
 import com.b4code.backend.dto.UserDto;
 import com.b4code.backend.dto.UserPageDto;
 import com.b4code.backend.dto.UserStatusUpdateDto;
+import com.b4code.backend.dto.InviteUserDto;
 import com.b4code.backend.models.enums.UserRole;
 import com.b4code.backend.models.enums.UserStatus;
 import com.b4code.backend.service.AdminUserService;
@@ -168,6 +169,17 @@ public class AdminUserController {
     public ResponseEntity<Void> sendResetPasswordLink(@PathVariable Long id) {
         log.info("POST /api/admin/users/{}/send-reset-password", id);
         userService.sendResetPasswordLink(id);
+        return ResponseEntity.ok().build();
+    }
+
+    // ── INVITE USER ───────────────────────────────────────────────────────────────
+
+    @PostMapping("/invite")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Invite a new user", description = "Sends an invitation email to a new user to set their password")
+    public ResponseEntity<Void> inviteUser(@RequestBody InviteUserDto request) {
+        log.info("POST /api/admin/users/invite - {}", request.getEmail());
+        userService.inviteUser(request.getEmail(), request.getRole());
         return ResponseEntity.ok().build();
     }
 }

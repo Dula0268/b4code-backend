@@ -23,4 +23,6 @@ public interface AdminUserService {
     void deleteUser(Long id);
 
     void sendResetPasswordLink(Long id);
+
+    void inviteUser(String email, UserRole role);
 }

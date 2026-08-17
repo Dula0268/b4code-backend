@@ -42,6 +42,9 @@ class StaffOrderControllerTest {
     @MockBean
     private com.b4code.backend.common.security.JwtUtil jwtUtil;
 
+    @MockBean
+    private com.b4code.backend.dao.UserRepository userRepository;
+
     @Autowired
     private ObjectMapper objectMapper;
 
