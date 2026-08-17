@@ -143,8 +143,9 @@ public interface PropertyRepository extends JpaRepository<Property, Long> {
             WHERE (:search IS NULL OR :search = ''
                    OR LOWER(p.name)      LIKE LOWER(CONCAT('%', :search, '%'))
                    OR LOWER(p.city)      LIKE LOWER(CONCAT('%', :search, '%')))
+              AND (:status IS NULL OR p.status = :status)
             """)
-    Page<Property> findAllWithFilters(@Param("search") String search, Pageable pageable);
+    Page<Property> findAllWithFilters(@Param("search") String search, @Param("status") com.b4code.backend.models.enums.PropertyStatus status, Pageable pageable);
 
     List<Property> findTop5ByOrderByIdDesc();
 

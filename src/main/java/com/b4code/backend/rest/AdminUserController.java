@@ -3,6 +3,7 @@ package com.b4code.backend.rest;
 import com.b4code.backend.dto.UserDto;
 import com.b4code.backend.dto.UserPageDto;
 import com.b4code.backend.dto.UserStatusUpdateDto;
+import com.b4code.backend.dto.InviteUserDto;
 import com.b4code.backend.models.enums.UserRole;
 import com.b4code.backend.models.enums.UserStatus;
 import com.b4code.backend.service.AdminUserService;
@@ -107,6 +108,19 @@ public class AdminUserController {
         return ResponseEntity.ok(updated);
     }
 
+    // ── GET USER ACTIVITY ─────────────────────────────────────────────────────
+
+    @GetMapping("/{id}/activity")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
+    @Operation(summary = "Get user activity", description = "Returns recent activity logs for a specific user")
+    public ResponseEntity<java.util.List<com.b4code.backend.dto.AuditLogDto>> getUserActivity(
+            @Parameter(description = "User's database ID") @PathVariable Long id,
+            @Parameter(description = "Number of logs to return") @RequestParam(defaultValue = "10") int limit) {
+        log.info("GET /api/admin/users/{}/activity — limit={}", id, limit);
+        java.util.List<com.b4code.backend.dto.AuditLogDto> activity = userService.getUserActivityLogs(id, limit);
+        return ResponseEntity.ok(activity);
+    }
+
     // ── DELETE USER ───────────────────────────────────────────────────────────
 
     @DeleteMapping("/{id}")
@@ -155,6 +169,17 @@ public class AdminUserController {
     public ResponseEntity<Void> sendResetPasswordLink(@PathVariable Long id) {
         log.info("POST /api/admin/users/{}/send-reset-password", id);
         userService.sendResetPasswordLink(id);
+        return ResponseEntity.ok().build();
+    }
+
+    // ── INVITE USER ───────────────────────────────────────────────────────────────
+
+    @PostMapping("/invite")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Invite a new user", description = "Sends an invitation email to a new user to set their password")
+    public ResponseEntity<Void> inviteUser(@RequestBody InviteUserDto request) {
+        log.info("POST /api/admin/users/invite - {}", request.getEmail());
+        userService.inviteUser(request.getEmail(), request.getRole());
         return ResponseEntity.ok().build();
     }
 }

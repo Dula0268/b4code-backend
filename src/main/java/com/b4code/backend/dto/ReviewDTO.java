@@ -65,6 +65,8 @@ public class ReviewDTO {
 
         private String comment;
         private List<String> photoUrls;
+        private String replyText;
+        private String visibilityStatus;
         private LocalDateTime createdAt;
     }
 

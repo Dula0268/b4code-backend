@@ -21,9 +21,12 @@ public class FlaggedReview {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "review_id", nullable = false)
+    @JoinColumn(name = "review_id", nullable = true, foreignKey = @ForeignKey(ConstraintMode.NO_CONSTRAINT))
     @org.hibernate.annotations.NotFound(action = org.hibernate.annotations.NotFoundAction.IGNORE)
     private Review review;
+
+    @Column(name = "item_review_id")
+    private Long itemReviewId;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)

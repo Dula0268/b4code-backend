@@ -62,6 +62,18 @@ public class Dispute {
     @Column(columnDefinition = "TEXT")
     private String internalNote;
 
+    @Column(length = 100)
+    private String category;
+
+    @Column(length = 50)
+    private String severity;
+
+    @Column(length = 100)
+    private String relatedOrderRef;
+
+    @Column(columnDefinition = "TEXT")
+    private String photoUrls;
+
     @CreationTimestamp
     @Column(updatable = false)
     private LocalDateTime openedAt;

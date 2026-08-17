@@ -21,6 +21,7 @@ public class FlaggedReviewDto {
     private String flagType;
     private Long ownerId;
     private String ownerName;
+    private String flaggedByRole;
     private String status;          
     private String adminNote;
     private String flaggedAt;       
@@ -49,6 +50,7 @@ public class FlaggedReviewDto {
                 .flagType(r.getFlagType() != null ? r.getFlagType().name() : null)
                 .ownerId(r.getOwner() != null ? r.getOwner().getId() : null)
                 .ownerName(r.getOwner() != null ? r.getOwner().getFullName() : null)
+                .flaggedByRole(r.getOwner() != null && r.getOwner().getRole() != null ? r.getOwner().getRole().name() : null)
                 .status(toLabel(r.getStatus()))
                 .adminNote(r.getAdminNote())
                 .flaggedAt(r.getFlaggedAt() != null ? r.getFlaggedAt().format(FMT) : "")

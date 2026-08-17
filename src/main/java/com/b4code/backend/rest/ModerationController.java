@@ -31,12 +31,14 @@ public class ModerationController {
     // ── GET tab badge counts (reviews + disputes)
     @GetMapping("/counts")
     @PreAuthorize("hasAnyRole('ADMIN','STAFF')")
-    @Operation(summary = "Badge counts for Reviews Queue and Disputes tabs")
-    public ResponseEntity<Map<String, Long>> getBadgeCounts() {
+    @Operation(summary = "Get counts for moderation dashboard KPI badges")
+    public ResponseEntity<Map<String, Object>> getBadgeCounts() {
         return ResponseEntity.ok(Map.of(
                 "pendingReviews", moderationService.getPendingReviewCount(),
                 "openDisputes",   moderationService.getOpenDisputeCount(),
-                "removedToday",   moderationService.getRemovedTodayCount()
+                "removedToday",   moderationService.getRemovedTodayCount(),
+                "resolvedDisputes", moderationService.getResolvedDisputesCount(),
+                "totalResolvedAmount", moderationService.getTotalResolvedAmount()
         ));
     }
 

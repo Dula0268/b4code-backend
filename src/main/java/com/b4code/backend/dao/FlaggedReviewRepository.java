@@ -15,13 +15,19 @@ public interface FlaggedReviewRepository extends JpaRepository<FlaggedReview, Lo
 
     @Query("""
             SELECT r FROM FlaggedReview r
+            LEFT JOIN r.review rev
+            LEFT JOIN rev.guest g
+            LEFT JOIN rev.property p
+            LEFT JOIN r.property rp
             WHERE (:status IS NULL OR r.status = :status)
               AND (:flagType IS NULL OR r.flagType = :flagType)
-              AND (:rating IS NULL OR r.review.overallRating = :rating)
+              AND (:rating IS NULL OR r.rating = :rating OR rev.overallRating = :rating)
               AND (:search IS NULL OR :search = '' OR
-                   LOWER(r.review.guest.firstName) LIKE LOWER(CONCAT('%',:search,'%')) OR
-                   LOWER(r.review.guest.lastName) LIKE LOWER(CONCAT('%',:search,'%')) OR
-                   LOWER(r.review.property.name) LIKE LOWER(CONCAT('%',:search,'%')))
+                   LOWER(r.guestName) LIKE LOWER(CONCAT('%',:search,'%')) OR
+                   LOWER(g.firstName) LIKE LOWER(CONCAT('%',:search,'%')) OR
+                   LOWER(g.lastName) LIKE LOWER(CONCAT('%',:search,'%')) OR
+                   LOWER(p.name) LIKE LOWER(CONCAT('%',:search,'%')) OR
+                   LOWER(rp.name) LIKE LOWER(CONCAT('%',:search,'%')))
             """)
     Page<FlaggedReview> findAllWithFilters(
             @Param("status") ReviewStatus status,

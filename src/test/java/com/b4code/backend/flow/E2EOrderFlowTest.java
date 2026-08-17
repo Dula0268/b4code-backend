@@ -75,6 +75,9 @@ public class E2EOrderFlowTest {
     @MockBean
     private com.b4code.backend.dao.UserRepository userRepository;
 
+    @MockBean
+    private com.b4code.backend.dao.NotificationRepository notificationRepository;
+
     @BeforeEach
     void setupMocks() {
         // Setup Property Mock

@@ -170,6 +170,10 @@ public class AuthService {
 
         auditLogRepository.save(log);
 
+        // Update last login
+        user.setLastLogin(LocalDateTime.now());
+        userRepository.save(user);
+
         String token = jwtUtil.generateToken(user.getEmail(), user.getRole().name());
         String refreshToken = jwtUtil.generateRefreshToken(user.getEmail());
 
@@ -327,6 +331,10 @@ public class AuthService {
         log.setEntityDetail("Room: " + request.getRoomNumber());
         log.setTimestamp(LocalDateTime.now());
         auditLogRepository.save(log);
+
+        // Update last login
+        user.setLastLogin(LocalDateTime.now());
+        userRepository.save(user);
 
         String token = jwtUtil.generateToken(user.getEmail(), user.getRole().name());
         String refreshToken = jwtUtil.generateRefreshToken(user.getEmail());
