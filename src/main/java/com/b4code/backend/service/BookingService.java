@@ -16,6 +16,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -46,6 +48,7 @@ public class BookingService {
     private final com.b4code.backend.dao.UserRepository userRepository;
     private final com.b4code.backend.dao.RoomDateInventoryRepository roomDateInventoryRepository;
     private final NotificationService notificationService;
+    private final BookingSseService bookingSseService;
     private final com.b4code.backend.dao.ReviewRepository reviewRepository;
 
     // ──────────────────────────────────────────
@@ -142,14 +145,23 @@ public class BookingService {
             userRepository.findByEmailAndDeletedFalse(saved.getGuestEmail())
                 .ifPresent(u -> notificationService.createNotification(u, 
                     "Booking Confirmed", 
-                    "Your booking " + saved.getConfirmationCode() + " at " + saved.getProperty().getName() + " is confirmed."
+                    "Your booking " + saved.getConfirmationCode() + " at " + saved.getProperty().getName() + " is confirmed." +
+                    (saved.getNicNumber() != null && !saved.getNicNumber().isBlank() ? " Your secret passkey is: " + saved.getNicNumber() + ". Please present it at the property." : "")
                 ));
 
         } else {
             log.info("[BOOKING] ONLINE_CARD booking {} created with PENDING status. Email will be sent after PayHere confirms payment.", saved.getConfirmationCode());
         }
 
-        return mapToResponse(saved);
+        BookingResponse response = mapToResponse(saved);
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                bookingSseService.sendPropertyEvent(request.getPropertyId(), "new-booking", response);
+            }
+        });
+
+        return response;
     }
 
     // ──────────────────────────────────────────
@@ -194,6 +206,13 @@ public class BookingService {
                 "Booking Confirmed", 
                 "Your booking " + booking.getConfirmationCode() + " at " + booking.getProperty().getName() + " is confirmed."
             ));
+            
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                bookingSseService.sendPropertyEvent(booking.getProperty().getId(), "booking-update", mapToResponse(booking));
+            }
+        });
     }
 
     // ──────────────────────────────────────────
@@ -294,7 +313,15 @@ public class BookingService {
                 "Your booking " + saved.getConfirmationCode() + " has been successfully cancelled."
             ));
 
-        return mapToResponse(saved);
+        BookingResponse response = mapToResponse(saved);
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                bookingSseService.sendPropertyEvent(booking.getProperty().getId(), "booking-update", response);
+            }
+        });
+
+        return response;
     }
 
     // ──────────────────────────────────────────
@@ -438,8 +465,16 @@ public class BookingService {
                 }
             });
 
+        BookingResponse response = mapToResponse(saved);
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                bookingSseService.sendPropertyEvent(saved.getProperty().getId(), "booking-update", response);
+            }
+        });
+
         return ModifyBookingResponse.builder()
-                .booking(mapToResponse(saved))
+                .booking(response)
                 .previousTotalAmount(previousTotal)
                 .newTotalAmount(newTotal)
                 .refundAmount((isPaidOnline && difference.compareTo(BigDecimal.ZERO) < 0) ? difference.abs() : BigDecimal.ZERO)
@@ -632,6 +667,7 @@ public class BookingService {
                 .status(displayStatus)
                 .taxAmount(booking.getTaxAmount())
                 .totalAmount(booking.getTotalAmount())
+                .passkey(booking.getNicNumber())
                 .build();
                 
         if (booking.getId() != null && disputeRepository != null) {

@@ -15,7 +15,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
+import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -28,6 +31,7 @@ public class StaffReservationService {
     private final PropertyRepository propertyRepository;
     private final UserRepository userRepository;
     private final TransactionRepository transactionRepository;
+    private final BookingSseService bookingSseService;
 
     @Transactional(readOnly = true)
     public List<OwnerReservationDto> listReservations(String staffEmail, Long propertyId, String search, String statusParam) {
@@ -62,7 +66,10 @@ public class StaffReservationService {
                     .collect(Collectors.toList());
         }
         
-        return bookings.stream().map(OwnerReservationDto::fromEntity).collect(Collectors.toList());
+        return bookings.stream()
+                .sorted(Comparator.comparing(Booking::getId).reversed())
+                .map(OwnerReservationDto::fromEntity)
+                .collect(Collectors.toList());
     }
 
     @Transactional
@@ -79,7 +86,15 @@ public class StaffReservationService {
         }
         
         booking.setStatus(Booking.BookingStatus.CHECKED_IN);
-        return OwnerReservationDto.fromEntity(bookingRepository.save(booking));
+        Booking saved = bookingRepository.save(booking);
+        OwnerReservationDto dto = OwnerReservationDto.fromEntity(saved);
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                bookingSseService.sendPropertyEvent(propertyId, "booking-update", dto);
+            }
+        });
+        return dto;
     }
 
     @Transactional
@@ -92,7 +107,15 @@ public class StaffReservationService {
         }
         
         booking.setStatus(Booking.BookingStatus.COMPLETED);
-        return OwnerReservationDto.fromEntity(bookingRepository.save(booking));
+        Booking saved = bookingRepository.save(booking);
+        OwnerReservationDto dto = OwnerReservationDto.fromEntity(saved);
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                bookingSseService.sendPropertyEvent(propertyId, "booking-update", dto);
+            }
+        });
+        return dto;
     }
 
     @Transactional
@@ -124,7 +147,15 @@ public class StaffReservationService {
         transaction.setDescription("Physical payment collected at property for booking " + booking.getConfirmationCode());
         
         transactionRepository.save(transaction);
-        return OwnerReservationDto.fromEntity(bookingRepository.save(booking));
+        Booking saved = bookingRepository.save(booking);
+        OwnerReservationDto dto = OwnerReservationDto.fromEntity(saved);
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                bookingSseService.sendPropertyEvent(propertyId, "booking-update", dto);
+            }
+        });
+        return dto;
     }
 
     private void verifyStaffAccess(String staffEmail, Long propertyId) {
