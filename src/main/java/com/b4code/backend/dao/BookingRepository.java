@@ -130,6 +130,29 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
         """, nativeQuery = true)
     java.util.List<Object[]> getMonthlyBookingRevenueTrend();
 
+    @Query(value = """
+        SELECT TO_CHAR(b.created_at, 'HH24:00') AS timeLabel,
+               SUM(b.total_amount) AS total
+        FROM guest.bookings b
+        WHERE b.status IN ('CONFIRMED', 'CHECKED_IN', 'COMPLETED')
+          AND CAST(b.created_at AS DATE) = CURRENT_DATE
+        GROUP BY TO_CHAR(b.created_at, 'HH24:00')
+        ORDER BY TO_CHAR(b.created_at, 'HH24:00')
+        """, nativeQuery = true)
+    java.util.List<Object[]> getTodayBookingRevenueTrend();
+
+    @Query(value = """
+        SELECT TO_CHAR(b.created_at, 'Dy') AS timeLabel,
+               SUM(b.total_amount) AS total
+        FROM guest.bookings b
+        WHERE b.status IN ('CONFIRMED', 'CHECKED_IN', 'COMPLETED')
+          AND b.created_at >= CURRENT_DATE - INTERVAL '6 days'
+        GROUP BY TO_CHAR(b.created_at, 'Dy'),
+                 CAST(b.created_at AS DATE)
+        ORDER BY CAST(b.created_at AS DATE)
+        """, nativeQuery = true)
+    java.util.List<Object[]> getWeeklyBookingRevenueTrend();
+
     @Query("SELECT COUNT(b) FROM Booking b WHERE b.status IN ('CONFIRMED', 'CHECKED_IN')")
     long countActiveBookings();
 
