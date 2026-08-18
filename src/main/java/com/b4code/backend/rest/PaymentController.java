@@ -18,15 +18,15 @@ import java.util.List;
 public class PaymentController {
 
     private final PaymentService paymentService;
+    private final com.b4code.backend.dao.UserRepository userRepository;
 
     // Initiate payment - returns PayHere checkout params
     @PostMapping
     public ResponseEntity<PaymentResponse> initiatePayment(
             @RequestBody PaymentRequest request,
             Authentication authentication) {
-        // In a real system, we'd get the ID from the principal
-        // For now, we'll try to cast to our User entity if possible, or use a helper
-        Long userId = getUserIdFromAuthentication(authentication);
+        com.b4code.backend.models.User user = getAuthenticatedUser(authentication);
+        Long userId = user != null ? user.getId() : null;
         return ResponseEntity.ok(paymentService.initiatePayment(request, userId));
     }
 
@@ -51,19 +51,19 @@ public class PaymentController {
         return ResponseEntity.ok(paymentService.getAllPayments());
     }
 
-    // Get current user's payments
+    // Get current user's payments (filtered by property if owner)
     @GetMapping("/my")
     public ResponseEntity<List<PaymentResponse>> getMyPayments(Authentication authentication) {
-        Long userId = getUserIdFromAuthentication(authentication);
-        return ResponseEntity.ok(paymentService.getUserPayments(userId));
+        com.b4code.backend.models.User user = getAuthenticatedUser(authentication);
+        return ResponseEntity.ok(paymentService.getUserPayments(user));
     }
 
-    private Long getUserIdFromAuthentication(Authentication authentication) {
+    private com.b4code.backend.models.User getAuthenticatedUser(Authentication authentication) {
         if (authentication == null || !authentication.isAuthenticated()) {
-            return null; // Anonymous users (e.g. food orders) can make payments without a linked account
+            return null;
         }
-        // For JWT-authenticated users, userId resolution can be added here
-        return null;
+        String email = authentication.getName();
+        return userRepository.findByEmail(email).orElse(null);
     }
 
     // Get payment by ID

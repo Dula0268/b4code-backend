@@ -6,6 +6,7 @@ import com.b4code.backend.dto.owner.NotificationPrefDto;
 import com.b4code.backend.dto.owner.PropertySettingDto;
 import com.b4code.backend.dto.owner.ReservationRestrictionDto;
 import com.b4code.backend.dto.owner.RestrictionRequest;
+import com.b4code.backend.exceptions.CustomException;
 import com.b4code.backend.service.OwnerSettingsService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -21,26 +22,50 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/owner/settings")
 @RequiredArgsConstructor
-@PreAuthorize("hasRole('OWNER')")
+@PreAuthorize("hasAnyRole('OWNER', 'ADMIN', 'SUPER_ADMIN')")
 @Tag(name = "Owner — Settings")
+@CrossOrigin(origins = {"http://localhost:3000", "http://localhost:3001", "http://localhost:3002", "http://localhost:3003", "http://localhost:5173"})
 public class OwnerSettingsController {
 
     private final OwnerSettingsService ownerSettingsService;
 
     @GetMapping("/billing")
     @Operation(summary = "Get all bank accounts for the owner")
-    public ResponseEntity<List<BankAccountDto>> getBankAccounts(Principal principal) {
-        return ResponseEntity.ok(ownerSettingsService.getBankAccounts(principal.getName()));
+    public ResponseEntity<List<BankAccountDto>> getBankAccounts(
+            Principal principal,
+            @RequestParam(required = false) Long ownerId) {
+        if (principal != null && principal.getName() != null) {
+            return ResponseEntity.ok(ownerSettingsService.getBankAccounts(principal.getName()));
+        } else if (ownerId != null) {
+            return ResponseEntity.ok(ownerSettingsService.getBankAccountsByOwnerId(ownerId));
+        }
+        return ResponseEntity.ok(List.of());
     }
 
     @PostMapping("/billing/bank-account")
     @Operation(summary = "Add a new bank account")
     public ResponseEntity<BankAccountDto> addBankAccount(
             Principal principal,
+            @RequestParam(required = false) Long ownerId,
             @RequestBody BankAccountRequest request) {
+        if (principal != null && principal.getName() != null) {
+            return ResponseEntity.status(HttpStatus.CREATED)
+                    .body(ownerSettingsService.addBankAccount(principal.getName(), request));
+        } else if (ownerId != null) {
+            return ResponseEntity.status(HttpStatus.CREATED)
+                    .body(ownerSettingsService.addBankAccountByOwnerId(ownerId, request));
+        }
+        throw new CustomException("Owner context missing", HttpStatus.BAD_REQUEST);
+    }
+
+    @PostMapping("/billing/payout-request")
+    @Operation(summary = "Owner requests a payout")
+    public ResponseEntity<com.b4code.backend.dto.PayoutDto> requestPayout(
+            Principal principal,
+            @RequestParam(required = false) Long propertyId) {
 
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ownerSettingsService.addBankAccount(principal.getName(), request));
+                .body(ownerSettingsService.requestPayout(principal.getName(), propertyId));
     }
 
     @GetMapping("/notifications")

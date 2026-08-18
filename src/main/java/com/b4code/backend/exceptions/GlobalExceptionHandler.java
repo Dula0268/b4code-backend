@@ -110,8 +110,9 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(org.springframework.security.access.AccessDeniedException.class)
     public ResponseEntity<ErrorResponse> handleAccessDeniedException(
-            org.springframework.security.access.AccessDeniedException ex) {
-        log.warn("Access denied: {}", ex.getMessage());
+            org.springframework.security.access.AccessDeniedException ex,
+            jakarta.servlet.http.HttpServletRequest request) {
+        log.warn("Access denied [{}] {}: {}", request.getMethod(), request.getRequestURI(), ex.getMessage());
         ErrorResponse errorResponse = ErrorResponse.builder()
                 .status(HttpStatus.FORBIDDEN.value())
                 .message("Access denied: you do not have permission to perform this action.")

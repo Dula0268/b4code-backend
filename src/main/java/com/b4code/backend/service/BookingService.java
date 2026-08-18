@@ -43,10 +43,12 @@ public class BookingService {
     private final com.b4code.backend.dao.PaymentRepository paymentRepository;
     private final PaymentService paymentService;
     private final com.b4code.backend.dao.DisputeRepository disputeRepository;
+    private final com.b4code.backend.dao.RefundRepository refundRepository;
     private final com.b4code.backend.dao.UserRepository userRepository;
     private final com.b4code.backend.dao.RoomDateInventoryRepository roomDateInventoryRepository;
     private final NotificationService notificationService;
     private final com.b4code.backend.dao.ReviewRepository reviewRepository;
+    private final com.b4code.backend.dao.TransactionRepository transactionRepository;
 
     // ──────────────────────────────────────────
     // Price Preview (called before confirming)
@@ -168,10 +170,29 @@ public class BookingService {
             return;
         }
 
-        if (booking.getStatus() == Booking.BookingStatus.PENDING) {
+        if (booking.getStatus() == Booking.BookingStatus.PENDING || booking.getStatus() == Booking.BookingStatus.CONFIRMED) {
             booking.setStatus(Booking.BookingStatus.CONFIRMED);
             bookingRepository.save(booking);
-            log.info("[BOOKING] Confirmed booking {} after payment redirect", confirmationCode);
+
+            // Update linked payment status & record transaction in Admin Finance Ledger
+            paymentRepository.findFirstByBookingIdAndStatusOrderByCreatedAtDesc(booking.getId(), com.b4code.backend.models.Payment.PaymentStatus.PENDING)
+                .ifPresentOrElse(p -> {
+                    p.setStatus(com.b4code.backend.models.Payment.PaymentStatus.SUCCESS);
+                    paymentRepository.save(p);
+                    paymentService.recordTransaction(p);
+                }, () -> {
+                    // Fallback: search for any existing payment for this booking
+                    paymentRepository.findAll().stream()
+                        .filter(p -> p.getBooking() != null && booking.getId().equals(p.getBooking().getId()))
+                        .findFirst()
+                        .ifPresent(p -> {
+                            p.setStatus(com.b4code.backend.models.Payment.PaymentStatus.SUCCESS);
+                            paymentRepository.save(p);
+                            paymentService.recordTransaction(p);
+                        });
+                });
+
+            log.info("[BOOKING] Confirmed booking {} after payment redirect and recorded transaction", confirmationCode);
         }
 
         String propertyName = booking.getRoom().getProperty().getName();
@@ -274,7 +295,7 @@ public class BookingService {
             if (disputeRepository != null) {
                 disputeRepository.save(dispute);
             }
-            
+
             // Send Notification for Refund Request
             userRepository.findByEmailAndDeletedFalse(saved.getGuestEmail())
                 .ifPresent(u -> notificationService.createNotification(u, 
