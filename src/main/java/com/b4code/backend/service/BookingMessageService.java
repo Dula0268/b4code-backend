@@ -12,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.stream.Collectors;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 
 @Service
 @RequiredArgsConstructor
@@ -19,6 +20,8 @@ public class BookingMessageService {
 
     private final BookingMessageRepository bookingMessageRepository;
     private final BookingRepository bookingRepository;
+    private final SimpMessagingTemplate messagingTemplate;
+    private final AutoReplyService autoReplyService;
 
     @Transactional
     public BookingMessageDto sendMessage(String identifier, String senderEmail, String senderRole, String content) {
@@ -41,8 +44,23 @@ public class BookingMessageService {
                 .build();
 
         message = bookingMessageRepository.save(message);
+        BookingMessageDto dto = mapToDto(message);
 
-        return mapToDto(message);
+        // Broadcast to specific booking topics (both ID and confirmation code)
+        messagingTemplate.convertAndSend("/topic/booking/" + booking.getId(), dto);
+        if (booking.getConfirmationCode() != null) {
+            messagingTemplate.convertAndSend("/topic/booking/" + booking.getConfirmationCode(), dto);
+        }
+
+        // Broadcast to property topic for staff
+        messagingTemplate.convertAndSend("/topic/property/" + booking.getProperty().getId() + "/messages", dto);
+
+        // Check for auto-replies if the message is from a GUEST
+        if ("GUEST".equals(senderRole)) {
+            autoReplyService.evaluateAndReply(booking, content);
+        }
+
+        return dto;
     }
 
     @Transactional(readOnly = true)
