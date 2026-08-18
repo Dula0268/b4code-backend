@@ -12,7 +12,7 @@ public interface FinanceService {
 
     FinanceSummaryDto getFinanceSummary();
 
-    List<RevenueTrendPointDto> getRevenueTrend();
+    List<RevenueTrendPointDto> getRevenueTrend(String timeframe);
 
     TransactionPageDto getAllTransactions(String search, TransactionType type, LocalDateTime from, LocalDateTime to,
             int page, int size);

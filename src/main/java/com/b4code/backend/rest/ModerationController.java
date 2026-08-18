@@ -58,6 +58,14 @@ public class ModerationController {
         return ResponseEntity.ok(moderationService.getFlaggedReviews(status, flagType, rating, search, page, size));
     }
 
+    // GET /api/admin/moderation/reviews/{id}
+    @GetMapping("/reviews/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN','STAFF')")
+    @Operation(summary = "Get a single flagged review by ID")
+    public ResponseEntity<FlaggedReviewDto> getFlaggedReview(@PathVariable Long id) {
+        return ResponseEntity.ok(moderationService.getFlaggedReviewById(id));
+    }
+
     // PUT /api/admin/moderation/reviews/{id}/approve
     @PutMapping("/reviews/{id}/approve")
     @PreAuthorize("hasRole('ADMIN')")
@@ -84,10 +92,11 @@ public class ModerationController {
     public ResponseEntity<Page<DisputeDto>> getDisputes(
             @RequestParam(required = false) DisputeStatus status,
             @RequestParam(required = false) String search,
+            @RequestParam(required = false) Boolean isComplaint,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
         if (page < 0) page = 0;
-        return ResponseEntity.ok(moderationService.getDisputes(status, search, page, size));
+        return ResponseEntity.ok(moderationService.getDisputes(status, search, isComplaint, page, size));
     }
 
     // PUT /api/admin/moderation/disputes/{id}/resolve

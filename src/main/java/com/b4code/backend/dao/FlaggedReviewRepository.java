@@ -12,6 +12,7 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface FlaggedReviewRepository extends JpaRepository<FlaggedReview, Long> {
+    java.util.Optional<FlaggedReview> findByItemReviewId(Long itemReviewId);
 
     @Query("""
             SELECT r FROM FlaggedReview r

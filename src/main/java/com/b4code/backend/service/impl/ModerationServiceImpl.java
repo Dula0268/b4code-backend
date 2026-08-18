@@ -35,11 +35,18 @@ public class ModerationServiceImpl implements ModerationService {
 
     @Override
     @Transactional(readOnly = true)
-    public Page<FlaggedReviewDto> getFlaggedReviews(ReviewStatus status, FlagType flagType, Integer rating, String search, int page, int size) {
+    public Page<FlaggedReviewDto> getFlaggedReviews(ReviewStatus status, FlagType flagType, Integer rating,
+            String search, int page, int size) {
         String term = (search == null || search.isBlank()) ? null : search.trim();
         return reviewRepository.findAllWithFilters(status, flagType, rating, term,
                 PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "flaggedAt")))
                 .map(FlaggedReviewDto::fromEntity);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public FlaggedReviewDto getFlaggedReviewById(Long id) {
+        return FlaggedReviewDto.fromEntity(findReviewOrThrow(id));
     }
 
     @Override
@@ -52,7 +59,8 @@ public class ModerationServiceImpl implements ModerationService {
         }
         log.info("Review id={} APPROVED, note='{}'", id, adminNote);
         FlaggedReviewDto dto = FlaggedReviewDto.fromEntity(reviewRepository.save(flaggedReview));
-        saveHistory("#REV-" + id, ModerationAction.REVIEW_KEPT, "Content within Guidelines. " + (adminNote != null ? adminNote : ""));
+        saveHistory("#REV-" + id, ModerationAction.REVIEW_KEPT,
+                "Content within Guidelines. " + (adminNote != null ? adminNote : ""));
         return dto;
     }
 
@@ -62,7 +70,7 @@ public class ModerationServiceImpl implements ModerationService {
         FlaggedReview flaggedReview = findReviewOrThrow(id);
         flaggedReview.setStatus(ReviewStatus.REMOVED);
         flaggedReview.setAdminNote(adminNote);
-        
+
         Review review = flaggedReview.getReview();
         if (review != null) {
             review.setComment("[Removed by Admin] " + (adminNote != null ? adminNote : "Violation of policy"));
@@ -73,19 +81,18 @@ public class ModerationServiceImpl implements ModerationService {
                 itemReviewRepository.save(itemReview);
             }
         }
-        
+
         log.info("Review id={} REMOVED, reason='{}'", id, adminNote);
         FlaggedReviewDto dto = FlaggedReviewDto.fromEntity(reviewRepository.save(flaggedReview));
         saveHistory("#REV-" + id, ModerationAction.REVIEW_REMOVED, adminNote);
         return dto;
     }
 
-
     @Override
     @Transactional(readOnly = true)
-    public Page<DisputeDto> getDisputes(DisputeStatus status, String search, int page, int size) {
+    public Page<DisputeDto> getDisputes(DisputeStatus status, String search, Boolean isComplaint, int page, int size) {
         String term = (search == null || search.isBlank()) ? null : search.trim();
-        return disputeRepository.findAllWithFilters(status, term,
+        return disputeRepository.findAllWithFilters(status, term, isComplaint,
                 PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "openedAt")))
                 .map(DisputeDto::fromEntity);
     }
@@ -101,13 +108,15 @@ public class ModerationServiceImpl implements ModerationService {
         DisputeDto dto = DisputeDto.fromEntity(disputeRepository.save(dispute));
         ModerationAction action = refundApproved ? ModerationAction.REFUND_ISSUED : ModerationAction.APPEAL_DENIED;
         saveHistory(dispute.getDisputeId(), action, resolution);
-        
+
         // Trigger notification
         if (dispute.getGuest() != null) {
             String title = refundApproved ? "Refund Request Approved" : "Refund Request Denied";
-            String msg = refundApproved 
-                ? "Your refund request for booking " + dispute.getBooking().getId() + " has been approved by admin. " + (resolution != null ? "Note: " + resolution : "")
-                : "Your refund request for booking " + dispute.getBooking().getId() + " has been denied. " + (resolution != null ? "Reason: " + resolution : "");
+            String msg = refundApproved
+                    ? "Your refund request for booking " + dispute.getBooking().getId()
+                            + " has been approved by admin. " + (resolution != null ? "Note: " + resolution : "")
+                    : "Your refund request for booking " + dispute.getBooking().getId() + " has been denied. "
+                            + (resolution != null ? "Reason: " + resolution : "");
             notificationService.createNotification(dispute.getGuest(), title, msg);
         }
 
@@ -124,12 +133,11 @@ public class ModerationServiceImpl implements ModerationService {
         return DisputeDto.fromEntity(disputeRepository.save(dispute));
     }
 
-
     @Override
     @Transactional(readOnly = true)
     public Page<ModerationHistoryDto> getHistory(ModerationAction action, String search,
-                                                  LocalDateTime from, LocalDateTime to,
-                                                  int page, int size) {
+            LocalDateTime from, LocalDateTime to,
+            int page, int size) {
         String term = (search == null || search.isBlank()) ? null : search.trim();
         return historyRepository.findAllWithFilters(action, term, from, to,
                 PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "resolvedAt")))
@@ -139,8 +147,8 @@ public class ModerationServiceImpl implements ModerationService {
     @Override
     @Transactional(readOnly = true)
     public void exportHistoryToCsv(ModerationAction action, String search,
-                                    LocalDateTime from, LocalDateTime to,
-                                    jakarta.servlet.http.HttpServletResponse response) throws java.io.IOException {
+            LocalDateTime from, LocalDateTime to,
+            jakarta.servlet.http.HttpServletResponse response) throws java.io.IOException {
         String term = (search == null || search.isBlank()) ? null : search.trim();
         Page<ModerationHistory> pageResult = historyRepository.findAllWithFilters(action, term, from, to,
                 org.springframework.data.domain.Pageable.unpaged());
@@ -149,7 +157,8 @@ public class ModerationServiceImpl implements ModerationService {
         response.setHeader("Content-Disposition", "attachment; filename=\"moderation-history-report.csv\"");
 
         try (java.io.PrintWriter writer = response.getWriter()) {
-            writer.println("Case ID,Resolved Date,Action Taken,Resolved By,Outcome,Review ID,Booking ID,Property Name,Rating,Review Comment,Flagged By,Reason for Flag,Flag Date,Current Status,Admin Internal Notes");
+            writer.println(
+                    "Case ID,Resolved Date,Action Taken,Resolved By,Outcome,Review ID,Booking ID,Property Name,Rating,Review Comment,Flagged By,Reason for Flag,Flag Date,Current Status,Admin Internal Notes");
             for (ModerationHistory h : pageResult.getContent()) {
                 String reviewId = "N/A";
                 String bookingId = "N/A";
@@ -167,11 +176,21 @@ public class ModerationServiceImpl implements ModerationService {
                         Long rId = Long.parseLong(h.getCaseId().substring(5));
                         FlaggedReview fr = reviewRepository.findById(rId).orElse(null);
                         if (fr != null) {
-                            reviewId = fr.getReview() != null ? String.valueOf(fr.getReview().getId()) : (fr.getId() != null ? "FlaggedID:" + fr.getId() : "N/A");
-                            bookingId = (fr.getReview() != null && fr.getReview().getBooking() != null) ? String.valueOf(fr.getReview().getBooking().getId()) : "N/A";
-                            propertyName = fr.getProperty() != null ? fr.getProperty().getName() : (fr.getPropertyId() != null ? "Property ID: " + fr.getPropertyId() : ((fr.getReview() != null && fr.getReview().getProperty() != null) ? fr.getReview().getProperty().getName() : "N/A"));
-                            rating = fr.getRating() != null ? String.valueOf(fr.getRating()) : (fr.getReview() != null ? String.valueOf(fr.getReview().getOverallRating()) : "N/A");
-                            comment = fr.getReviewText() != null ? fr.getReviewText() : (fr.getReview() != null ? fr.getReview().getComment() : "N/A");
+                            reviewId = fr.getReview() != null ? String.valueOf(fr.getReview().getId())
+                                    : (fr.getId() != null ? "FlaggedID:" + fr.getId() : "N/A");
+                            bookingId = (fr.getReview() != null && fr.getReview().getBooking() != null)
+                                    ? String.valueOf(fr.getReview().getBooking().getId())
+                                    : "N/A";
+                            propertyName = fr.getProperty() != null ? fr.getProperty().getName()
+                                    : (fr.getPropertyId() != null ? "Property ID: " + fr.getPropertyId()
+                                            : ((fr.getReview() != null && fr.getReview().getProperty() != null)
+                                                    ? fr.getReview().getProperty().getName()
+                                                    : "N/A"));
+                            rating = fr.getRating() != null ? String.valueOf(fr.getRating())
+                                    : (fr.getReview() != null ? String.valueOf(fr.getReview().getOverallRating())
+                                            : "N/A");
+                            comment = fr.getReviewText() != null ? fr.getReviewText()
+                                    : (fr.getReview() != null ? fr.getReview().getComment() : "N/A");
                             flaggedBy = fr.getOwner() != null ? String.valueOf(fr.getOwner().getId()) : "System";
                             reasonForFlag = fr.getFlagType() != null ? fr.getFlagType().name() : "N/A";
                             flagDate = fr.getFlaggedAt() != null ? fr.getFlaggedAt().toString() : "N/A";
@@ -183,7 +202,8 @@ public class ModerationServiceImpl implements ModerationService {
                     }
                 } else if (h.getCaseId() != null) {
                     // It's a dispute
-                    Dispute d = disputeRepository.findAll().stream().filter(dis -> h.getCaseId().equals(dis.getDisputeId())).findFirst().orElse(null);
+                    Dispute d = disputeRepository.findAll().stream()
+                            .filter(dis -> h.getCaseId().equals(dis.getDisputeId())).findFirst().orElse(null);
                     if (d != null) {
                         bookingId = d.getBooking() != null ? String.valueOf(d.getBooking().getId()) : "N/A";
                         propertyName = d.getProperty() != null ? d.getProperty().getName() : "N/A";
@@ -197,11 +217,13 @@ public class ModerationServiceImpl implements ModerationService {
                 comment = comment != null ? comment.replace("\"", "\"\"").replace("\n", " ") : "";
                 adminNotes = adminNotes != null ? adminNotes.replace("\"", "\"\"").replace("\n", " ") : "";
 
-                writer.printf("\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\"%n",
+                writer.printf(
+                        "\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\"%n",
                         h.getCaseId(),
                         h.getResolvedAt() != null ? h.getResolvedAt().toString() : "",
                         h.getActionTaken(),
-                        h.getAdmin() != null ? h.getAdmin().getFirstName() + " " + h.getAdmin().getLastName() : "System",
+                        h.getAdmin() != null ? h.getAdmin().getFirstName() + " " + h.getAdmin().getLastName()
+                                : "System",
                         outcome,
                         reviewId,
                         bookingId,
@@ -212,12 +234,10 @@ public class ModerationServiceImpl implements ModerationService {
                         reasonForFlag,
                         flagDate,
                         currentStatus,
-                        adminNotes
-                );
+                        adminNotes);
             }
         }
     }
-
 
     @Override
     @Transactional(readOnly = true)
@@ -252,7 +272,9 @@ public class ModerationServiceImpl implements ModerationService {
 
     private FlaggedReview findReviewOrThrow(Long id) {
         return reviewRepository.findById(id)
-                .orElseThrow(() -> new CustomException("Review id=" + id + " not found.", HttpStatus.NOT_FOUND));
+                .orElseGet(() -> reviewRepository.findByItemReviewId(id)
+                        .orElseThrow(() -> new CustomException("Flagged review id=" + id + " not found.",
+                                HttpStatus.NOT_FOUND)));
     }
 
     private void saveHistory(String caseId, ModerationAction action, String outcome) {

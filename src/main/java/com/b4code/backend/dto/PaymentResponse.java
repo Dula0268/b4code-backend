@@ -35,7 +35,9 @@ public class PaymentResponse {
         response.setPaymentMethod(payment.getPaymentMethod());
         response.setStatus(payment.getStatus().name());
         response.setOrderId(payment.getOrderId());
-        response.setTransactionId(payment.getTransaction() != null ? String.valueOf(payment.getTransaction().getId()) : null);
+        response.setTransactionId(payment.getTransaction() != null && payment.getTransaction().getReferenceNumber() != null
+                ? payment.getTransaction().getReferenceNumber()
+                : payment.getOrderId());
         response.setCardHolderName(payment.getCardHolderName());
         response.setCardLastFour(payment.getCardLastFour());
         response.setFailureReason(payment.getFailureReason());
@@ -43,4 +45,3 @@ public class PaymentResponse {
         return response;
     }
 }
-

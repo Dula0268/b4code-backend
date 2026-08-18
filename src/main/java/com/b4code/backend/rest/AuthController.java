@@ -50,4 +50,15 @@ public class AuthController {
     public ResponseEntity<AuthResponse> roomLogin(@RequestBody RoomLoginRequest request) {
         return ResponseEntity.ok(authService.roomLogin(request));
     }
+
+    @PostMapping("/refresh")
+    public ResponseEntity<AuthResponse> refresh(@RequestBody RefreshTokenRequest request) {
+        return ResponseEntity.ok(authService.refreshToken(request.getRefreshToken()));
+    }
+
+    @PostMapping("/resend-otp")
+    public ResponseEntity<String> resendOtp(@RequestBody java.util.Map<String, String> body) {
+        authService.resendOtp(body.get("email"));
+        return ResponseEntity.ok("A new verification code has been sent to your email.");
+    }
 }

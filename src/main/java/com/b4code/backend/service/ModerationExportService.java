@@ -155,7 +155,7 @@ public class ModerationExportService {
     @Transactional(readOnly = true)
     public List<DisputeDto> getDisputesUnpaged(DisputeStatus status, String search) {
         Page<Dispute> result = disputeRepository.findAllWithFilters(
-                status, search, Pageable.unpaged());
+                status, search, null, Pageable.unpaged());
         return result.map(DisputeDto::fromEntity).toList();
     }
 

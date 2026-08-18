@@ -128,7 +128,7 @@ public class GlobalExceptionHandler {
         log.warn("Authentication failed: {}", ex.getMessage());
         ErrorResponse errorResponse = ErrorResponse.builder()
                 .status(HttpStatus.UNAUTHORIZED.value())
-                .message("Authentication required: " + ex.getMessage())
+                .message("Authentication failed. Please check your credentials and try again.")
                 .build();
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(errorResponse);
     }
@@ -143,7 +143,8 @@ public class GlobalExceptionHandler {
     }
 
     /**
-     * Handles general RuntimeExceptions
+     * Handles general RuntimeExceptions (Database failures, NPEs, state issues).
+     * Logs the full technical detail for backend engineers, but sends a clean, friendly message to end users.
      */
     @ExceptionHandler(RuntimeException.class)
     public ResponseEntity<ErrorResponse> handleRuntimeException(RuntimeException ex) {
@@ -154,12 +155,13 @@ public class GlobalExceptionHandler {
                 java.nio.file.StandardOpenOption.CREATE, java.nio.file.StandardOpenOption.APPEND);
         } catch (Exception ignored) {}
 
+        log.error("Internal Server Error: ", ex);
+
         ErrorResponse errorResponse = ErrorResponse.builder()
                 .status(HttpStatus.INTERNAL_SERVER_ERROR.value())
-                .message(ex.getMessage())
+                .message("We encountered an internal issue while processing your request. Please try again later.")
                 .build();
 
-        log.error("Runtime error: {}", ex.getMessage(), ex);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
     }
 
@@ -175,12 +177,13 @@ public class GlobalExceptionHandler {
                 java.nio.file.StandardOpenOption.CREATE, java.nio.file.StandardOpenOption.APPEND);
         } catch (Exception ignored) {}
 
+        log.error("Unexpected error: ", ex);
+
         ErrorResponse errorResponse = ErrorResponse.builder()
                 .status(HttpStatus.INTERNAL_SERVER_ERROR.value())
-                .message("An unexpected error occurred. Please try again later.")
+                .message("An unexpected issue occurred. Please refresh or try again in a few moments.")
                 .build();
 
-        log.error("Unexpected error: {}", ex.getMessage(), ex);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
     }
 }

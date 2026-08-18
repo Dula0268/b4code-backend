@@ -12,6 +12,7 @@ import com.b4code.backend.models.User;
 import com.b4code.backend.models.Image;
 import com.b4code.backend.models.ImageType;
 import com.b4code.backend.dao.UserRepository;
+import com.b4code.backend.service.AdminNotificationService;
 import com.b4code.backend.service.PropertyService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -32,6 +33,7 @@ public class PropertyServiceImpl implements PropertyService {
 
     private final PropertyRepository propertyRepository;
     private final UserRepository userRepository;
+    private final AdminNotificationService adminNotificationService;
 
     @Override
     @Transactional(readOnly = true)
@@ -61,6 +63,15 @@ public class PropertyServiceImpl implements PropertyService {
     public PropertyDto createProperty(PropertyDto dto) {
         Property saved = propertyRepository.save(dto.toEntity());
         log.info("Property created — id={}", saved.getId());
+        
+        // Notify Admin
+        adminNotificationService.createNotification(
+            "New Property Registration",
+            "A new property '" + saved.getName() + "' requires verification.",
+            com.b4code.backend.models.enums.AdminNotificationType.NEW_PROPERTY,
+            saved.getId().toString()
+        );
+
         return convertToDto(saved);
     }
 

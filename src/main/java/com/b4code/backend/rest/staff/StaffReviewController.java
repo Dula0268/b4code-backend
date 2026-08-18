@@ -4,6 +4,7 @@ import com.b4code.backend.dao.UserRepository;
 import com.b4code.backend.models.User;
 import com.b4code.backend.models.enums.FlagType;
 import com.b4code.backend.models.enums.ReviewStatus;
+import com.b4code.backend.service.AdminNotificationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -26,6 +27,7 @@ public class StaffReviewController {
 
     private final JdbcTemplate jdbcTemplate;
     private final UserRepository userRepository;
+    private final AdminNotificationService adminNotificationService;
 
     @PreAuthorize("hasAnyRole('STAFF', 'OWNER', 'ADMIN')")
     @GetMapping
@@ -84,18 +86,33 @@ public class StaffReviewController {
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """;
 
-        jdbcTemplate.update(sql, 
-            flagTypeStr,
-            ReviewStatus.FLAGGED.name(),
-            Timestamp.valueOf(LocalDateTime.now()),
-            Timestamp.valueOf(LocalDateTime.now()),
-            ownerId,
-            reviewId,
-            flagReason,
-            guestName,
-            propertyId,
-            rating,
-            reviewText
+        org.springframework.jdbc.support.KeyHolder keyHolder = new org.springframework.jdbc.support.GeneratedKeyHolder();
+        final Long finalOwnerId = ownerId;
+        
+        jdbcTemplate.update(connection -> {
+            java.sql.PreparedStatement ps = connection.prepareStatement(sql, java.sql.Statement.RETURN_GENERATED_KEYS);
+            ps.setString(1, flagTypeStr);
+            ps.setString(2, ReviewStatus.FLAGGED.name());
+            ps.setTimestamp(3, Timestamp.valueOf(LocalDateTime.now()));
+            ps.setTimestamp(4, Timestamp.valueOf(LocalDateTime.now()));
+            ps.setLong(5, finalOwnerId);
+            ps.setLong(6, reviewId);
+            ps.setString(7, flagReason);
+            ps.setString(8, guestName);
+            ps.setLong(9, propertyId);
+            ps.setDouble(10, rating);
+            ps.setString(11, reviewText);
+            return ps;
+        }, keyHolder);
+
+        Long flaggedReviewId = keyHolder.getKey() != null ? keyHolder.getKey().longValue() : reviewId;
+
+        // Notify Admin
+        adminNotificationService.createNotification(
+            "Review Flagged",
+            "A review for property ID " + propertyId + " has been flagged by staff.",
+            com.b4code.backend.models.enums.AdminNotificationType.FLAGGED_REVIEW,
+            flaggedReviewId.toString()
         );
 
         return ResponseEntity.ok("Review flagged successfully");

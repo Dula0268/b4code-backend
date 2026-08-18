@@ -49,6 +49,7 @@ public class BookingService {
     private final com.b4code.backend.dao.RoomDateInventoryRepository roomDateInventoryRepository;
     private final NotificationService notificationService;
     private final BookingSseService bookingSseService;
+    private final AdminNotificationService adminNotificationService;
     private final com.b4code.backend.dao.ReviewRepository reviewRepository;
 
     // ──────────────────────────────────────────
@@ -274,7 +275,7 @@ public class BookingService {
 
         if (refundAmount.compareTo(BigDecimal.ZERO) > 0) {
             com.b4code.backend.models.Dispute dispute = new com.b4code.backend.models.Dispute();
-            dispute.setDisputeId("DSP-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase());
+            dispute.setDisputeId(UUID.randomUUID().toString().substring(0, 8).toUpperCase());
             dispute.setBooking(saved);
             dispute.setProperty(property);
             
@@ -412,7 +413,7 @@ public class BookingService {
 
         if (difference.compareTo(BigDecimal.ZERO) < 0 && isPaidOnline) {
             com.b4code.backend.models.Dispute dispute = new com.b4code.backend.models.Dispute();
-            dispute.setDisputeId("DSP-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase());
+            dispute.setDisputeId(UUID.randomUUID().toString().substring(0, 8).toUpperCase());
             dispute.setBooking(saved);
             dispute.setProperty(saved.getProperty());
             
@@ -425,6 +426,14 @@ public class BookingService {
             dispute.setStatus(com.b4code.backend.models.enums.DisputeStatus.OPEN);
             
             disputeRepository.save(dispute);
+            
+            // Notify Admin
+            adminNotificationService.createNotification(
+                "Refund Request",
+                "A refund request for " + difference.abs() + " has been created for booking " + saved.getConfirmationCode() + ".",
+                com.b4code.backend.models.enums.AdminNotificationType.DISPUTE,
+                dispute.getDisputeId()
+            );
         }
 
         String newDates = saved.getCheckIn().toString() + " to " + saved.getCheckOut().toString();
@@ -491,7 +500,7 @@ public class BookingService {
                 .orElseThrow(() -> new ResourceNotFoundException("Booking not found: " + request.getBookingId()));
 
         com.b4code.backend.models.Dispute dispute = new com.b4code.backend.models.Dispute();
-        dispute.setDisputeId(UUID.randomUUID().toString());
+        dispute.setDisputeId(UUID.randomUUID().toString().substring(0, 8).toUpperCase());
         dispute.setBooking(booking);
         dispute.setProperty(booking.getProperty());
         
@@ -518,6 +527,14 @@ public class BookingService {
                 "Complaint Submitted", 
                 "Your complaint for booking " + booking.getConfirmationCode() + " has been received and is being reviewed."
             ));
+
+        // Notify Admin
+        adminNotificationService.createNotification(
+            "New Guest Complaint",
+            "A guest has submitted a complaint for booking " + booking.getConfirmationCode() + ". Please review it.",
+            com.b4code.backend.models.enums.AdminNotificationType.DISPUTE,
+            saved.getDisputeId()
+        );
 
         return com.b4code.backend.dto.DisputeDto.fromEntity(saved);
     }
