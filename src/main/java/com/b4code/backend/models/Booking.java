@@ -83,6 +83,10 @@ public class Booking {
 
     @Builder.Default
     private Boolean receiptSent = false;
+    
+    @Column(nullable = false, columnDefinition = "boolean default false")
+    @Builder.Default
+    private Boolean isPaid = false;
 
     @Column(updatable = false)
     @Builder.Default

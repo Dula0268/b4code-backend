@@ -51,11 +51,14 @@ public class NotificationCronService {
                     "Welcome! Your check-in at " + booking.getProperty().getName() + " is today. Please have your confirmation code ready: " + booking.getConfirmationCode());
             }
 
-            // 2. Pay-at-property reminder (1 day before check-in)
-            if (booking.getCheckIn().equals(tomorrow) && booking.getPaymentMethod() == Booking.PaymentMethod.PAY_AT_PROPERTY) {
+            // 2. Upcoming Stay Reminder (1 day before check-in)
+            if (booking.getCheckIn().equals(tomorrow)) {
+                String paymentNote = booking.getPaymentMethod() == Booking.PaymentMethod.PAY_AT_PROPERTY 
+                    ? " Please be ready to pay " + booking.getTotalAmount() + " upon arrival." : "";
+                    
                 notificationService.createNotification(guest, 
-                    "Payment Reminder", 
-                    "Reminder: You have a pay-at-property booking at " + booking.getProperty().getName() + " tomorrow. Amount due: " + booking.getTotalAmount() + ".");
+                    "Upcoming Stay Tomorrow!", 
+                    "Reminder: Your stay at " + booking.getProperty().getName() + " starts tomorrow!" + paymentNote);
             }
 
             // 3. Check-out reminder (1 day before check-out)
