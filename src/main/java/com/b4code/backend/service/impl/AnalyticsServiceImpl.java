@@ -37,7 +37,8 @@ public class AnalyticsServiceImpl implements AnalyticsService {
         log.debug("Computing platform analytics (cache miss)");
 
         BigDecimal grossBookingValue = bookingRepository.sumPlatformGrossRevenue();
-        BigDecimal netRevenue = grossBookingValue.multiply(BigDecimal.valueOf(COMMISSION_RATE)).divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
+        BigDecimal netRevenue = grossBookingValue.multiply(BigDecimal.valueOf(COMMISSION_RATE))
+                .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
 
         // Calculate real Total Bookings
         long totalBookings = bookingRepository.count(); // Count total bookings in system
@@ -52,7 +53,8 @@ public class AnalyticsServiceImpl implements AnalyticsService {
         // Calculate occupancy based on property count vs bookings (mock logic if no
         // actual stay dates)
         long propertyCount = propertyRepository.count();
-        double rawOccupancyRate = propertyCount > 0 ? Math.min(95.0, (double) totalBookings / (propertyCount * 10) * 100)
+        double rawOccupancyRate = propertyCount > 0
+                ? Math.min(95.0, (double) totalBookings / (propertyCount * 10) * 100)
                 : 0.0;
         double occupancyRate = Math.round(rawOccupancyRate * 10.0) / 10.0;
 
@@ -81,15 +83,16 @@ public class AnalyticsServiceImpl implements AnalyticsService {
 
         long registeredUsers = userRepository.count();
         long propertyCount = propertyRepository.count();
-        long newPropertiesThisWeek = propertyRepository.countByCreatedAtAfter(java.time.LocalDateTime.now().minusDays(7));
+        long newPropertiesThisWeek = propertyRepository
+                .countByCreatedAtAfter(java.time.LocalDateTime.now().minusDays(7));
         BigDecimal commission = transactionRepository.sumPlatformCommission();
         long totalBookings = bookingRepository.count();
         long activeBookings = bookingRepository.countActiveBookings();
         long cancelledBookings = bookingRepository.countCancelledBookings();
         Double avgLeadTime = bookingRepository.getAverageLeadTime();
 
-        double cancellationRate = totalBookings > 0 
-                ? ((double) cancelledBookings / totalBookings) * 100.0 
+        double cancellationRate = totalBookings > 0
+                ? ((double) cancelledBookings / totalBookings) * 100.0
                 : 0.0;
 
         return PlatformSummaryDto.builder()
@@ -137,18 +140,19 @@ public class AnalyticsServiceImpl implements AnalyticsService {
             }
 
             // Calculate ADR (Average Daily Rate)
-            BigDecimal adr = soldNights > 0 
-                ? totalRevenue.divide(BigDecimal.valueOf(soldNights), 2, RoundingMode.HALF_UP) 
-                : BigDecimal.ZERO;
+            BigDecimal adr = soldNights > 0
+                    ? totalRevenue.divide(BigDecimal.valueOf(soldNights), 2, RoundingMode.HALF_UP)
+                    : BigDecimal.ZERO;
 
-            // Approximate Occupancy (assuming 30 days timeframe for MVP all-time calculation)
+            // Approximate Occupancy (assuming 30 days timeframe for MVP all-time
+            // calculation)
             double occupancy = Math.min(100.0, (soldNights / 30.0) * 100.0);
-            
+
             BigDecimal revpar = adr.multiply(BigDecimal.valueOf(occupancy / 100.0)).setScale(2, RoundingMode.HALF_UP);
 
             String imageUrl = room.getImage() != null && room.getImage().getUrl() != null
-                ? room.getImage().getUrl()
-                : "/images/placeholder-property.jpg";
+                    ? room.getImage().getUrl()
+                    : "/images/placeholder-property.jpg";
 
             String propertyName = room.getProperty() != null ? room.getProperty().getName() : "Unknown Property";
 
@@ -174,9 +178,9 @@ public class AnalyticsServiceImpl implements AnalyticsService {
     @Cacheable(value = "analytics", key = "'bookings-chart'")
     public List<BookingChartPointDto> getBookingsChart() {
         log.debug("Computing bookings chart (cache miss)");
-        
+
         // Initialize 12 months with 0
-        String[] months = {"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
+        String[] months = { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
         java.util.Map<String, BigDecimal> monthMap = new java.util.LinkedHashMap<>();
         for (String m : months) {
             monthMap.put(m, BigDecimal.ZERO);
@@ -195,12 +199,13 @@ public class AnalyticsServiceImpl implements AnalyticsService {
         return monthMap.entrySet().stream()
                 .map(e -> {
                     BigDecimal gross = e.getValue().setScale(2, RoundingMode.HALF_UP);
-                    BigDecimal net = gross.multiply(BigDecimal.valueOf(COMMISSION_RATE)).divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
+                    BigDecimal net = gross.multiply(BigDecimal.valueOf(COMMISSION_RATE)).divide(BigDecimal.valueOf(100),
+                            2, RoundingMode.HALF_UP);
                     return BookingChartPointDto.builder()
-                        .month(e.getKey())
-                        .value(gross)
-                        .netRevenue(net)
-                        .build();
+                            .month(e.getKey())
+                            .value(gross)
+                            .netRevenue(net)
+                            .build();
                 })
                 .toList();
     }

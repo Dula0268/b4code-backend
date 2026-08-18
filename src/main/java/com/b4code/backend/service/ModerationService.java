@@ -12,6 +12,7 @@ import java.time.LocalDateTime;
 public interface ModerationService {
 
     Page<FlaggedReviewDto> getFlaggedReviews(ReviewStatus status, FlagType flagType, Integer rating, String search, int page, int size);
+    FlaggedReviewDto getFlaggedReviewById(Long id);
     FlaggedReviewDto approveReview(Long id, String adminNote);
     FlaggedReviewDto removeReview(Long id, String adminNote);
 

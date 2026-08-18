@@ -58,6 +58,14 @@ public class ModerationController {
         return ResponseEntity.ok(moderationService.getFlaggedReviews(status, flagType, rating, search, page, size));
     }
 
+    // GET /api/admin/moderation/reviews/{id}
+    @GetMapping("/reviews/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN','STAFF')")
+    @Operation(summary = "Get a single flagged review by ID")
+    public ResponseEntity<FlaggedReviewDto> getFlaggedReview(@PathVariable Long id) {
+        return ResponseEntity.ok(moderationService.getFlaggedReviewById(id));
+    }
+
     // PUT /api/admin/moderation/reviews/{id}/approve
     @PutMapping("/reviews/{id}/approve")
     @PreAuthorize("hasRole('ADMIN')")
