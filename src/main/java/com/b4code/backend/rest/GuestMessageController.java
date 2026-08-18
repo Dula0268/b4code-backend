@@ -9,6 +9,7 @@ import com.b4code.backend.repository.AutoReplyRuleRepository;
 import com.b4code.backend.service.BookingMessageService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -28,23 +29,26 @@ public class GuestMessageController {
 
     @GetMapping
     public ResponseEntity<List<BookingMessageDto>> getMessages(@PathVariable String bookingId) {
+        Booking booking = resolveBooking(bookingId);
+        if (booking == null) return ResponseEntity.notFound().build();
+        
+        if (booking.getStatus() != Booking.BookingStatus.CHECKED_IN) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+        
         return ResponseEntity.ok(bookingMessageService.getMessagesForBooking(bookingId));
     }
 
     @GetMapping("/quick-requests")
     public ResponseEntity<List<AutoReplyRuleDto>> getQuickRequests(@PathVariable String bookingId) {
-        Booking booking = null;
-        try {
-            Long id = Long.parseLong(bookingId);
-            booking = bookingRepository.findById(id).orElseGet(() ->
-                    bookingRepository.findByConfirmationCode(bookingId).orElse(null)
-            );
-        } catch (NumberFormatException e) {
-            booking = bookingRepository.findByConfirmationCode(bookingId).orElse(null);
-        }
+        Booking booking = resolveBooking(bookingId);
 
         if (booking == null) {
             return ResponseEntity.notFound().build();
+        }
+        
+        if (booking.getStatus() != Booking.BookingStatus.CHECKED_IN) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
 
         List<AutoReplyRuleDto> activeRules = autoReplyRuleRepository.findByPropertyIdAndIsActiveTrue(booking.getProperty().getId())
@@ -63,6 +67,13 @@ public class GuestMessageController {
             @PathVariable String bookingId,
             @Valid @RequestBody BookingMessageRequest request) {
         
+        Booking booking = resolveBooking(bookingId);
+        if (booking == null) return ResponseEntity.notFound().build();
+        
+        if (booking.getStatus() != Booking.BookingStatus.CHECKED_IN) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+        
         BookingMessageDto message = bookingMessageService.sendMessage(
                 bookingId,
                 null, // senderEmail will be handled by service
@@ -70,5 +81,16 @@ public class GuestMessageController {
                 request.getContent()
         );
         return ResponseEntity.ok(message);
+    }
+    
+    private Booking resolveBooking(String bookingId) {
+        try {
+            Long id = Long.parseLong(bookingId);
+            return bookingRepository.findById(id).orElseGet(() ->
+                    bookingRepository.findByConfirmationCode(bookingId).orElse(null)
+            );
+        } catch (NumberFormatException e) {
+            return bookingRepository.findByConfirmationCode(bookingId).orElse(null);
+        }
     }
 }
