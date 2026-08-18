@@ -21,7 +21,7 @@ public class Refund {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "transaction_fk", nullable = false)
+    @JoinColumn(name = "transaction_fk", nullable = true)
     private Transaction transaction;
 
     @ManyToOne(fetch = FetchType.LAZY)

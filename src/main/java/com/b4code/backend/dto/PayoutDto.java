@@ -30,6 +30,13 @@ public class PayoutDto {
     private LocalDateTime requestedAt;
     private LocalDateTime processedAt;
 
+    // Bank details (fetched dynamically by ownerId)
+    private String bankName;
+    private String accountHolder;
+    private String accountNumber;
+    private String branchCode;
+    private String bankDetails;
+
     // Legacy fields for frontend compatibility
     private String hostName;
     private String period;

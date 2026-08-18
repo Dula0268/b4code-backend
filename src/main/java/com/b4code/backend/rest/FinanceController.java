@@ -31,7 +31,7 @@ public class FinanceController {
 
     // ── GET finance summary KPIs
     @GetMapping("/summary")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     @Operation(summary = "Finance KPI summary")
     public ResponseEntity<FinanceSummaryDto> getSummary() {
         return ResponseEntity.ok(financeService.getFinanceSummary());
@@ -39,7 +39,7 @@ public class FinanceController {
 
     // ── GET revenue trend chart data
     @GetMapping("/revenue-trend")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     @Operation(summary = "Revenue trend for chart")
     public ResponseEntity<List<RevenueTrendPointDto>> getRevenueTrend(
             @RequestParam(required = false, defaultValue = "month") String timeframe) {
@@ -72,7 +72,7 @@ public class FinanceController {
 
     // ── GET all refunds (paginated)
     @GetMapping("/refunds")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     @Operation(summary = "List refund requests")
     public ResponseEntity<RefundPageDto> getAllRefunds(
             @RequestParam(required = false, defaultValue = "") String search,
@@ -86,7 +86,7 @@ public class FinanceController {
 
     // ── APPROVE refund
     @PutMapping("/refunds/{id}/approve")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     @Operation(summary = "Approve a refund request")
     public ResponseEntity<RefundDto> approveRefund(@PathVariable Long id) {
         log.info("PUT /api/admin/finance/refunds/{}/approve", id);
@@ -95,7 +95,7 @@ public class FinanceController {
 
     // ── REJECT refund
     @PutMapping("/refunds/{id}/reject")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     @Operation(summary = "Reject a refund request")
     public ResponseEntity<RefundDto> rejectRefund(
             @PathVariable Long id,
@@ -106,7 +106,7 @@ public class FinanceController {
 
     // ── GET all payouts (paginated)
     @GetMapping("/payouts")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     @Operation(summary = "List payout requests")
     public ResponseEntity<PayoutPageDto> getAllPayouts(
             @RequestParam(required = false, defaultValue = "") String search,
@@ -120,7 +120,7 @@ public class FinanceController {
 
     // ── EXPORT payouts
     @GetMapping(value = "/payouts/export/csv", produces = "text/csv")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     @Operation(summary = "Export payout requests to CSV")
     public ResponseEntity<byte[]> exportPayoutsCsv(
             @RequestParam(required = false, defaultValue = "") String search,
@@ -132,7 +132,7 @@ public class FinanceController {
     }
 
     @GetMapping(value = "/payouts/export/pdf", produces = "application/pdf")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     @Operation(summary = "Export payout requests to PDF")
     public ResponseEntity<byte[]> exportPayoutsPdf(
             @RequestParam(required = false, defaultValue = "") String search,
@@ -145,7 +145,7 @@ public class FinanceController {
 
     // ── PROCESS payout
     @PutMapping("/payouts/{id}/process")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     @Operation(summary = "Mark a payout as processed")
     public ResponseEntity<PayoutDto> processPayout(
             @PathVariable Long id,
@@ -156,7 +156,7 @@ public class FinanceController {
 
     // ── REJECT payout
     @PutMapping("/payouts/{id}/reject")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     @Operation(summary = "Reject a payout")
     public ResponseEntity<PayoutDto> rejectPayout(@PathVariable Long id) {
         log.info("PUT /api/admin/finance/payouts/{}/reject", id);
@@ -176,7 +176,7 @@ public class FinanceController {
 
     // ── UPDATE commission rate
     @PutMapping("/commission")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     @Operation(summary = "Update platform commission rate")
     public ResponseEntity<Map<String, Object>> updateCommissionRate(
             @RequestBody CommissionUpdateRequest request) {

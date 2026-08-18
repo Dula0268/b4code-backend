@@ -30,6 +30,7 @@ public class DbMigrationRunner implements CommandLineRunner {
         dropAllLegacyNotNullConstraints();
         dropDisputesFkConstraints();
         ensureStaffRolesAndPermissions();
+        ensureDefaultOwnerBankAccount();
         log.info("✅ DB migration fixes complete.");
     }
 
@@ -154,6 +155,25 @@ public class DbMigrationRunner implements CommandLineRunner {
             log.info("✅ Dropped NOT NULL from {} column(s) in owner/admin/guest schemas", count);
         } else {
             log.info("✅ No NOT NULL constraints to drop (all clean)");
+        }
+    }
+
+    private void ensureDefaultOwnerBankAccount() {
+        try {
+            jdbcTemplate.execute("""
+                CREATE TABLE IF NOT EXISTS owner.bank_accounts (
+                    id BIGSERIAL PRIMARY KEY,
+                    owner_id BIGINT NOT NULL,
+                    bank_name VARCHAR(255) NOT NULL,
+                    account_holder VARCHAR(255) NOT NULL,
+                    account_number VARCHAR(255) NOT NULL,
+                    branch_code VARCHAR(255),
+                    is_primary BOOLEAN DEFAULT true,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                );
+            """);
+        } catch (Exception e) {
+            log.warn("⚠ Could not check owner bank accounts table: {}", e.getMessage());
         }
     }
 }

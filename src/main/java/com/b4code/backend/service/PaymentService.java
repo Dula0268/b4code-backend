@@ -12,6 +12,7 @@ import com.b4code.backend.models.Order;
 import com.b4code.backend.models.User;
 import com.b4code.backend.models.enums.OrderStatus;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -21,8 +22,16 @@ import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import com.b4code.backend.dao.TransactionRepository;
+import com.b4code.backend.models.Transaction;
+import com.b4code.backend.models.enums.TransactionType;
+import com.b4code.backend.models.enums.UserRole;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class PaymentService {
 
     private final PaymentRepository paymentRepository;
@@ -30,6 +39,7 @@ public class PaymentService {
     private final OrderRepository orderRepository;
     private final OrderSseService orderSseService;
     private final EmailService emailService;
+    private final TransactionRepository transactionRepository;
 
     @Value("${payhere.merchant-id}")
     private String merchantId;
@@ -142,6 +152,7 @@ public class PaymentService {
                         }
                     });
                 }
+                recordTransaction(payment);
             }
             case "-1", "-2", "-3" -> {
                 payment.setStatus(Payment.PaymentStatus.FAILED);
@@ -175,8 +186,50 @@ public class PaymentService {
             });
         }
 
+        recordTransaction(payment);
         paymentRepository.save(payment);
         return PaymentResponse.fromEntity(payment);
+    }
+
+    public void recordTransaction(Payment payment) {
+        if (payment == null || payment.getOrderId() == null) return;
+
+        try {
+            if (transactionRepository.findByReferenceNumber(payment.getOrderId()).isPresent()) {
+                return;
+            }
+
+            com.b4code.backend.models.Property property = null;
+            if (payment.getBooking() != null && payment.getBooking().getId() != null) {
+                Booking b = bookingRepository.findById(payment.getBooking().getId()).orElse(null);
+                if (b != null) property = b.getProperty();
+            }
+
+            Transaction tx = new Transaction();
+            tx.setReferenceNumber(payment.getOrderId());
+            tx.setAmount(BigDecimal.valueOf(payment.getAmount()));
+            tx.setCurrency(payment.getCurrency() != null ? payment.getCurrency() : "LKR");
+            tx.setType(TransactionType.BOOKING_PAYMENT);
+            tx.setProperty(property);
+            tx.setUser(payment.getUser());
+            tx.setDescription("Booking Payment #" + (payment.getBooking() != null ? payment.getBooking().getConfirmationCode() : payment.getOrderId()));
+            transactionRepository.save(tx);
+
+            // Record 20% platform commission entry
+            Transaction commTx = new Transaction();
+            commTx.setReferenceNumber("COMM-" + payment.getOrderId());
+            commTx.setAmount(BigDecimal.valueOf(payment.getAmount()).multiply(new BigDecimal("0.20")).setScale(2, RoundingMode.HALF_UP));
+            commTx.setCurrency(payment.getCurrency() != null ? payment.getCurrency() : "LKR");
+            commTx.setType(TransactionType.COMMISSION);
+            commTx.setProperty(property);
+            commTx.setUser(payment.getUser());
+            commTx.setDescription("Platform Commission (20%) for Order #" + payment.getOrderId());
+            transactionRepository.save(commTx);
+
+            log.info("[TRANSACTION] Recorded finance ledger transactions for order {}", payment.getOrderId());
+        } catch (Exception e) {
+            log.error("[TRANSACTION] Failed to record transaction for order {}", payment.getOrderId(), e);
+        }
     }
 
     public List<PaymentResponse> getAllPayments() {
@@ -186,7 +239,24 @@ public class PaymentService {
                 .collect(Collectors.toList());
     }
 
+    public List<PaymentResponse> getUserPayments(User user) {
+        if (user == null) {
+            return List.of();
+        }
+        if (user.getRole() == UserRole.OWNER) {
+            return paymentRepository.findByPropertyOwnerId(user.getId())
+                    .stream()
+                    .map(PaymentResponse::fromEntity)
+                    .collect(Collectors.toList());
+        }
+        if (user.getRole() == UserRole.ADMIN) {
+            return getAllPayments();
+        }
+        return getUserPayments(user.getId());
+    }
+
     public List<PaymentResponse> getUserPayments(Long userId) {
+        if (userId == null) return List.of();
         return paymentRepository.findByUserIdOrderByCreatedAtDesc(userId)
                 .stream()
                 .map(PaymentResponse::fromEntity)

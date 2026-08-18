@@ -13,7 +13,9 @@ import com.b4code.backend.models.PlatformConfig;
 import com.b4code.backend.models.Payout;
 import com.b4code.backend.models.Refund;
 import com.b4code.backend.models.Transaction;
+import com.b4code.backend.models.User;
 import com.b4code.backend.service.FinanceService;
+import com.b4code.backend.service.NotificationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -36,6 +38,9 @@ public class FinanceServiceImpl implements FinanceService {
         private final RefundRepository refundRepository;
         private final PayoutRepository payoutRepository;
         private final PlatformConfigRepository platformConfigRepository;
+        private final com.b4code.backend.dao.BankAccountRepository bankAccountRepository;
+        private final com.b4code.backend.dao.UserRepository userRepository;
+        private final NotificationService notificationService;
         private final com.b4code.backend.dao.BookingRepository bookingRepository;
 
         private static final String COMMISSION_KEY = "COMMISSION_RATE";
@@ -190,7 +195,7 @@ public class FinanceServiceImpl implements FinanceService {
                                 status, searchTerm,
                                 PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "requestedAt")));
                 return PayoutPageDto.builder()
-                                .content(pageResult.map(PayoutDto::fromEntity).toList())
+                                .content(pageResult.map(this::mapToPayoutDto).toList())
                                 .currentPage(pageResult.getNumber())
                                 .totalPages(pageResult.getTotalPages())
                                 .totalElements(pageResult.getTotalElements())
@@ -272,8 +277,17 @@ public class FinanceServiceImpl implements FinanceService {
 
                 payout.setStatus(PayoutStatus.PROCESSED);
                 payout.setBankReference(bankReference);
+                Payout saved = payoutRepository.save(payout);
+                User owner = userRepository.findById(saved.getOwnerId()).orElse(null);
+                if (owner != null) {
+                        notificationService.createNotification(
+                                owner,
+                                "Payout approved",
+                                "Your payout request for " + saved.getPropertyName() + " has been processed successfully."
+                        );
+                }
                 log.info("Payout id={} PROCESSED — ref='{}'", id, bankReference);
-                return PayoutDto.fromEntity(payoutRepository.save(payout));
+                return mapToPayoutDto(saved);
         }
 
         @Override
@@ -284,8 +298,37 @@ public class FinanceServiceImpl implements FinanceService {
                                                 HttpStatus.NOT_FOUND));
 
                 payout.setStatus(PayoutStatus.REJECTED);
+                Payout saved = payoutRepository.save(payout);
+                User owner = userRepository.findById(saved.getOwnerId()).orElse(null);
+                if (owner != null) {
+                        notificationService.createNotification(
+                                owner,
+                                "Payout rejected",
+                                "Your payout request for " + saved.getPropertyName() + " was rejected by the admin. Please review your bank details or contact support."
+                        );
+                }
                 log.info("Payout id={} REJECTED", id);
-                return PayoutDto.fromEntity(payoutRepository.save(payout));
+                return mapToPayoutDto(saved);
+        }
+
+        public PayoutDto mapToPayoutDto(Payout p) {
+                PayoutDto dto = PayoutDto.fromEntity(p);
+                if (p.getOwnerId() != null) {
+                        List<com.b4code.backend.models.BankAccount> accounts = bankAccountRepository.findByOwnerIdOrderByIsPrimaryDescCreatedAtDesc(p.getOwnerId());
+                        if (accounts != null && !accounts.isEmpty()) {
+                                com.b4code.backend.models.BankAccount primary = accounts.get(0);
+                                dto.setBankName(primary.getBankName());
+                                dto.setAccountHolder(primary.getAccountHolder());
+                                dto.setAccountNumber(primary.getAccountNumber());
+                                dto.setBranchCode(primary.getBranchCode());
+                                dto.setBankDetails(primary.getBankName() + " — Acc: " + primary.getAccountNumber() + " (Holder: " + primary.getAccountHolder() + ")");
+                        } else {
+                                dto.setBankDetails("No Bank Account Linked");
+                        }
+                } else {
+                        dto.setBankDetails("No Owner Linked");
+                }
+                return dto;
         }
 
         // ── Private helpers

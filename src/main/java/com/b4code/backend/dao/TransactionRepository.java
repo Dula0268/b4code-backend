@@ -15,9 +15,11 @@ import java.time.LocalDateTime;
 @Repository
 public interface TransactionRepository extends JpaRepository<Transaction, Long> {
 
+  java.util.Optional<Transaction> findByReferenceNumber(String referenceNumber);
+
   @Query("""
       SELECT t FROM Transaction t
-      WHERE (CAST(:type AS string) IS NULL OR t.type = :type)
+      WHERE ((CAST(:type AS string) IS NULL AND t.type != com.b4code.backend.models.enums.TransactionType.COMMISSION) OR t.type = :type)
         AND (CAST(:from AS LocalDateTime) IS NULL OR t.createdAt >= :from)
         AND (CAST(:to AS LocalDateTime) IS NULL OR t.createdAt <= :to)
         AND (
