@@ -1,6 +1,7 @@
 package com.b4code.backend.dto;
 
 import com.b4code.backend.models.AdminNotification;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Builder;
 import lombok.Data;
 
@@ -12,6 +13,7 @@ public class AdminNotificationDto {
     private String message;
     private String type;
     private String referenceId;
+    @JsonProperty("isRead")
     private boolean isRead;
     private String createdAt;
 
