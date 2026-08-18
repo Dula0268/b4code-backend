@@ -48,11 +48,35 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
              SUM(t.amount) AS total
       FROM admin.transactions t
       WHERE t.type = 'BOOKING_PAYMENT'
+        AND t.created_at >= CURRENT_DATE - INTERVAL '1 year'
       GROUP BY TO_CHAR(t.created_at, 'Mon'),
                EXTRACT(MONTH FROM t.created_at)
       ORDER BY EXTRACT(MONTH FROM t.created_at)
       """, nativeQuery = true)
   java.util.List<Object[]> getMonthlyRevenue();
+
+  @Query(value = """
+      SELECT TO_CHAR(t.created_at, 'Dy') AS day,
+             SUM(t.amount) AS total
+      FROM admin.transactions t
+      WHERE t.type = 'BOOKING_PAYMENT'
+        AND t.created_at >= CURRENT_DATE - INTERVAL '6 days'
+      GROUP BY TO_CHAR(t.created_at, 'Dy'),
+               t.created_at::date
+      ORDER BY t.created_at::date
+      """, nativeQuery = true)
+  java.util.List<Object[]> getWeeklyRevenue();
+
+  @Query(value = """
+      SELECT TO_CHAR(t.created_at, 'HH24:00') AS hour,
+             SUM(t.amount) AS total
+      FROM admin.transactions t
+      WHERE t.type = 'BOOKING_PAYMENT'
+        AND t.created_at >= CURRENT_DATE
+      GROUP BY TO_CHAR(t.created_at, 'HH24:00')
+      ORDER BY TO_CHAR(t.created_at, 'HH24:00')
+      """, nativeQuery = true)
+  java.util.List<Object[]> getTodayRevenue();
 
   default java.util.List<Object[]> getMonthlyRevenueTrend() {
     return getMonthlyRevenue();

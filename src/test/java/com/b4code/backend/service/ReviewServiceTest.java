@@ -39,6 +39,9 @@ public class ReviewServiceTest {
     @Mock
     private UserRepository userRepository;
 
+    @Mock
+    private AdminNotificationService adminNotificationService;
+
     @InjectMocks
     private ReviewService reviewService;
 

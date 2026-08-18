@@ -31,6 +31,7 @@ public class ReviewService {
     private final PropertyRepository propertyRepository;
     private final UserRepository userRepository;
     private final NotificationService notificationService;
+    private final AdminNotificationService adminNotificationService;
 
     /**
      * Create a review (guests can only review completed bookings).
@@ -183,6 +184,15 @@ public class ReviewService {
         Review review = reviewRepository.findById(reviewId)
             .orElseThrow(() -> new ResourceNotFoundException("Review not found"));
         review.setVisibilityStatus("FLAGGED");
+        
+        // Notify Admin
+        adminNotificationService.createNotification(
+            "Review Flagged",
+            "A review for property '" + review.getProperty().getName() + "' has been flagged.",
+            com.b4code.backend.models.enums.AdminNotificationType.FLAGGED_REVIEW,
+            review.getId().toString()
+        );
+
         return mapToResponse(reviewRepository.save(review));
     }
 

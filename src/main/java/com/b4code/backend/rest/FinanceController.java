@@ -40,9 +40,10 @@ public class FinanceController {
     // ── GET revenue trend chart data
     @GetMapping("/revenue-trend")
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
-    @Operation(summary = "Monthly revenue trend for chart")
-    public ResponseEntity<List<RevenueTrendPointDto>> getRevenueTrend() {
-        return ResponseEntity.ok(financeService.getRevenueTrend());
+    @Operation(summary = "Revenue trend for chart")
+    public ResponseEntity<List<RevenueTrendPointDto>> getRevenueTrend(
+            @RequestParam(required = false, defaultValue = "month") String timeframe) {
+        return ResponseEntity.ok(financeService.getRevenueTrend(timeframe));
     }
 
     // ── GET all transactions (paginated)
