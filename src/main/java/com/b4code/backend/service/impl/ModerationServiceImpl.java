@@ -83,9 +83,9 @@ public class ModerationServiceImpl implements ModerationService {
 
     @Override
     @Transactional(readOnly = true)
-    public Page<DisputeDto> getDisputes(DisputeStatus status, String search, int page, int size) {
+    public Page<DisputeDto> getDisputes(DisputeStatus status, String search, Boolean isComplaint, int page, int size) {
         String term = (search == null || search.isBlank()) ? null : search.trim();
-        return disputeRepository.findAllWithFilters(status, term,
+        return disputeRepository.findAllWithFilters(status, term, isComplaint,
                 PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "openedAt")))
                 .map(DisputeDto::fromEntity);
     }
@@ -265,3 +265,4 @@ public class ModerationServiceImpl implements ModerationService {
         historyRepository.save(h);
     }
 }
+

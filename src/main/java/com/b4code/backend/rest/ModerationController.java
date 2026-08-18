@@ -84,10 +84,11 @@ public class ModerationController {
     public ResponseEntity<Page<DisputeDto>> getDisputes(
             @RequestParam(required = false) DisputeStatus status,
             @RequestParam(required = false) String search,
+            @RequestParam(required = false) Boolean isComplaint,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
         if (page < 0) page = 0;
-        return ResponseEntity.ok(moderationService.getDisputes(status, search, page, size));
+        return ResponseEntity.ok(moderationService.getDisputes(status, search, isComplaint, page, size));
     }
 
     // PUT /api/admin/moderation/disputes/{id}/resolve
