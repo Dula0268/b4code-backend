@@ -6,7 +6,10 @@ import com.b4code.backend.dao.UserRepository;
 import com.b4code.backend.dto.owner.OwnerReservationDto;
 import com.b4code.backend.exceptions.CustomException;
 import com.b4code.backend.models.Booking;
+import com.b4code.backend.models.Transaction;
+import com.b4code.backend.models.enums.TransactionType;
 import com.b4code.backend.models.User;
+import com.b4code.backend.dao.TransactionRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -24,6 +27,7 @@ public class StaffReservationService {
     private final BookingRepository bookingRepository;
     private final PropertyRepository propertyRepository;
     private final UserRepository userRepository;
+    private final TransactionRepository transactionRepository;
 
     @Transactional(readOnly = true)
     public List<OwnerReservationDto> listReservations(String staffEmail, Long propertyId, String search, String statusParam) {
@@ -42,11 +46,11 @@ public class StaffReservationService {
         List<Booking> bookings;
         if (status != null) {
             bookings = bookingRepository.findAll().stream()
-                    .filter(b -> b.getProperty().getId().equals(propertyId) && b.getStatus() == status)
+                    .filter(b -> b.getProperty() != null && b.getProperty().getId().equals(propertyId) && b.getStatus() == status)
                     .collect(Collectors.toList());
         } else {
             bookings = bookingRepository.findAll().stream()
-                    .filter(b -> b.getProperty().getId().equals(propertyId))
+                    .filter(b -> b.getProperty() != null && b.getProperty().getId().equals(propertyId))
                     .collect(Collectors.toList());
         }
 
@@ -70,6 +74,10 @@ public class StaffReservationService {
             throw new CustomException("Booking must be CONFIRMED to check in", HttpStatus.BAD_REQUEST);
         }
         
+        if (booking.getPaymentMethod() == Booking.PaymentMethod.PAY_AT_PROPERTY && !Boolean.TRUE.equals(booking.getIsPaid())) {
+            throw new CustomException("Payment must be collected before check-in", HttpStatus.BAD_REQUEST);
+        }
+        
         booking.setStatus(Booking.BookingStatus.CHECKED_IN);
         return OwnerReservationDto.fromEntity(bookingRepository.save(booking));
     }
@@ -87,6 +95,38 @@ public class StaffReservationService {
         return OwnerReservationDto.fromEntity(bookingRepository.save(booking));
     }
 
+    @Transactional
+    public OwnerReservationDto takePayment(String staffEmail, Long propertyId, Long bookingId, String nicNumber) {
+        verifyStaffAccess(staffEmail, propertyId);
+        Booking booking = getBookingForProperty(propertyId, bookingId);
+        
+        if (Boolean.TRUE.equals(booking.getIsPaid())) {
+            throw new CustomException("Booking is already paid", HttpStatus.BAD_REQUEST);
+        }
+        
+        if (nicNumber != null && !nicNumber.isBlank()) {
+            booking.setNicNumber(nicNumber.trim());
+        }
+        
+        booking.setIsPaid(true);
+        
+        // Create a transaction to instantly reflect this in the revenue
+        Transaction transaction = new Transaction();
+        transaction.setReferenceNumber("PAY-" + java.util.UUID.randomUUID().toString().substring(0, 8).toUpperCase());
+        transaction.setAmount(booking.getTotalAmount());
+        transaction.setCurrency("LKR");
+        transaction.setType(TransactionType.BOOKING_PAYMENT);
+        transaction.setProperty(booking.getProperty());
+        
+        // Optionally attach the staff user who took the payment
+        User staff = userRepository.findByEmail(staffEmail).orElse(null);
+        transaction.setUser(staff);
+        transaction.setDescription("Physical payment collected at property for booking " + booking.getConfirmationCode());
+        
+        transactionRepository.save(transaction);
+        return OwnerReservationDto.fromEntity(bookingRepository.save(booking));
+    }
+
     private void verifyStaffAccess(String staffEmail, Long propertyId) {
         User staff = userRepository.findByEmail(staffEmail)
                 .orElseThrow(() -> new CustomException("Staff not found", HttpStatus.NOT_FOUND));
@@ -100,7 +140,7 @@ public class StaffReservationService {
         Booking booking = bookingRepository.findById(bookingId)
                 .orElseThrow(() -> new CustomException("Booking not found", HttpStatus.NOT_FOUND));
                 
-        if (!propertyId.equals(booking.getProperty().getId())) {
+        if (booking.getProperty() == null || !propertyId.equals(booking.getProperty().getId())) {
             throw new CustomException("Booking does not belong to this property", HttpStatus.FORBIDDEN);
         }
         

@@ -170,8 +170,9 @@ public class BookingService {
 
         if (booking.getStatus() == Booking.BookingStatus.PENDING) {
             booking.setStatus(Booking.BookingStatus.CONFIRMED);
+            booking.setIsPaid(true);
             bookingRepository.save(booking);
-            log.info("[BOOKING] Confirmed booking {} after payment redirect", confirmationCode);
+            log.info("[BOOKING] Confirmed and marked as paid booking {} after payment redirect", confirmationCode);
         }
 
         String propertyName = booking.getRoom().getProperty().getName();

@@ -7,10 +7,12 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import java.security.Principal;
 import org.springframework.web.bind.annotation.*;
 
-import java.security.Principal;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/staff/properties/{propertyId}/reservations")
@@ -51,5 +53,16 @@ public class StaffReservationController {
             @PathVariable Long id) {
 
         return ResponseEntity.ok(staffReservationService.checkOut(principal.getName(), propertyId, id));
+    }
+
+    @PostMapping("/{bookingId}/pay")
+    @Operation(summary = "Take payment for a reservation")
+    public ResponseEntity<OwnerReservationDto> takePayment(
+            Principal principal,
+            @PathVariable Long propertyId,
+            @PathVariable Long bookingId,
+            @RequestBody Map<String, String> payload) {
+        String nicNumber = payload.get("nicNumber");
+        return ResponseEntity.ok(staffReservationService.takePayment(principal.getName(), propertyId, bookingId, nicNumber));
     }
 }
