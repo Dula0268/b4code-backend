@@ -38,6 +38,12 @@ public class PaymentController {
         return ResponseEntity.ok("OK");
     }
 
+    // Local / Dev testing verification helper
+    @PostMapping("/verify-local/{orderId}")
+    public ResponseEntity<PaymentResponse> verifyPaymentLocal(@PathVariable String orderId) {
+        return ResponseEntity.ok(paymentService.verifyLocalPayment(orderId));
+    }
+
     // Get all payments - Admin only
     @GetMapping
     @PreAuthorize("hasRole('ADMIN')")

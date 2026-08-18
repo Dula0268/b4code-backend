@@ -124,10 +124,11 @@ public class PaymentService {
                 if (notify.getCard_no() != null)
                     payment.setCardLastFour(notify.getCard_no());
 
-                // Update linked booking status when payment succeeds (placeholder for future use)
+                // Update linked booking status when payment succeeds
                 if (payment.getBooking() != null && payment.getBooking().getId() != null) {
                     bookingRepository.findById(payment.getBooking().getId()).ifPresent(booking -> {
-                        // Booking status management handled by admin/owner flows
+                        booking.setStatus(Booking.BookingStatus.CONFIRMED);
+                        bookingRepository.save(booking);
                     });
                 }
                 // Update linked food order status from PAYMENT_PENDING -> PLACED
@@ -149,6 +150,33 @@ public class PaymentService {
         }
 
         paymentRepository.save(payment);
+    }
+
+    public PaymentResponse verifyLocalPayment(String orderId) {
+        Payment payment = paymentRepository.findByOrderId(orderId)
+                .orElseThrow(() -> new RuntimeException("Payment record not found for order: " + orderId));
+
+        payment.setStatus(Payment.PaymentStatus.SUCCESS);
+
+        if (payment.getBooking() != null && payment.getBooking().getId() != null) {
+            bookingRepository.findById(payment.getBooking().getId()).ifPresent(booking -> {
+                booking.setStatus(Booking.BookingStatus.CONFIRMED);
+                bookingRepository.save(booking);
+            });
+        }
+
+        if (payment.getFoodOrderId() != null) {
+            orderRepository.findById(payment.getFoodOrderId()).ifPresent(order -> {
+                if (order.getStatus() == OrderStatus.PAYMENT_PENDING) {
+                    order.setStatus(OrderStatus.PLACED);
+                    Order savedOrder = orderRepository.save(order);
+                    orderSseService.sendPropertyEvent(savedOrder.getPropertyId(), "new-order", savedOrder);
+                }
+            });
+        }
+
+        paymentRepository.save(payment);
+        return PaymentResponse.fromEntity(payment);
     }
 
     public List<PaymentResponse> getAllPayments() {
