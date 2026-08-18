@@ -189,7 +189,7 @@ public class SearchDTO {
         private Integer diningRating;
         private Integer locationRating;
         private Integer valueRating;
-        
+
         private List<String> photoUrls;
     }
 
@@ -211,4 +211,3 @@ public class SearchDTO {
         private Integer availableCount;
     }
 }
-
