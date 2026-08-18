@@ -195,7 +195,7 @@ public class AnalyticsServiceImpl implements AnalyticsService {
         return monthMap.entrySet().stream()
                 .map(e -> {
                     BigDecimal gross = e.getValue().setScale(2, RoundingMode.HALF_UP);
-                    BigDecimal net = gross.multiply(BigDecimal.valueOf(0.8)).setScale(2, RoundingMode.HALF_UP);
+                    BigDecimal net = gross.multiply(BigDecimal.valueOf(COMMISSION_RATE)).divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
                     return BookingChartPointDto.builder()
                         .month(e.getKey())
                         .value(gross)
