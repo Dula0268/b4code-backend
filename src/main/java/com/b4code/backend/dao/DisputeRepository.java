@@ -17,6 +17,9 @@ public interface DisputeRepository extends JpaRepository<Dispute, Long> {
     @Query("""
             SELECT d FROM Dispute d
             WHERE (CAST(:status AS string) IS NULL OR d.status = :status)
+              AND (:isComplaint IS NULL OR 
+                   (:isComplaint = true AND d.amount = 0) OR 
+                   (:isComplaint = false AND d.amount > 0))
               AND (CAST(:search AS string) IS NULL OR :search = '' OR
                    LOWER(d.guest.firstName) LIKE LOWER(CONCAT('%',:search,'%')) OR
                    LOWER(d.guest.lastName) LIKE LOWER(CONCAT('%',:search,'%')) OR
@@ -27,6 +30,7 @@ public interface DisputeRepository extends JpaRepository<Dispute, Long> {
     Page<Dispute> findAllWithFilters(
             @Param("status") DisputeStatus status,
             @Param("search") String search,
+            @Param("isComplaint") Boolean isComplaint,
             Pageable pageable);
 
     long countByStatusNot(DisputeStatus status);

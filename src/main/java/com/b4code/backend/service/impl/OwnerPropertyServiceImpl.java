@@ -10,6 +10,8 @@ import com.b4code.backend.models.Amenity;
 import com.b4code.backend.models.Property;
 import com.b4code.backend.models.User;
 import com.b4code.backend.models.enums.PropertyStatus;
+import com.b4code.backend.service.AdminNotificationService;
+import com.b4code.backend.infrastructure.storage.CloudinaryService;
 import com.b4code.backend.service.OwnerPropertyService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -29,6 +31,8 @@ public class OwnerPropertyServiceImpl implements OwnerPropertyService {
 
     private final PropertyRepository propertyRepository;
     private final UserRepository userRepository;
+    private final CloudinaryService cloudinaryService;
+    private final AdminNotificationService adminNotificationService;
 
     @Override
     @Transactional(readOnly = true)
@@ -89,6 +93,15 @@ public class OwnerPropertyServiceImpl implements OwnerPropertyService {
         attachAmenities(property, request.getAmenities());
         Property saved = propertyRepository.save(property);
         log.info("Owner {} created property id={}", ownerEmail, saved.getId());
+        
+        // Notify Admin
+        adminNotificationService.createNotification(
+            "New Property Registration",
+            "A new property '" + saved.getName() + "' requires verification.",
+            com.b4code.backend.models.enums.AdminNotificationType.NEW_PROPERTY,
+            saved.getId().toString()
+        );
+
         return OwnerPropertyDto.fromEntity(saved);
     }
 

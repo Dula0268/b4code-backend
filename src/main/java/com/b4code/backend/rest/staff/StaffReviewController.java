@@ -4,6 +4,7 @@ import com.b4code.backend.dao.UserRepository;
 import com.b4code.backend.models.User;
 import com.b4code.backend.models.enums.FlagType;
 import com.b4code.backend.models.enums.ReviewStatus;
+import com.b4code.backend.service.AdminNotificationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -26,6 +27,7 @@ public class StaffReviewController {
 
     private final JdbcTemplate jdbcTemplate;
     private final UserRepository userRepository;
+    private final AdminNotificationService adminNotificationService;
 
     @PreAuthorize("hasAnyRole('STAFF', 'OWNER', 'ADMIN')")
     @GetMapping
@@ -96,6 +98,14 @@ public class StaffReviewController {
             propertyId,
             rating,
             reviewText
+        );
+
+        // Notify Admin
+        adminNotificationService.createNotification(
+            "Review Flagged",
+            "A review for property ID " + propertyId + " has been flagged by staff.",
+            com.b4code.backend.models.enums.AdminNotificationType.FLAGGED_REVIEW,
+            reviewId.toString()
         );
 
         return ResponseEntity.ok("Review flagged successfully");
