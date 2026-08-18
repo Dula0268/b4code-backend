@@ -6,13 +6,16 @@ import com.b4code.backend.models.Booking;
 import com.b4code.backend.models.BookingMessage;
 import com.b4code.backend.repository.BookingMessageRepository;
 import com.b4code.backend.dao.BookingRepository;
+import com.b4code.backend.service.BookingSseService;
+import com.b4code.backend.service.AutoReplyService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.stream.Collectors;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
 
 @Service
 @RequiredArgsConstructor
@@ -22,6 +25,7 @@ public class BookingMessageService {
     private final BookingRepository bookingRepository;
     private final SimpMessagingTemplate messagingTemplate;
     private final AutoReplyService autoReplyService;
+    private final BookingSseService bookingSseService;
 
     @Transactional
     public BookingMessageDto sendMessage(String identifier, String senderEmail, String senderRole, String content) {
@@ -52,8 +56,13 @@ public class BookingMessageService {
             messagingTemplate.convertAndSend("/topic/booking/" + booking.getConfirmationCode(), dto);
         }
 
-        // Broadcast to property topic for staff
+        // Broadcast to property topic for staff (STOMP for actual message content)
         messagingTemplate.convertAndSend("/topic/property/" + booking.getProperty().getId() + "/messages", dto);
+        
+        // Also send SSE event for global unread badge on sidebar
+        if ("GUEST".equals(senderRole)) {
+            bookingSseService.sendPropertyEvent(booking.getProperty().getId(), "new-message", dto);
+        }
 
         // Check for auto-replies if the message is from a GUEST
         if ("GUEST".equals(senderRole)) {
@@ -88,6 +97,7 @@ public class BookingMessageService {
                     .propertyName(booking.getProperty().getName())
                     .latestMessageContent(latestMessage.getContent())
                     .latestMessageAt(latestMessage.getCreatedAt())
+                    .latestMessageSenderRole(latestMessage.getSenderRole())
                     .build();
         }).collect(Collectors.toList());
     }

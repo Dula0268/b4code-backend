@@ -18,4 +18,5 @@ public class ActiveConversationDto {
     private String propertyName;
     private String latestMessageContent;
     private LocalDateTime latestMessageAt;
+    private String latestMessageSenderRole;
 }

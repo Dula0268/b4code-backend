@@ -11,6 +11,10 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
+import com.b4code.backend.dao.BookingRepository;
+import com.b4code.backend.models.Booking;
+import java.util.Map;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -22,6 +26,29 @@ public class AutoReplyController {
 
     private final AutoReplyRuleRepository autoReplyRuleRepository;
     private final PropertyRepository propertyRepository;
+    private final BookingRepository bookingRepository;
+    private final SimpMessagingTemplate messagingTemplate;
+
+    private void broadcastConfigUpdate(Long propertyId) {
+        List<Map<String, Object>> activeRules = autoReplyRuleRepository.findByPropertyId(propertyId).stream()
+                .filter(AutoReplyRule::getIsActive)
+                .map(r -> Map.<String, Object>of("id", r.getId(), "keyword", r.getKeyword()))
+                .collect(Collectors.toList());
+
+        Map<String, Object> payload = new java.util.HashMap<>();
+        payload.put("type", "CONFIG_UPDATE");
+        payload.put("data", activeRules);
+
+        List<Booking> bookings = bookingRepository.findByPropertyId(propertyId);
+        for (Booking booking : bookings) {
+            if (booking.getStatus() == Booking.BookingStatus.CHECKED_IN) {
+                messagingTemplate.convertAndSend("/topic/booking/" + booking.getId(), payload);
+                if (booking.getConfirmationCode() != null) {
+                    messagingTemplate.convertAndSend("/topic/booking/" + booking.getConfirmationCode(), payload);
+                }
+            }
+        }
+    }
 
     @GetMapping
     @PreAuthorize("hasAnyRole('STAFF', 'OWNER', 'ADMIN')")
@@ -50,6 +77,7 @@ public class AutoReplyController {
                 .build();
 
         rule = autoReplyRuleRepository.save(rule);
+        broadcastConfigUpdate(propertyId);
         return ResponseEntity.ok(mapToDto(rule));
     }
 
@@ -72,6 +100,7 @@ public class AutoReplyController {
         rule.setIsActive(request.getIsActive());
 
         rule = autoReplyRuleRepository.save(rule);
+        broadcastConfigUpdate(propertyId);
         return ResponseEntity.ok(mapToDto(rule));
     }
     
@@ -86,6 +115,7 @@ public class AutoReplyController {
         }
         
         autoReplyRuleRepository.delete(rule);
+        broadcastConfigUpdate(propertyId);
         return ResponseEntity.ok().build();
     }
 
