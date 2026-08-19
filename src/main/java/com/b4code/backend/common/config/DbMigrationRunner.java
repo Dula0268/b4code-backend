@@ -172,6 +172,62 @@ public class DbMigrationRunner implements CommandLineRunner {
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 );
             """);
+
+            // Seed bank accounts for owners that don't have one yet
+            jdbcTemplate.execute("""
+                INSERT INTO owner.bank_accounts (owner_id, bank_name, account_holder, account_number, branch_code, is_primary, created_at)
+                SELECT u.id,
+                       CASE (u.id % 4)
+                           WHEN 0 THEN 'Bank of Ceylon'
+                           WHEN 1 THEN 'Commercial Bank'
+                           WHEN 2 THEN 'Sampath Bank'
+                           WHEN 3 THEN 'Hatton National Bank'
+                       END,
+                       u.first_name || ' ' || u.last_name,
+                       '00' || LPAD(u.id::text, 6, '0') || '45891',
+                       CASE (u.id % 4)
+                           WHEN 0 THEN 'COL-001'
+                           WHEN 1 THEN 'CMB-042'
+                           WHEN 2 THEN 'SMP-015'
+                           WHEN 3 THEN 'HNB-007'
+                       END,
+                       true,
+                       NOW()
+                FROM app_auth.users u
+                WHERE u.role = 'OWNER'
+                  AND u.deleted = false
+                  AND NOT EXISTS (SELECT 1 FROM owner.bank_accounts ba WHERE ba.owner_id = u.id)
+            """);
+            log.info("✅ Ensured bank accounts for owner users");
+
+            // Seed PENDING payout records for owners that have properties but no pending payouts
+            jdbcTemplate.execute("""
+                INSERT INTO owner.payouts (owner_id, owner_name, property_id, property_name, amount, hotel_amount, food_amount, commission_amount, commission_rate, currency, status, requested_at, processed_at)
+                SELECT p.owner_id,
+                       p.owner_name,
+                       p.id,
+                       p.name,
+                       75000.00,
+                       60000.00,
+                       15000.00,
+                       NULL,
+                       NULL,
+                       'LKR',
+                       'PENDING',
+                       NOW() - INTERVAL '2 days',
+                       NOW() - INTERVAL '2 days'
+                FROM owner.properties p
+                WHERE p.owner_id IS NOT NULL
+                  AND p.status = 'APPROVED'
+                  AND NOT EXISTS (
+                      SELECT 1 FROM owner.payouts pay
+                      WHERE pay.property_id = p.id
+                        AND pay.status = 'PENDING'
+                  )
+                LIMIT 3
+            """);
+            log.info("✅ Seeded PENDING payout records for testing");
+
         } catch (Exception e) {
             log.warn("⚠ Could not check owner bank accounts table: {}", e.getMessage());
         }

@@ -17,6 +17,7 @@ public interface RefundRepository extends JpaRepository<Refund, Long> {
     @Query("""
             SELECT r FROM Refund r
             WHERE (:status IS NULL OR r.status = :status)
+              AND (:resolved IS NULL OR (:resolved = true AND r.status IN ('APPROVED', 'REJECTED')) OR (:resolved = false AND r.status = 'PENDING'))
               AND (
                     :search IS NULL OR :search = ''
                     OR LOWER(r.user.firstName) LIKE LOWER(CONCAT('%', :search, '%'))
@@ -26,10 +27,14 @@ public interface RefundRepository extends JpaRepository<Refund, Long> {
             """)
     Page<Refund> findAllWithFilters(
             @Param("status") RefundStatus status,
+            @Param("resolved") Boolean resolved,
             @Param("search") String search,
             Pageable pageable
     );
 
     @Query("SELECT COALESCE(SUM(r.amount), 0) FROM Refund r WHERE r.status = 'APPROVED'")
     BigDecimal sumApprovedRefunds();
+
+    @Query("SELECT COUNT(r) FROM Refund r WHERE r.status = 'PENDING'")
+    Long countPendingRefunds();
 }
