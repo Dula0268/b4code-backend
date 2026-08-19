@@ -19,7 +19,7 @@ public interface FinanceService {
 
     TransactionDto getTransactionById(Long id);
 
-    RefundPageDto getAllRefunds(String search, RefundStatus status, int page, int size);
+    RefundPageDto getAllRefunds(String search, RefundStatus status, Boolean resolved, int page, int size);
 
     RefundDto approveRefund(Long id);
 
@@ -29,7 +29,7 @@ public interface FinanceService {
 
     PayoutDto processPayout(Long id, String bankReference, java.math.BigDecimal commissionRate);
 
-    PayoutDto rejectPayout(Long id);
+    PayoutDto rejectPayout(Long id, String adminNote);
 
     java.math.BigDecimal getCommissionRate();
 
