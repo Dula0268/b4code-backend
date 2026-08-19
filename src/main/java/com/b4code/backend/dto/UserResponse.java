@@ -21,6 +21,7 @@ public class UserResponse {
 
     private String avatarUrl;
     private String nationalIdUrl;
+    private String staffRole;
 
     public static UserResponse fromEntity(User user) {
         UserResponse response = new UserResponse();
@@ -35,6 +36,7 @@ public class UserResponse {
         response.setAvatarUrl(user.getAvatarUrl());
         response.setNationalIdUrl(user.getNationalIdUrl());
         response.setPropertyId(user.getPropertyId());
+        response.setStaffRole(user.getStaffRole());
         return response;
     }
 }
