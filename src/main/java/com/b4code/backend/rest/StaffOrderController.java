@@ -27,8 +27,7 @@ import java.time.LocalDateTime;
 @RequestMapping("/api/staff/orders")
 @RequiredArgsConstructor
 @Slf4j
-@CrossOrigin(origins = "*")
-
+@CrossOrigin(origins = {"http://localhost:3000", "http://localhost:5173"})
 @Tag(name = "Staff Order Management", description = "Endpoints for staff to manage orders")
 public class StaffOrderController {
 

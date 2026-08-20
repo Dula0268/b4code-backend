@@ -32,6 +32,14 @@ class GuestOrderServiceTest {
     private MenuItemRepository menuItemRepository;
     @Mock
     private OrderStatusLogRepository orderStatusLogRepository;
+    @Mock
+    private com.b4code.backend.dao.PropertyRepository propertyRepository;
+    @Mock
+    private com.b4code.backend.dao.UserRepository userRepository;
+    @Mock
+    private com.b4code.backend.service.NotificationService notificationService;
+    @Mock
+    private com.b4code.backend.service.OrderSseService orderSseService;
 
     @InjectMocks
     private GuestOrderService guestOrderService;
@@ -55,6 +63,7 @@ class GuestOrderServiceTest {
 
         MenuItem menuItem = new MenuItem();
         menuItem.setId(10L);
+        menuItem.setPropertyId(1L);
         when(menuItemRepository.findById(10L)).thenReturn(Optional.of(menuItem));
         
         Order savedOrder = new Order();
@@ -92,10 +101,11 @@ class GuestOrderServiceTest {
         Order order = new Order();
         order.setId(1L);
         order.setStatus(OrderStatus.PLACED);
+        order.setGuestSessionId("test-session-id");
         when(orderRepository.findById(1L)).thenReturn(Optional.of(order));
         when(orderRepository.save(any(Order.class))).thenReturn(order);
 
-        Order result = guestOrderService.cancelOrder(1L);
+        Order result = guestOrderService.cancelOrder(1L, "test-session-id");
 
         assertEquals(OrderStatus.CANCELLED, result.getStatus());
         verify(orderStatusLogRepository).save(any());
@@ -106,8 +116,9 @@ class GuestOrderServiceTest {
         Order order = new Order();
         order.setId(1L);
         order.setStatus(OrderStatus.DELIVERED);
+        order.setGuestSessionId("test-session-id");
         when(orderRepository.findById(1L)).thenReturn(Optional.of(order));
 
-        assertThrows(StatusTransitionException.class, () -> guestOrderService.cancelOrder(1L));
+        assertThrows(StatusTransitionException.class, () -> guestOrderService.cancelOrder(1L, "test-session-id"));
     }
 }

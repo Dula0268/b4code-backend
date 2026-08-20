@@ -54,30 +54,30 @@ public class B4CodeBackendApplication {
         try (Connection conn = DriverManager.getConnection(url, user, password);
              Statement stmt = conn.createStatement()) {
 
-            // 1. owner.rooms name column
-            boolean roomsTableExists = false;
-            try (ResultSet rs = conn.getMetaData().getTables(null, "owner", "rooms", null)) {
+            // 1. owner.roomTypes name column
+            boolean roomTypesTableExists = false;
+            try (ResultSet rs = conn.getMetaData().getTables(null, "owner", "roomTypes", null)) {
                 if (rs.next()) {
-                    roomsTableExists = true;
+                    roomTypesTableExists = true;
                 }
             }
 
-            if (roomsTableExists) {
-                stmt.execute("ALTER TABLE owner.rooms ADD COLUMN IF NOT EXISTS name VARCHAR(255);");
+            if (roomTypesTableExists) {
+                stmt.execute("ALTER TABLE owner.roomTypes ADD COLUMN IF NOT EXISTS name VARCHAR(255);");
                 
                 // Backfill from room_type if present
-                boolean roomTypeExists = false;
-                try (ResultSet rs = conn.getMetaData().getColumns(null, "owner", "rooms", "room_type")) {
+                boolean roomCategoryExists = false;
+                try (ResultSet rs = conn.getMetaData().getColumns(null, "owner", "roomTypes", "room_type")) {
                     if (rs.next()) {
-                        roomTypeExists = true;
+                        roomCategoryExists = true;
                     }
                 }
-                if (roomTypeExists) {
-                    stmt.execute("UPDATE owner.rooms SET name = room_type WHERE name IS NULL;");
+                if (roomCategoryExists) {
+                    stmt.execute("UPDATE owner.roomTypes SET name = room_type WHERE name IS NULL;");
                 } else {
-                    stmt.execute("UPDATE owner.rooms SET name = 'Standard Room' WHERE name IS NULL;");
+                    stmt.execute("UPDATE owner.roomTypes SET name = 'Standard Room' WHERE name IS NULL;");
                 }
-                System.out.println("Pre-emptively created and backfilled owner.rooms.name.");
+                System.out.println("Pre-emptively created and backfilled owner.roomTypes.name.");
             }
 
             // 2. guest.bookings created_at and status columns

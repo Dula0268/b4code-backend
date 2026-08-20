@@ -13,17 +13,18 @@ import java.util.Optional;
 @Repository
 public interface RoomDateInventoryRepository extends JpaRepository<RoomDateInventory, Long> {
 
-    Optional<RoomDateInventory> findByRoomIdAndDate(Long roomId, LocalDate date);
+    Optional<RoomDateInventory> findByRoomTypeIdAndDate(Long roomId, LocalDate date);
 
-    @Query("SELECT ri FROM RoomDateInventory ri WHERE ri.room.id = :roomId AND ri.date >= :startDate AND ri.date < :endDate")
-    List<RoomDateInventory> findByRoomIdAndDates(
+    @Query("SELECT ri FROM RoomDateInventory ri WHERE ri.roomType.id = :roomId AND ri.date >= :startDate AND ri.date < :endDate")
+    List<RoomDateInventory> findByRoomTypeIdAndDates(
             @Param("roomId") Long roomId,
             @Param("startDate") LocalDate startDate,
             @Param("endDate") LocalDate endDate);
 
-    @Query("SELECT COALESCE(MAX(ri.bookedQuantity), 0) FROM RoomDateInventory ri WHERE ri.room.id = :roomId AND ri.date >= :startDate AND ri.date < :endDate")
+    @Query("SELECT COALESCE(MAX(ri.bookedQuantity), 0) FROM RoomDateInventory ri WHERE ri.roomType.id = :roomId AND ri.date >= :startDate AND ri.date < :endDate")
     Integer getMaxBookedQuantity(
             @Param("roomId") Long roomId,
             @Param("startDate") LocalDate startDate,
             @Param("endDate") LocalDate endDate);
 }
+

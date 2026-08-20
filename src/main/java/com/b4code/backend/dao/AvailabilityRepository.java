@@ -15,17 +15,18 @@ public interface AvailabilityRepository extends JpaRepository<Availability, Long
 
     @Query("""
             SELECT a FROM Availability a
-            WHERE a.room.property.id = :propertyId
+            WHERE a.roomType.property.id = :propertyId
               AND a.date >= :from
               AND a.date <= :to
-            ORDER BY a.room.id, a.date
+            ORDER BY a.roomType.id, a.date
             """)
     List<Availability> findByPropertyAndDateRange(
             @Param("propertyId") Long propertyId,
             @Param("from") LocalDate from,
             @Param("to") LocalDate to);
 
-    Optional<Availability> findByRoomIdAndDate(Long roomId, LocalDate date);
+    Optional<Availability> findByRoomTypeIdAndDate(Long roomId, LocalDate date);
 
-    List<Availability> findByRoomIdAndDateBetween(Long roomId, LocalDate from, LocalDate to);
+    List<Availability> findByRoomTypeIdAndDateBetween(Long roomId, LocalDate from, LocalDate to);
 }
+

@@ -33,7 +33,7 @@ public class BookingDto {
 
         private String nicNumber;
 
-        @Min(value = 1, message = "At least 1 room must be booked")
+        @Min(value = 1, message = "At least 1 roomType must be booked")
         @Builder.Default
         private Integer roomQuantity = 1;
 
