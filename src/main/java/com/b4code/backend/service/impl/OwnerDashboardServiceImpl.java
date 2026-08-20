@@ -2,7 +2,7 @@ package com.b4code.backend.service.impl;
 
 import com.b4code.backend.dao.BookingRepository;
 import com.b4code.backend.dao.PropertyRepository;
-import com.b4code.backend.dao.RoomRepository;
+import com.b4code.backend.dao.RoomTypeRepository;
 import com.b4code.backend.dao.UserRepository;
 import com.b4code.backend.dto.owner.OwnerDashboardDto;
 import com.b4code.backend.exceptions.CustomException;
@@ -25,7 +25,7 @@ public class OwnerDashboardServiceImpl implements OwnerDashboardService {
     private final UserRepository userRepository;
     private final BookingRepository bookingRepository;
     private final PropertyRepository propertyRepository;
-    private final RoomRepository roomRepository;
+    private final RoomTypeRepository roomTypeRepository;
 
     @Override
     @Transactional(readOnly = true)
@@ -35,7 +35,7 @@ public class OwnerDashboardServiceImpl implements OwnerDashboardService {
         Long ownerId = owner.getId();
 
         long totalProperties = propertyRepository.findByOwnerId(ownerId).size();
-        long totalRooms = roomRepository.countByOwner(ownerId);
+        long totalRoomTypes = roomTypeRepository.countByOwner(ownerId);
         long activeBookings = bookingRepository.countActiveByOwner(ownerId);
         BigDecimal revenue = bookingRepository.sumRevenueByOwner(ownerId);
         if (revenue == null) revenue = BigDecimal.ZERO;
@@ -59,7 +59,7 @@ public class OwnerDashboardServiceImpl implements OwnerDashboardService {
                 .activeBookings(activeBookings)
                 .totalRevenue(revenue.toPlainString())
                 .totalProperties(totalProperties)
-                .totalRooms(totalRooms)
+                .totalRoomTypes(totalRoomTypes)
                 .recentBookings(recentDtos)
                 .build();
     }

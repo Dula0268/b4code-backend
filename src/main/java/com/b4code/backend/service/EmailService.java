@@ -104,7 +104,7 @@ public class EmailService {
 
     @Async
     public void sendBookingModificationEmail(String toEmail, String guestName, String confirmationNumber, 
-                                            String propertyName, String oldRoomType, String newRoomType,
+                                            String propertyName, String oldRoomCategory, String newRoomCategory,
                                             String oldDates, String newDates, String differenceAmount, String newTotalAmount) {
         try {
             MimeMessage message = mailSender.createMimeMessage();
@@ -114,7 +114,7 @@ public class EmailService {
             helper.setTo(toEmail);
             helper.setSubject("Booking Updated! - " + propertyName);
 
-            String htmlContent = buildBookingModificationHtml(guestName, confirmationNumber, propertyName, oldRoomType, newRoomType, oldDates, newDates, differenceAmount, newTotalAmount);
+            String htmlContent = buildBookingModificationHtml(guestName, confirmationNumber, propertyName, oldRoomCategory, newRoomCategory, oldDates, newDates, differenceAmount, newTotalAmount);
             helper.setText(htmlContent, true);
 
             mailSender.send(message);
@@ -473,11 +473,11 @@ public class EmailService {
     }
 
     private String buildBookingModificationHtml(String guestName, String confirmationNumber, 
-                                               String propertyName, String oldRoomType, String newRoomType,
+                                               String propertyName, String oldRoomCategory, String newRoomCategory,
                                                String oldDates, String newDates, String differenceAmount, String newTotalAmount) {
         String changesDetailHtml = "";
         
-        if (!oldRoomType.equalsIgnoreCase(newRoomType)) {
+        if (!oldRoomCategory.equalsIgnoreCase(newRoomCategory)) {
             changesDetailHtml += """
                 <tr>
                   <td style="padding: 10px 0; border-bottom: 1px solid #eeeeee;">
@@ -486,7 +486,7 @@ public class EmailService {
                     <span style="color: #9a3300; font-weight: bold; font-size: 13px;">&rarr; %s</span>
                   </td>
                 </tr>
-                """.formatted(oldRoomType, newRoomType);
+                """.formatted(oldRoomCategory, newRoomCategory);
         }
         
         if (!oldDates.equalsIgnoreCase(newDates)) {

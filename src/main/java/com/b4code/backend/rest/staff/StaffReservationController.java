@@ -46,13 +46,15 @@ public class StaffReservationController {
     }
 
     @PatchMapping("/{id}/check-in")
-    @Operation(summary = "Mark reservation as checked in")
+    @Operation(summary = "Mark reservation as checked in", description = "Requires the physical room number staff are assigning the guest to (e.g. \"101\") — distinct from the room TYPE the guest booked.")
     public ResponseEntity<OwnerReservationDto> checkIn(
             Principal principal,
             @PathVariable Long propertyId,
-            @PathVariable Long id) {
+            @PathVariable Long id,
+            @RequestBody Map<String, String> payload) {
 
-        return ResponseEntity.ok(staffReservationService.checkIn(principal.getName(), propertyId, id));
+        String roomNumber = payload.get("roomNumber");
+        return ResponseEntity.ok(staffReservationService.checkIn(principal.getName(), propertyId, id, roomNumber));
     }
 
     @PatchMapping("/{id}/check-out")

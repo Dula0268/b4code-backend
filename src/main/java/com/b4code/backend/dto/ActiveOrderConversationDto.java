@@ -5,21 +5,19 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class ActiveConversationDto {
-    private Long bookingId;
-    private String confirmationCode;
+public class ActiveOrderConversationDto {
+    private Long orderId;
     private String guestName;
-    private String propertyName;
-    private String roomName;
-    private LocalDate checkIn;
-    private LocalDate checkOut;
+    private String location;
+    private String orderStatus;
+    private Double totalAmount;
+    private String itemsSummary;
     private String latestMessageContent;
     private LocalDateTime latestMessageAt;
     private String latestMessageSenderRole;
