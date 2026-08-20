@@ -2,13 +2,9 @@ package com.b4code.backend.service;
 
 import com.b4code.backend.dao.OrderRepository;
 import com.b4code.backend.dao.OrderStatusLogRepository;
-import com.b4code.backend.dao.UserRepository;
 import com.b4code.backend.dto.OrderResponse;
 import com.b4code.backend.models.Order;
-import com.b4code.backend.models.User;
 import com.b4code.backend.models.enums.OrderStatus;
-import com.b4code.backend.models.enums.UserRole;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -19,11 +15,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.util.List;
-import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
@@ -43,10 +36,7 @@ public class StaffOrderServiceTest {
     private OrderSseService orderSseService;
 
     @Mock
-    private UserRepository userRepository;
-
-    @Mock
-    private NotificationService notificationService;
+    private com.b4code.backend.dao.UserRepository userRepository;
 
     @InjectMocks
     private StaffOrderService staffOrderService;
@@ -60,22 +50,18 @@ public class StaffOrderServiceTest {
         order.setPropertyId(10L);
         order.setStatus(OrderStatus.PLACED);
 
-        // resolveCurrentUser() reads the authenticated principal from the static
-        // SecurityContextHolder rather than an injected dependency, so it must be
-        // populated directly here instead of via @Mock/@InjectMocks.
-        User staffUser = new User();
-        staffUser.setEmail("staff@example.com");
-        staffUser.setRole(UserRole.STAFF);
-        staffUser.setPropertyId(10L);
-        when(userRepository.findByEmail("staff@example.com")).thenReturn(Optional.of(staffUser));
+        com.b4code.backend.models.User mockUser = new com.b4code.backend.models.User();
+        mockUser.setEmail("staff@test.com");
+        mockUser.setRole(com.b4code.backend.models.enums.UserRole.STAFF);
+        mockUser.setPropertyId(10L);
 
-        SecurityContextHolder.getContext().setAuthentication(
-                new UsernamePasswordAuthenticationToken("staff@example.com", null, List.of()));
-    }
+        when(userRepository.findByEmail("staff@test.com")).thenReturn(java.util.Optional.of(mockUser));
 
-    @AfterEach
-    void tearDown() {
-        SecurityContextHolder.clearContext();
+        org.springframework.security.core.context.SecurityContext securityContext = org.mockito.Mockito.mock(org.springframework.security.core.context.SecurityContext.class);
+        org.springframework.security.core.Authentication authentication = org.mockito.Mockito.mock(org.springframework.security.core.Authentication.class);
+        when(authentication.getName()).thenReturn("staff@test.com");
+        when(securityContext.getAuthentication()).thenReturn(authentication);
+        org.springframework.security.core.context.SecurityContextHolder.setContext(securityContext);
     }
 
     @Test

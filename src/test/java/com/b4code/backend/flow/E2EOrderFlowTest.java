@@ -88,7 +88,7 @@ public class E2EOrderFlowTest {
         // Setup MenuItem Mock
         MenuItem menuItem = new MenuItem();
         menuItem.setId(10L);
-        menuItem.setPropertyId(1L); // must match the order's propertyId, required by GuestOrderService's ownership check
+        menuItem.setPropertyId(1L);
         menuItem.setPrice(new BigDecimal("15.99"));
         Mockito.when(menuItemRepository.findById(10L)).thenReturn(Optional.of(menuItem));
 
