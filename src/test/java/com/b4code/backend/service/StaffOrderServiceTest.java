@@ -35,6 +35,9 @@ public class StaffOrderServiceTest {
     @Mock
     private OrderSseService orderSseService;
 
+    @Mock
+    private com.b4code.backend.dao.UserRepository userRepository;
+
     @InjectMocks
     private StaffOrderService staffOrderService;
 
@@ -46,6 +49,19 @@ public class StaffOrderServiceTest {
         order.setId(1L);
         order.setPropertyId(10L);
         order.setStatus(OrderStatus.PLACED);
+
+        com.b4code.backend.models.User mockUser = new com.b4code.backend.models.User();
+        mockUser.setEmail("staff@test.com");
+        mockUser.setRole(com.b4code.backend.models.enums.UserRole.STAFF);
+        mockUser.setPropertyId(10L);
+
+        when(userRepository.findByEmail("staff@test.com")).thenReturn(java.util.Optional.of(mockUser));
+
+        org.springframework.security.core.context.SecurityContext securityContext = org.mockito.Mockito.mock(org.springframework.security.core.context.SecurityContext.class);
+        org.springframework.security.core.Authentication authentication = org.mockito.Mockito.mock(org.springframework.security.core.Authentication.class);
+        when(authentication.getName()).thenReturn("staff@test.com");
+        when(securityContext.getAuthentication()).thenReturn(authentication);
+        org.springframework.security.core.context.SecurityContextHolder.setContext(securityContext);
     }
 
     @Test

@@ -32,6 +32,14 @@ class GuestOrderServiceTest {
     private MenuItemRepository menuItemRepository;
     @Mock
     private OrderStatusLogRepository orderStatusLogRepository;
+    @Mock
+    private com.b4code.backend.dao.PropertyRepository propertyRepository;
+    @Mock
+    private com.b4code.backend.dao.UserRepository userRepository;
+    @Mock
+    private com.b4code.backend.service.NotificationService notificationService;
+    @Mock
+    private com.b4code.backend.service.OrderSseService orderSseService;
 
     @InjectMocks
     private GuestOrderService guestOrderService;
@@ -55,6 +63,7 @@ class GuestOrderServiceTest {
 
         MenuItem menuItem = new MenuItem();
         menuItem.setId(10L);
+        menuItem.setPropertyId(1L);
         when(menuItemRepository.findById(10L)).thenReturn(Optional.of(menuItem));
         
         Order savedOrder = new Order();
