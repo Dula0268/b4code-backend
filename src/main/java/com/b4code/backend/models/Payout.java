@@ -57,6 +57,9 @@ public class Payout {
     private PayoutStatus status;
 
     private String bankReference;
+    
+    @Column(length = 1000)
+    private String adminNote;
 
     @CreationTimestamp
     @Column(updatable = false)

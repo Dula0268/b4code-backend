@@ -70,7 +70,7 @@ public class ReviewService {
         Review review = reviewRepository.findByBookingId(booking.getId()).orElseGet(() -> {
             return Review.builder()
                 .booking(booking)
-                .property(booking.getRoomType().getProperty())
+                .property(booking.getRoom().getProperty())
                 .guest(guest)
                 .build();
         });
@@ -88,12 +88,12 @@ public class ReviewService {
         Review saved = reviewRepository.save(review);
 
         // Update property average rating
-        updatePropertyRating(booking.getRoomType().getProperty().getId());
+        updatePropertyRating(booking.getRoom().getProperty().getId());
 
         // Send Notification
         notificationService.createNotification(guest, 
             "Review Submitted", 
-            "Thank you for reviewing your stay at " + booking.getRoomType().getProperty().getName() + "!"
+            "Thank you for reviewing your stay at " + booking.getRoom().getProperty().getName() + "!"
         );
 
         return mapToResponse(saved);

@@ -52,24 +52,8 @@ public class OrderRequest {
         @NotNull(message = "Price is required")
         @Min(value = 0, message = "Price cannot be negative")
         private Double priceAtOrder;
-
+        
         private String note;
-
-        /** Label of the selected {@code MenuItemVariant}, if any — variants have no DB id, so label is the join key. */
-        private String selectedVariantLabel;
-
-        /** Selected modifier options, resolved server-side against the menu item's real modifiers/options. */
-        @Valid
-        private java.util.List<SelectedModifierRequest> selectedModifiers;
-    }
-
-    @Data
-    public static class SelectedModifierRequest {
-        @NotNull(message = "Modifier ID is required")
-        private Long modifierId;
-
-        @NotBlank(message = "Modifier option label is required")
-        private String optionLabel;
     }
 }
 

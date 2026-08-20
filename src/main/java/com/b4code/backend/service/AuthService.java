@@ -301,10 +301,10 @@ public class AuthService {
     public AuthResponse roomLogin(com.b4code.backend.dto.RoomLoginRequest request) {
         Long roomId = Long.parseLong(request.getRoomNumber());
         com.b4code.backend.models.Booking booking = bookingRepository.findActiveBookingByRoom(request.getPropertyId(), roomId)
-                .orElseThrow(() -> new CustomException("We couldn't find an active reservation for this roomType number. Please check the number and try again.", HttpStatus.NOT_FOUND));
+                .orElseThrow(() -> new CustomException("We couldn't find an active reservation for this room number. Please check the number and try again.", HttpStatus.NOT_FOUND));
 
         // Strict name verification removed to allow family members to order.
-        // We log them in using the primary booking email so the charge correctly routes to the roomType.
+        // We log them in using the primary booking email so the charge correctly routes to the room.
         
         User user = userRepository.findByEmail(booking.getGuestEmail().toLowerCase())
                 .orElseGet(() -> {

@@ -23,7 +23,7 @@ public class StaffController {
 
     // QR Management endpoints
     @GetMapping("/qr/property/{propertyId}")
-    @Operation(summary = "Get QR codes for a property", description = "Returns paginated QR code locations (tables, roomTypes, etc.) for management")
+    @Operation(summary = "Get QR codes for a property", description = "Returns paginated QR code locations (tables, rooms, etc.) for management")
     public ResponseEntity<List<QRCodeResponse>> getQRCodesByProperty(
             @PathVariable Long propertyId,
             @RequestParam(required = false, defaultValue = "0") int skip,

@@ -18,7 +18,7 @@ import java.util.Map;
  *   - Returns the secure URL
  *
  * This endpoint can be used by admin/owner dashboards to upload property images.
- * The returned URL should then be saved to the property/roomType record.
+ * The returned URL should then be saved to the property/room record.
  */
 @RestController
 @RequestMapping("/api/images")

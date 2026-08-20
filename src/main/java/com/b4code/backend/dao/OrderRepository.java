@@ -16,7 +16,6 @@ import java.util.List;
 public interface OrderRepository extends JpaRepository<Order, Long> {
     Page<Order> findByPropertyIdOrderByCreatedAtDesc(Long propertyId, Pageable pageable);
     Page<Order> findByGuestIdOrderByCreatedAtDesc(Long guestId, Pageable pageable);
-    Page<Order> findByGuestIdAndGuestSessionIdOrderByCreatedAtDesc(Long guestId, String guestSessionId, Pageable pageable);
     Page<Order> findByGuestSessionIdOrderByCreatedAtDesc(String guestSessionId, Pageable pageable);
     List<Order> findByPropertyIdOrderByCreatedAtDesc(Long propertyId);
     List<Order> findByGuestIdOrderByCreatedAtDesc(Long guestId);

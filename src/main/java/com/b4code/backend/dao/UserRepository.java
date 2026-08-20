@@ -24,8 +24,6 @@ public interface UserRepository extends JpaRepository<User, Long> {
   List<User> findByPropertyIdInAndRoleAndStatusAndDeletedFalse(List<Long> propertyIds, UserRole role,
       UserStatus status);
 
-  List<User> findByPropertyIdAndDeletedFalse(Long propertyId);
-
   @Query("""
       SELECT u FROM User u
       LEFT JOIN Property p ON p.id = u.propertyId

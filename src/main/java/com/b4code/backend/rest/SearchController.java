@@ -33,7 +33,7 @@ public class SearchController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate checkIn,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate checkOut,
             @RequestParam(defaultValue = "1") Integer guests,
-            @RequestParam(defaultValue = "1") Integer roomTypes,
+            @RequestParam(defaultValue = "1") Integer rooms,
             @RequestParam(required = false) BigDecimal minPrice,
             @RequestParam(required = false) BigDecimal maxPrice,
             @RequestParam(required = false) Double minRating,
@@ -46,7 +46,7 @@ public class SearchController {
         log.info("GET /api/guest/properties - destination={}, page={}, size={}", destination, page, size);
 
         PaginatedResponse<PropertySearchResult> results = searchService.search(
-                destination, checkIn, checkOut, guests, roomTypes,
+                destination, checkIn, checkOut, guests, rooms,
                 minPrice, maxPrice, minRating,
                 amenities, sortBy, page, size);
 

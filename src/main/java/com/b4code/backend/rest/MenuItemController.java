@@ -1,6 +1,5 @@
 package com.b4code.backend.rest;
 
-import com.b4code.backend.dao.ItemReviewRepository;
 import com.b4code.backend.dao.MenuCategoryRepository;
 import com.b4code.backend.dao.MenuItemRepository;
 import com.b4code.backend.dao.MenuRepository;
@@ -34,14 +33,13 @@ public class MenuItemController {
     private final MenuItemRepository menuItemRepository;
     private final MenuRepository menuRepository;
     private final MenuCategoryRepository menuCategoryRepository;
-    private final ItemReviewRepository itemReviewRepository;
 
     // ─── Guest & Staff: Get all items for a property ─────────────────────────────
     @GetMapping("/property/{propertyId}")
     public ResponseEntity<List<MenuItemDto>> getMenuItems(@PathVariable Long propertyId) {
         log.info("Fetching menu items for property: {}", propertyId);
         List<MenuItem> items = menuItemRepository.findByPropertyId(propertyId);
-        return ResponseEntity.ok(toDtos(items));
+        return ResponseEntity.ok(items.stream().map(this::toDto).collect(Collectors.toList()));
     }
 
     // ─── Staff: Get all items for a specific menu ─────────────────────────────────
@@ -49,7 +47,7 @@ public class MenuItemController {
     public ResponseEntity<List<MenuItemDto>> getMenuItemsByMenu(@PathVariable Long menuId) {
         log.info("Fetching menu items for menu: {}", menuId);
         List<MenuItem> items = menuItemRepository.findByMenuId(menuId);
-        return ResponseEntity.ok(toDtos(items));
+        return ResponseEntity.ok(items.stream().map(this::toDto).collect(Collectors.toList()));
     }
 
     // ─── Staff: Create item ───────────────────────────────────────────────────────
@@ -176,27 +174,10 @@ public class MenuItemController {
         return ResponseEntity.noContent().build();
     }
 
-    // ─── Helper: Map a list of entities to DTOs, with rating summaries batched in one query ──
-    private List<MenuItemDto> toDtos(List<MenuItem> items) {
-        List<Long> ids = items.stream().map(MenuItem::getId).collect(Collectors.toList());
-        java.util.Map<Long, ItemReviewRepository.MenuItemRatingSummary> summaries = ids.isEmpty()
-                ? java.util.Map.of()
-                : itemReviewRepository.findRatingSummaryByMenuItemIds(ids).stream()
-                        .collect(Collectors.toMap(ItemReviewRepository.MenuItemRatingSummary::getMenuItemId, s -> s));
-        return items.stream().map(item -> toDto(item, summaries.get(item.getId()))).collect(Collectors.toList());
-    }
-
-    // ─── Helper: Map entity to DTO (single item — no rating summary available) ───
+    // ─── Helper: Map entity to DTO ────────────────────────────────────────────────
     private MenuItemDto toDto(MenuItem item) {
-        return toDto(item, null);
-    }
-
-    private MenuItemDto toDto(MenuItem item, ItemReviewRepository.MenuItemRatingSummary ratingSummary) {
         String imageUrl = (item.getImageUrls() != null && !item.getImageUrls().isEmpty())
                 ? item.getImageUrls().get(0) : null;
-        Double avgRating = ratingSummary != null && ratingSummary.getAvgRating() != null
-                ? Math.round(ratingSummary.getAvgRating() * 10.0) / 10.0 : null;
-        Long reviewCount = ratingSummary != null ? ratingSummary.getReviewCount() : 0L;
         return MenuItemDto.builder()
                 .id(item.getId())
                 .propertyId(item.getPropertyId())
@@ -226,8 +207,6 @@ public class MenuItemController {
                                         .collect(Collectors.toList()) : List.of())
                                 .build())
                         .collect(Collectors.toList()) : List.of())
-                .avgRating(avgRating)
-                .reviewCount(reviewCount)
                 .build();
     }
 }

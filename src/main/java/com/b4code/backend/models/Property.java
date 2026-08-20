@@ -147,7 +147,7 @@ public class Property {
 
     @OneToMany(mappedBy = "property", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
     @Builder.Default
-    private List<RoomType> roomTypes = new java.util.ArrayList<>();
+    private List<Room> rooms = new java.util.ArrayList<>();
 
     @OneToMany(mappedBy = "property", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
     @Builder.Default

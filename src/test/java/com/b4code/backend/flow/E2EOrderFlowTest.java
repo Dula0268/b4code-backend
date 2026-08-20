@@ -88,7 +88,6 @@ public class E2EOrderFlowTest {
         // Setup MenuItem Mock
         MenuItem menuItem = new MenuItem();
         menuItem.setId(10L);
-        menuItem.setPropertyId(1L); // must match the order's propertyId, required by GuestOrderService's ownership check
         menuItem.setPrice(new BigDecimal("15.99"));
         Mockito.when(menuItemRepository.findById(10L)).thenReturn(Optional.of(menuItem));
 
@@ -99,9 +98,9 @@ public class E2EOrderFlowTest {
         booking.setGuestEmail("user");
         booking.setStatus(com.b4code.backend.models.Booking.BookingStatus.COMPLETED);
         
-        com.b4code.backend.models.RoomType room = new com.b4code.backend.models.RoomType();
+        com.b4code.backend.models.Room room = new com.b4code.backend.models.Room();
         room.setProperty(property);
-        booking.setRoomType(room);
+        booking.setRoom(room);
         Mockito.when(bookingRepository.findById(1L)).thenReturn(Optional.of(booking));
         
         // Setup User Mock
@@ -216,5 +215,3 @@ public class E2EOrderFlowTest {
                 .andExpect(jsonPath("$.status").value("PLACED"));
     }
 }
-
-

@@ -44,7 +44,7 @@ public class SearchDTO {
         private List<String> amenities;
         private Double lat;
         private Double lng;
-        private Integer matchingRoomTypesCount;
+        private Integer matchingRoomsCount;
     }
 
     // ─── Property Detail ─────────────────────────────────────────────────
@@ -76,7 +76,7 @@ public class SearchDTO {
         private List<ReviewBreakdownDTO> reviewBreakdown;
         private List<ReviewDTO> reviews;
 
-        private List<RoomDTO> roomTypes;
+        private List<RoomDTO> rooms;
 
         private Double lat;
         private Double lng;

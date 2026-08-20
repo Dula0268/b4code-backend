@@ -5,7 +5,6 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Data
@@ -17,9 +16,6 @@ public class ActiveConversationDto {
     private String confirmationCode;
     private String guestName;
     private String propertyName;
-    private String roomName;
-    private LocalDate checkIn;
-    private LocalDate checkOut;
     private String latestMessageContent;
     private LocalDateTime latestMessageAt;
     private String latestMessageSenderRole;

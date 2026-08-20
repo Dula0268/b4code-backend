@@ -13,7 +13,7 @@ import java.util.Map;
  * 1. Admin/owner uploads images via POST /api/images/upload (multipart)
  * 2. Backend receives the file and uploads it to Cloudinary via their SDK
  * 3. Cloudinary returns a secure URL (e.g., https://res.cloudinary.com/<cloud>/image/upload/v.../filename.jpg)
- * 4. Backend saves that URL into the database (Property.imageSrc, RoomType.imageSrc, etc.)
+ * 4. Backend saves that URL into the database (Property.imageSrc, Room.imageSrc, etc.)
  * 5. Frontend fetches property data from API and renders the Cloudinary URL directly
  *
  * HOW TO ADD NEW PROPERTY IMAGES LATER (without changing frontend code):
