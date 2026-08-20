@@ -1,84 +1,90 @@
-eureka:
-  instance:
-    preferIpAddress: true
-    hostname: ${spring.application.name}
-    metadata-map:
-      management.context-path: ${server.servlet.context-path}/actuator
-  client:
-    registerWithEureka: false
-    fetchRegistry: false
-    serviceUrl:
-      defaultZone: http://eureka-0.eureka:8761/eureka
-
 spring:
   datasource:
-    type: com.zaxxer.hikari.HikariDataSource
-    url: jdbc:postgresql://edcs-dev-v2.c5so0wko8p98.ap-southeast-1.rds.amazonaws.com:5432/die-dev5?currentSchema=training_and_development
-    username: postgres
-    password: postgres
+    url: jdbc:postgresql://${DB_HOST}:${DB_PORT}/${DB_NAME}?sslmode=${DB_SSLMODE:require}
+    username: ${DB_USER}
+    password: ${DB_PASSWORD}
     driver-class-name: org.postgresql.Driver
     hikari:
-      poolName: Hikari
-      auto-commit: false
-      data-source-properties:
-        cachePrepStmts: true
-        prepStmtCacheSize: 250
-        prepStmtCacheSqlLimit: 2048
-        useServerPrepStmts: true
+      connection-timeout: 20000
+      validation-timeout: 5000
+      maximum-pool-size: 20
+      minimum-idle: 1
+      idle-timeout: 30000
+      keepalive-time: 60000
+
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
+
+  sql:
+    init:
+      mode: always
+      schema-locations: classpath:schema.sql
+
   jpa:
-    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    open-in-view: false
     hibernate:
-      naming:
-        physical-strategy: org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl
+      ddl-auto: update
     show-sql: true
-#  cache:
-#    type: redis
-#  redis:
-#    Host: 192.168.90.65 # redis server address
-#    Database: 0 # redis database index (default is 0)
-#    Port: 6379 #redis server connection port
-#    Password: # redis server connection password (empty by default)
-#    Timeout: 1000ms # connection timeout
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.PostgreSQLDialect
 
-keycloak:
-  cors: true
-  auth-server-url: http://dev-edcs-v6-1531592723.ap-southeast-1.elb.amazonaws.com
-  realm: DIE
-  resource: die-hrms-client
-  ssl-required: none
-  public-client: true
-  credentials:
-    secret:
-  security-constraints[0]:
-    authRoles[0]: default-roles-die
-    securityCollections[0]:
-      patterns[0]: /group/*
-      patterns[1]: /user/*
-      patterns[2]: /user-management/*
-      patterns[3]: /api-log/*
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
 
-management:
-  endpoints:
-    web:
-      exposure:
-        include: "*"
-  endpoint:
-    health:
-      show-detail: ALWAYS
+  session:
+    store-type: redis
 
-swagger:
-  server-url: http://localhost:8081
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: ${MAIL_USERNAME}
+    password: ${MAIL_PASSWORD}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+            required: true
+          connectiontimeout: 5000
+          timeout: 5000
+          writetimeout: 5000
 
-logging:
-  file:
-    name: ${spring.application.name}.log
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          # Define JWT Configuration here
+          # Since it's symmetric JWT or asymmetric, we will configure an issuer or public key.
+          # For development, we might use a secret key instead, via application properties.
+          issuer-uri: ${JWT_ISSUER_URI:} 
 
-info:
-  userDefaultPassword: Info@123
-  passwordResetURL: http://localhost
-  keycloak:
-    curl-client: curl
+b4code:
+  qr:
+    base-url: http://localhost:3000
+  security:
+    jwt:
+      secret: ${JWT_SECRET}
+      expirationMs: 3600000
+      refreshExpirationMs: 86400000
 
-faste:
-  rest:
-    enabled: false
+payhere:
+  merchant-id: 1235421
+  merchant-secret: ${PAYHERE_SECRET}
+  sandbox: true
+  checkout-url: https://sandbox.payhere.lk/pay/checkout
+  notify-url: http://localhost:8080/api/payments/notify
+  return-url: http://localhost:3000/guest/booking
+  cancel-url: http://localhost:3000/payment
+
+cloudinary:
+  cloud-name: ${CLOUDINARY_CLOUD_NAME}
+  api-key: ${CLOUDINARY_API_KEY}
+  api-secret: ${CLOUDINARY_API_SECRET}

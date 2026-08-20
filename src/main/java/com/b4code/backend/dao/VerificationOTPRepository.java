@@ -1,0 +1,14 @@
+package com.b4code.backend.dao;
+
+import com.b4code.backend.models.User;
+import com.b4code.backend.models.VerificationOTP;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+import java.util.Optional;
+
+@Repository
+public interface VerificationOTPRepository extends JpaRepository<VerificationOTP, Long> {
+    Optional<VerificationOTP> findByUser(User user);
+    void deleteByUser(User user);
+}

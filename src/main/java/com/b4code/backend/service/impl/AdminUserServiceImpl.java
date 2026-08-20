@@ -1,0 +1,271 @@
+package com.b4code.backend.service.impl;
+
+import com.b4code.backend.dto.UserDto;
+import com.b4code.backend.dto.UserPageDto;
+import com.b4code.backend.dto.UserStatusUpdateDto;
+import com.b4code.backend.models.enums.UserRole;
+import com.b4code.backend.models.enums.UserStatus;
+import com.b4code.backend.exceptions.CustomException;
+import com.b4code.backend.models.User;
+import com.b4code.backend.dao.UserRepository;
+import com.b4code.backend.models.PasswordResetToken;
+import com.b4code.backend.dao.PasswordResetTokenRepository;
+import com.b4code.backend.service.AdminUserService;
+import com.b4code.backend.service.EmailService;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+
+@Service
+@Slf4j
+@RequiredArgsConstructor
+public class AdminUserServiceImpl implements AdminUserService {
+
+    private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
+    private final com.b4code.backend.dao.AuditLogRepository auditLogRepository;
+    private final EmailService emailService;
+    private final PasswordResetTokenRepository passwordResetTokenRepository;
+
+    @Value("${b4code.frontend.url:http://localhost:3000}")
+    private String frontendUrl;
+
+    // ── GET ALL USERS ──────────────────────────────────
+
+    @Override
+    @Transactional(readOnly = true)
+    public UserPageDto getAllUsers(String search, UserRole role, UserStatus status, int page, int size) {
+        log.debug("Fetching users — search='{}', role={}, status={}, page={}, size={}", search, role, status, page,
+                size);
+
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
+
+        String searchTerm = (search == null || search.isBlank()) ? null : search.trim();
+
+        Page<User> pageResult = userRepository.findAllWithFilters(searchTerm, role, status, pageable);
+
+        List<UserDto> content = pageResult.getContent()
+                .stream()
+                .map(UserDto::fromEntity)
+                .toList();
+
+        log.debug("Found {} users (total={}, pages={})", content.size(), pageResult.getTotalElements(),
+                pageResult.getTotalPages());
+
+        return UserPageDto.builder()
+                .content(content)
+                .currentPage(pageResult.getNumber())
+                .totalPages(pageResult.getTotalPages())
+                .totalElements(pageResult.getTotalElements())
+                .pageSize(pageResult.getSize())
+                .build();
+    }
+
+    // ── GET SINGLE USER ───────────────────────────────────────────────────────
+
+    @Override
+    @Transactional(readOnly = true)
+    public UserDto getUserById(Long id) {
+        log.debug("Fetching user by id={}", id);
+
+        User user = findActiveUserOrThrow(id);
+        return UserDto.fromEntity(user);
+    }
+
+    // ── CREATE USER ───────────────────────────────────────────────────────────
+
+    @Override
+    @Transactional
+    public UserDto createUser(UserDto userDto, String rawPassword) {
+        log.info("Creating new user with email='{}'", userDto.getEmail());
+
+        if (userRepository.existsByEmail(userDto.getEmail())) {
+            throw new CustomException("Email already in use", HttpStatus.CONFLICT);
+        }
+
+        User user = new User();
+        user.setEmail(userDto.getEmail());
+        user.setPasswordHash(passwordEncoder.encode(rawPassword));
+        user.setFirstName(userDto.getFirstName() != null ? userDto.getFirstName() : "");
+        user.setLastName(userDto.getLastName() != null ? userDto.getLastName() : "");
+        user.setRole(userDto.getRole());
+        user.setStatus(userDto.getStatus() != null ? userDto.getStatus() : UserStatus.ACTIVE);
+
+        User saved = userRepository.save(user);
+        log.info("User created — id={}, email={}", saved.getId(), saved.getEmail());
+        return UserDto.fromEntity(saved);
+    }
+
+    // ── UPDATE USER ───────────────────────────────────────────────────────────
+
+    @Override
+    @Transactional
+    public UserDto updateUser(Long id, UserDto userDto) {
+        log.info("Updating user id={}", id);
+
+        User user = findActiveUserOrThrow(id);
+
+        if (userDto.getEmail() != null && !userDto.getEmail().equals(user.getEmail())) {
+            if (userRepository.existsByEmail(userDto.getEmail())) {
+                throw new CustomException("Email already in use", HttpStatus.CONFLICT);
+            }
+            user.setEmail(userDto.getEmail());
+        }
+
+        if (userDto.getFirstName() != null) {
+            user.setFirstName(userDto.getFirstName());
+        }
+        if (userDto.getLastName() != null) {
+            user.setLastName(userDto.getLastName());
+        }
+
+        if (userDto.getRole() != null) {
+            user.setRole(userDto.getRole());
+        }
+
+        User saved = userRepository.save(user);
+        log.info("User id={} updated", id);
+        return UserDto.fromEntity(saved);
+    }
+
+    // ── UPDATE USER STATUS ─────────────────────────────────────────────────────
+
+    @Override
+    @Transactional
+    public UserDto updateUserStatus(Long id, UserStatusUpdateDto statusUpdate) {
+        log.info("Updating user id={} status to {}", id, statusUpdate.getStatus());
+
+        User user = findActiveUserOrThrow(id);
+        user.setStatus(statusUpdate.getStatus());
+
+        User saved = userRepository.save(user);
+
+        com.b4code.backend.models.AuditLog logEntry = new com.b4code.backend.models.AuditLog();
+        logEntry.setUser(saved);
+        logEntry.setAction(statusUpdate.getStatus() == UserStatus.SUSPENDED ? "ACCOUNT_SUSPENDED" : "ACCOUNT_REACTIVATED");
+        logEntry.setEntity("USER_MANAGEMENT");
+        logEntry.setEntityDetail("Status updated to " + statusUpdate.getStatus());
+        logEntry.setTimestamp(java.time.LocalDateTime.now());
+        auditLogRepository.save(logEntry);
+
+        log.info("User id={} status updated to {}", id, statusUpdate.getStatus());
+        return UserDto.fromEntity(saved);
+    }
+
+    // ── GET USER ACTIVITY LOGS ──────────────────────────────────────────────────
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<com.b4code.backend.dto.AuditLogDto> getUserActivityLogs(Long userId, int limit) {
+        log.info("Fetching recent activity logs for user id={}", userId);
+        Pageable pageable = PageRequest.of(0, limit);
+        List<com.b4code.backend.models.AuditLog> logs = auditLogRepository.findTopRecentByUserId(userId, pageable);
+        return logs.stream().map(com.b4code.backend.dto.AuditLogDto::fromEntity).toList();
+    }
+
+    // ── DELETE USER ────────────────────────────────────────────────────────────
+
+    @Override
+    @Transactional
+    public void deleteUser(Long id) {
+        log.info("Deleting user id={}", id);
+
+        User user = findActiveUserOrThrow(id);
+        
+        // Clean up metadata to allow hard deletion
+        passwordResetTokenRepository.deleteByUser(user);
+        auditLogRepository.deleteByUser(user);
+        
+        // Attempt hard delete (will throw DataIntegrityViolationException if they have bookings/payments)
+        userRepository.delete(user);
+
+        log.info("User id={} completely removed from database", id);
+    }
+
+    // ── PRIVATE HELPERS ────────────────────────────────────────────────────────
+
+    private User findActiveUserOrThrow(Long id) {
+        return userRepository.findByIdAndDeletedFalse(id)
+                .orElseThrow(() -> new CustomException("User not found", HttpStatus.NOT_FOUND));
+    }
+
+    // ── SEND RESET PASSWORD LINK ───────────────────────────────────────────────
+
+    @Override
+    @Transactional
+    public void sendResetPasswordLink(Long id) {
+        log.info("Sending reset password link to user id={}", id);
+        User user = findActiveUserOrThrow(id);
+        
+        // Remove old token first
+        passwordResetTokenRepository.deleteByUser(user);
+        passwordResetTokenRepository.flush();
+
+        // Generate a secure token for the reset link
+        String resetToken = java.util.UUID.randomUUID().toString();
+        
+        PasswordResetToken passwordResetToken = new PasswordResetToken(
+                resetToken,
+                user,
+                30 // 30 minutes expiry
+        );
+        passwordResetTokenRepository.save(passwordResetToken);
+
+        String resetLink = frontendUrl + "/auth/reset-password?token=" + resetToken;
+        
+        // Use EmailService to send the actual email
+        emailService.sendPasswordResetEmail(user.getEmail(), resetLink);
+        
+        log.info("Reset password link sent successfully to email={}", user.getEmail());
+    }
+
+    // ── INVITE USER ────────────────────────────────────────────────────────────
+
+    @Override
+    @Transactional
+    public void inviteUser(String email, UserRole role) {
+        log.info("Inviting new user with email='{}' and role='{}'", email, role);
+
+        if (userRepository.existsByEmail(email)) {
+            throw new CustomException("Email already in use", HttpStatus.CONFLICT);
+        }
+
+        User user = new User();
+        user.setEmail(email);
+        user.setPasswordHash(passwordEncoder.encode(java.util.UUID.randomUUID().toString())); // Temporary dummy password
+        user.setFirstName("");
+        user.setLastName("");
+        user.setRole(role);
+        user.setStatus(UserStatus.PENDING); // Status is pending until they accept
+
+        User saved = userRepository.save(user);
+
+        // Generate invitation token (using PasswordResetToken model for simplicity, or we could create a new one, but they serve the same purpose here)
+        String inviteToken = java.util.UUID.randomUUID().toString();
+        
+        PasswordResetToken token = new PasswordResetToken(
+                inviteToken,
+                saved,
+                48 * 60 // 48 hours expiry
+        );
+        passwordResetTokenRepository.save(token);
+
+        String inviteLink = frontendUrl + "/auth/reset-password?token=" + inviteToken + "&invite=true";
+        
+        // Use EmailService to send the actual invitation email
+        emailService.sendInvitationEmail(saved.getEmail(), saved.getRole().name(), inviteLink);
+        
+        log.info("Invitation sent successfully to email={}", saved.getEmail());
+    }
+}
+

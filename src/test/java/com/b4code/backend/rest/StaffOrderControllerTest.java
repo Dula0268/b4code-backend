@@ -1,0 +1,108 @@
+package com.b4code.backend.rest;
+
+import com.b4code.backend.dto.StaffOrderActionDto;
+import com.b4code.backend.models.Order;
+import com.b4code.backend.models.enums.OrderStatus;
+import com.b4code.backend.service.StaffOrderService;
+import com.b4code.backend.dao.OrderRepository;
+import com.b4code.backend.service.OrderSseService;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.http.MediaType;
+import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.test.web.servlet.MockMvc;
+
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+@WebMvcTest(StaffOrderController.class)
+class StaffOrderControllerTest {
+
+    @Autowired
+    private MockMvc mockMvc;
+
+    @MockBean
+    private OrderRepository orderRepository;
+
+    @MockBean
+    private StaffOrderService staffOrderService;
+
+    @MockBean
+    private OrderSseService orderSseService;
+
+    @MockBean
+    private com.b4code.backend.common.security.JwtUtil jwtUtil;
+
+    @MockBean
+    private com.b4code.backend.dao.UserRepository userRepository;
+
+    @Autowired
+    private ObjectMapper objectMapper;
+
+    @Test
+    @WithMockUser(roles = "STAFF")
+    void acceptOrder_Success() throws Exception {
+        Order order = new Order();
+        order.setId(1L);
+        order.setStatus(OrderStatus.ACCEPTED);
+
+        when(staffOrderService.updateOrderStatus(1L, OrderStatus.ACCEPTED)).thenReturn(order);
+
+        mockMvc.perform(patch("/api/staff/orders/1/accept").with(csrf()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("ACCEPTED"));
+    }
+
+    @Test
+    @WithMockUser(roles = "STAFF")
+    void getOrders_Success() throws Exception {
+        com.b4code.backend.dto.OrderResponse response = new com.b4code.backend.dto.OrderResponse();
+        response.setId(1L);
+        org.springframework.data.domain.Page<com.b4code.backend.dto.OrderResponse> page = new org.springframework.data.domain.PageImpl<>(java.util.Collections.singletonList(response));
+        when(staffOrderService.getOrdersByProperty(eq(1L), any(), any(), any(), any())).thenReturn(page);
+
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get("/api/staff/orders/property/1").param("size", "100"))
+                .andDo(org.springframework.test.web.servlet.result.MockMvcResultHandlers.print())
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    @WithMockUser(roles = "STAFF")
+    void rejectOrder_RequiresConfirmationBody() throws Exception {
+        StaffOrderActionDto action = new StaffOrderActionDto();
+        action.setConfirm(true);
+        action.setReason("Out of stock");
+
+        Order order = new Order();
+        order.setId(1L);
+        order.setStatus(OrderStatus.CANCELLED);
+
+        when(staffOrderService.rejectOrder(eq(1L), any(StaffOrderActionDto.class))).thenReturn(order);
+
+        mockMvc.perform(post("/api/staff/orders/1/reject").with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(action)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("CANCELLED"));
+    }
+
+    @Test
+    void rejectOrder_Unauthorized() throws Exception {
+        StaffOrderActionDto action = new StaffOrderActionDto();
+        action.setConfirm(true);
+
+        mockMvc.perform(post("/api/staff/orders/1/reject").with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(action)))
+                .andExpect(status().isUnauthorized());
+    }
+}

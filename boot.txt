@@ -1,0 +1,58 @@
+﻿
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+[32m :: Spring Boot :: [39m              [2m (v3.2.4)[0;39m
+
+[2m2026-04-22T10:45:46.272+05:30[0;39m [32m INFO[0;39m [35m3952[0;39m [2m---[0;39m [2m[b4code-backend] [           main][0;39m [2m[0;39m[36mc.b.backend.B4CodeBackendApplication    [0;39m [2m:[0;39m Starting B4CodeBackendApplication v0.0.1-SNAPSHOT using Java 21.0.9 with PID 3952 (D:\PROJECTS\Software Project\b4code-backend\target\backend-0.0.1-SNAPSHOT.jar started by umesh in D:\PROJECTS\Software Project\b4code-backend)
+[2m2026-04-22T10:45:46.291+05:30[0;39m [32mDEBUG[0;39m [35m3952[0;39m [2m---[0;39m [2m[b4code-backend] [           main][0;39m [2m[0;39m[36mc.b.backend.B4CodeBackendApplication    [0;39m [2m:[0;39m Running with Spring Boot v3.2.4, Spring v6.1.5
+[2m2026-04-22T10:45:46.294+05:30[0;39m [32m INFO[0;39m [35m3952[0;39m [2m---[0;39m [2m[b4code-backend] [           main][0;39m [2m[0;39m[36mc.b.backend.B4CodeBackendApplication    [0;39m [2m:[0;39m The following 1 profile is active: "dev"
+[2m2026-04-22T10:45:48.877+05:30[0;39m [32m INFO[0;39m [35m3952[0;39m [2m---[0;39m [2m[b4code-backend] [           main][0;39m [2m[0;39m[36m.s.d.r.c.RepositoryConfigurationDelegate[0;39m [2m:[0;39m Multiple Spring Data modules found, entering strict repository configuration mode
+[2m2026-04-22T10:45:48.880+05:30[0;39m [32m INFO[0;39m [35m3952[0;39m [2m---[0;39m [2m[b4code-backend] [           main][0;39m [2m[0;39m[36m.s.d.r.c.RepositoryConfigurationDelegate[0;39m [2m:[0;39m Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+[2m2026-04-22T10:45:49.197+05:30[0;39m [32m INFO[0;39m [35m3952[0;39m [2m---[0;39m [2m[b4code-backend] [           main][0;39m [2m[0;39m[36m.s.d.r.c.RepositoryConfigurationDelegate[0;39m [2m:[0;39m Finished Spring Data repository scanning in 298 ms. Found 1 JPA repository interface.
+[2m2026-04-22T10:45:49.255+05:30[0;39m [32m INFO[0;39m [35m3952[0;39m [2m---[0;39m [2m[b4code-backend] [           main][0;39m [2m[0;39m[36m.s.d.r.c.RepositoryConfigurationDelegate[0;39m [2m:[0;39m Multiple Spring Data modules found, entering strict repository configuration mode
+[2m2026-04-22T10:45:49.259+05:30[0;39m [32m INFO[0;39m [35m3952[0;39m [2m---[0;39m [2m[b4code-backend] [           main][0;39m [2m[0;39m[36m.s.d.r.c.RepositoryConfigurationDelegate[0;39m [2m:[0;39m Bootstrapping Spring Data Redis repositories in DEFAULT mode.
+[2m2026-04-22T10:45:49.296+05:30[0;39m [32m INFO[0;39m [35m3952[0;39m [2m---[0;39m [2m[b4code-backend] [           main][0;39m [2m[0;39m[36m.RepositoryConfigurationExtensionSupport[0;39m [2m:[0;39m Spring Data Redis - Could not safely identify store assignment for repository candidate interface com.b4code.backend.modules.user.UserRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+[2m2026-04-22T10:45:49.296+05:30[0;39m [32m INFO[0;39m [35m3952[0;39m [2m---[0;39m [2m[b4code-backend] [           main][0;39m [2m[0;39m[36m.s.d.r.c.RepositoryConfigurationDelegate[0;39m [2m:[0;39m Finished Spring Data repository scanning in 11 ms. Found 0 Redis repository interfaces.
+[2m2026-04-22T10:45:50.851+05:30[0;39m [32m INFO[0;39m [35m3952[0;39m [2m---[0;39m [2m[b4code-backend] [           main][0;39m [2m[0;39m[36mo.s.b.w.embedded.tomcat.TomcatWebServer [0;39m [2m:[0;39m Tomcat initialized with port 8080 (http)
+[2m2026-04-22T10:45:50.882+05:30[0;39m [32m INFO[0;39m [35m3952[0;39m [2m---[0;39m [2m[b4code-backend] [           main][0;39m [2m[0;39m[36mo.apache.catalina.core.StandardService  [0;39m [2m:[0;39m Starting service [Tomcat]
+[2m2026-04-22T10:45:50.883+05:30[0;39m [32m INFO[0;39m [35m3952[0;39m [2m---[0;39m [2m[b4code-backend] [           main][0;39m [2m[0;39m[36mo.apache.catalina.core.StandardEngine   [0;39m [2m:[0;39m Starting Servlet engine: [Apache Tomcat/10.1.19]
+[2m2026-04-22T10:45:50.962+05:30[0;39m [32m INFO[0;39m [35m3952[0;39m [2m---[0;39m [2m[b4code-backend] [           main][0;39m [2m[0;39m[36mo.a.c.c.C.[Tomcat].[localhost].[/]      [0;39m [2m:[0;39m Initializing Spring embedded WebApplicationContext
+[2m2026-04-22T10:45:50.965+05:30[0;39m [32m INFO[0;39m [35m3952[0;39m [2m---[0;39m [2m[b4code-backend] [           main][0;39m [2m[0;39m[36mw.s.c.ServletWebServerApplicationContext[0;39m [2m:[0;39m Root WebApplicationContext: initialization completed in 4403 ms
+[2m2026-04-22T10:45:51.405+05:30[0;39m [32m INFO[0;39m [35m3952[0;39m [2m---[0;39m [2m[b4code-backend] [           main][0;39m [2m[0;39m[36mo.hibernate.jpa.internal.util.LogHelper [0;39m [2m:[0;39m HHH000204: Processing PersistenceUnitInfo [name: default]
+[2m2026-04-22T10:45:51.553+05:30[0;39m [32m INFO[0;39m [35m3952[0;39m [2m---[0;39m [2m[b4code-backend] [           main][0;39m [2m[0;39m[36morg.hibernate.Version                   [0;39m [2m:[0;39m HHH000412: Hibernate ORM core version 6.4.4.Final
+[2m2026-04-22T10:45:51.665+05:30[0;39m [32m INFO[0;39m [35m3952[0;39m [2m---[0;39m [2m[b4code-backend] [           main][0;39m [2m[0;39m[36mo.h.c.internal.RegionFactoryInitiator   [0;39m [2m:[0;39m HHH000026: Second-level cache disabled
+[2m2026-04-22T10:45:52.176+05:30[0;39m [32m INFO[0;39m [35m3952[0;39m [2m---[0;39m [2m[b4code-backend] [           main][0;39m [2m[0;39m[36mo.s.o.j.p.SpringPersistenceUnitInfo     [0;39m [2m:[0;39m No LoadTimeWeaver setup: ignoring JPA class transformer
+[2m2026-04-22T10:45:52.289+05:30[0;39m [32m INFO[0;39m [35m3952[0;39m [2m---[0;39m [2m[b4code-backend] [           main][0;39m [2m[0;39m[36mcom.zaxxer.hikari.HikariDataSource      [0;39m [2m:[0;39m HikariPool-1 - Starting...
+[2m2026-04-22T10:45:52.745+05:30[0;39m [32m INFO[0;39m [35m3952[0;39m [2m---[0;39m [2m[b4code-backend] [           main][0;39m [2m[0;39m[36mcom.zaxxer.hikari.pool.HikariPool       [0;39m [2m:[0;39m HikariPool-1 - Added connection org.postgresql.jdbc.PgConnection@365e65bb
+[2m2026-04-22T10:45:52.749+05:30[0;39m [32m INFO[0;39m [35m3952[0;39m [2m---[0;39m [2m[b4code-backend] [           main][0;39m [2m[0;39m[36mcom.zaxxer.hikari.HikariDataSource      [0;39m [2m:[0;39m HikariPool-1 - Start completed.
+[2m2026-04-22T10:45:52.821+05:30[0;39m [33m WARN[0;39m [35m3952[0;39m [2m---[0;39m [2m[b4code-backend] [           main][0;39m [2m[0;39m[36morg.hibernate.orm.deprecation           [0;39m [2m:[0;39m HHH90000025: PostgreSQLDialect does not need to be specified explicitly using 'hibernate.dialect' (remove the property setting and it will be selected by default)
+[2m2026-04-22T10:45:54.481+05:30[0;39m [32m INFO[0;39m [35m3952[0;39m [2m---[0;39m [2m[b4code-backend] [           main][0;39m [2m[0;39m[36mo.h.e.t.j.p.i.JtaPlatformInitiator      [0;39m [2m:[0;39m HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+[2m2026-04-22T10:45:54.580+05:30[0;39m [32m INFO[0;39m [35m3952[0;39m [2m---[0;39m [2m[b4code-backend] [           main][0;39m [2m[0;39m[36mj.LocalContainerEntityManagerFactoryBean[0;39m [2m:[0;39m Initialized JPA EntityManagerFactory for persistence unit 'default'
+[2m2026-04-22T10:45:55.422+05:30[0;39m [33m WARN[0;39m [35m3952[0;39m [2m---[0;39m [2m[b4code-backend] [           main][0;39m [2m[0;39m[36mJpaBaseConfiguration$JpaWebConfiguration[0;39m [2m:[0;39m spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
+[2m2026-04-22T10:45:56.039+05:30[0;39m [33m WARN[0;39m [35m3952[0;39m [2m---[0;39m [2m[b4code-backend] [           main][0;39m [2m[0;39m[36mConfigServletWebServerApplicationContext[0;39m [2m:[0;39m Exception encountered during context initialization - cancelling refresh attempt: org.springframework.beans.factory.UnsatisfiedDependencyException: Error creating bean with name 'org.springframework.security.config.annotation.web.configuration.WebSecurityConfiguration': Unsatisfied dependency expressed through method 'setFilterChains' parameter 0: Error creating bean with name 'filterChain' defined in class path resource [com/b4code/backend/common/config/SecurityConfig.class]: Failed to instantiate [org.springframework.security.web.SecurityFilterChain]: Factory method 'filterChain' threw exception with message: No qualifying bean of type 'org.springframework.security.oauth2.jwt.JwtDecoder' available
+[2m2026-04-22T10:45:56.040+05:30[0;39m [32m INFO[0;39m [35m3952[0;39m [2m---[0;39m [2m[b4code-backend] [           main][0;39m [2m[0;39m[36mj.LocalContainerEntityManagerFactoryBean[0;39m [2m:[0;39m Closing JPA EntityManagerFactory for persistence unit 'default'
+[2m2026-04-22T10:45:56.042+05:30[0;39m [32m INFO[0;39m [35m3952[0;39m [2m---[0;39m [2m[b4code-backend] [           main][0;39m [2m[0;39m[36mcom.zaxxer.hikari.HikariDataSource      [0;39m [2m:[0;39m HikariPool-1 - Shutdown initiated...
+[2m2026-04-22T10:45:56.053+05:30[0;39m [32m INFO[0;39m [35m3952[0;39m [2m---[0;39m [2m[b4code-backend] [           main][0;39m [2m[0;39m[36mcom.zaxxer.hikari.HikariDataSource      [0;39m [2m:[0;39m HikariPool-1 - Shutdown completed.
+[2m2026-04-22T10:45:56.057+05:30[0;39m [32m INFO[0;39m [35m3952[0;39m [2m---[0;39m [2m[b4code-backend] [           main][0;39m [2m[0;39m[36mo.apache.catalina.core.StandardService  [0;39m [2m:[0;39m Stopping service [Tomcat]
+[2m2026-04-22T10:45:56.085+05:30[0;39m [32m INFO[0;39m [35m3952[0;39m [2m---[0;39m [2m[b4code-backend] [           main][0;39m [2m[0;39m[36m.s.b.a.l.ConditionEvaluationReportLogger[0;39m [2m:[0;39m 
+
+Error starting ApplicationContext. To display the condition evaluation report re-run your application with 'debug' enabled.
+[2m2026-04-22T10:45:56.147+05:30[0;39m [31mERROR[0;39m [35m3952[0;39m [2m---[0;39m [2m[b4code-backend] [           main][0;39m [2m[0;39m[36mo.s.b.d.LoggingFailureAnalysisReporter  [0;39m [2m:[0;39m 
+
+***************************
+APPLICATION FAILED TO START
+***************************
+
+Description:
+
+Parameter 0 of method setFilterChains in org.springframework.security.config.annotation.web.configuration.WebSecurityConfiguration required a bean of type 'org.springframework.security.oauth2.jwt.JwtDecoder' that could not be found.
+
+
+Action:
+
+Consider defining a bean of type 'org.springframework.security.oauth2.jwt.JwtDecoder' in your configuration.
+
