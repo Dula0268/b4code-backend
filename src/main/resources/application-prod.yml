@@ -1,0 +1,73 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://${DB_HOST}:${DB_PORT:5432}/${DB_NAME}?sslmode=${DB_SSLMODE:require}
+    username: ${DB_USER}
+    password: ${DB_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      connection-timeout: 20000
+      maximum-pool-size: 10
+      minimum-idle: 2
+
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+
+  sql:
+    init:
+      mode: always
+      schema-locations: classpath:schema.sql
+
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+
+  session:
+    store-type: redis
+
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: ${MAIL_USERNAME:hello@prime-stay.app}
+    password: ${MAIL_PASSWORD}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+            required: true
+
+b4code:
+  qr:
+    base-url: https://prime-stay.app
+  security:
+    jwt:
+      secret: ${JWT_SECRET}
+      expirationMs: 3600000
+      refreshExpirationMs: 86400000
+
+payhere:
+  merchant-id: ${PAYHERE_MERCHANT_ID:1235421}
+  merchant-secret: ${PAYHERE_SECRET}
+  sandbox: ${PAYHERE_SANDBOX:false}
+  checkout-url: ${PAYHERE_CHECKOUT_URL:https://www.payhere.lk/pay/checkout}
+  notify-url: https://api.prime-stay.app/api/payments/notify
+  return-url: https://prime-stay.app/guest/booking
+  cancel-url: https://prime-stay.app/payment
+
+cloudinary:
+  cloud-name: ${CLOUDINARY_CLOUD_NAME}
+  api-key: ${CLOUDINARY_API_KEY}
+  api-secret: ${CLOUDINARY_API_SECRET}
