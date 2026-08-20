@@ -3,6 +3,8 @@ package com.b4code.backend.service;
 import com.b4code.backend.dao.MenuItemRepository;
 import com.b4code.backend.dao.OrderRepository;
 import com.b4code.backend.dao.OrderStatusLogRepository;
+import com.b4code.backend.dao.PropertyRepository;
+import com.b4code.backend.dao.UserRepository;
 import com.b4code.backend.dto.OrderRequest;
 import com.b4code.backend.exception.MenuItemNotFoundException;
 import com.b4code.backend.exception.StatusTransitionException;
@@ -32,6 +34,14 @@ class GuestOrderServiceTest {
     private MenuItemRepository menuItemRepository;
     @Mock
     private OrderStatusLogRepository orderStatusLogRepository;
+    @Mock
+    private PropertyRepository propertyRepository;
+    @Mock
+    private UserRepository userRepository;
+    @Mock
+    private NotificationService notificationService;
+    @Mock
+    private OrderSseService orderSseService;
 
     @InjectMocks
     private GuestOrderService guestOrderService;
@@ -55,6 +65,7 @@ class GuestOrderServiceTest {
 
         MenuItem menuItem = new MenuItem();
         menuItem.setId(10L);
+        menuItem.setPropertyId(1L); // must match request.getPropertyId() set in setUp()
         when(menuItemRepository.findById(10L)).thenReturn(Optional.of(menuItem));
         
         Order savedOrder = new Order();
