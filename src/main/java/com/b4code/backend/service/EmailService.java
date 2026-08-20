@@ -104,7 +104,7 @@ public class EmailService {
 
     @Async
     public void sendBookingModificationEmail(String toEmail, String guestName, String confirmationNumber, 
-                                            String propertyName, String oldRoomType, String newRoomType,
+                                            String propertyName, String oldRoomCategory, String newRoomCategory,
                                             String oldDates, String newDates, String differenceAmount, String newTotalAmount) {
         try {
             MimeMessage message = mailSender.createMimeMessage();
@@ -114,7 +114,7 @@ public class EmailService {
             helper.setTo(toEmail);
             helper.setSubject("Booking Updated! - " + propertyName);
 
-            String htmlContent = buildBookingModificationHtml(guestName, confirmationNumber, propertyName, oldRoomType, newRoomType, oldDates, newDates, differenceAmount, newTotalAmount);
+            String htmlContent = buildBookingModificationHtml(guestName, confirmationNumber, propertyName, oldRoomCategory, newRoomCategory, oldDates, newDates, differenceAmount, newTotalAmount);
             helper.setText(htmlContent, true);
 
             mailSender.send(message);
@@ -473,11 +473,11 @@ public class EmailService {
     }
 
     private String buildBookingModificationHtml(String guestName, String confirmationNumber, 
-                                               String propertyName, String oldRoomType, String newRoomType,
+                                               String propertyName, String oldRoomCategory, String newRoomCategory,
                                                String oldDates, String newDates, String differenceAmount, String newTotalAmount) {
         String changesDetailHtml = "";
         
-        if (!oldRoomType.equalsIgnoreCase(newRoomType)) {
+        if (!oldRoomCategory.equalsIgnoreCase(newRoomCategory)) {
             changesDetailHtml += """
                 <tr>
                   <td style="padding: 10px 0; border-bottom: 1px solid #eeeeee;">
@@ -486,7 +486,7 @@ public class EmailService {
                     <span style="color: #9a3300; font-weight: bold; font-size: 13px;">&rarr; %s</span>
                   </td>
                 </tr>
-                """.formatted(oldRoomType, newRoomType);
+                """.formatted(oldRoomCategory, newRoomCategory);
         }
         
         if (!oldDates.equalsIgnoreCase(newDates)) {
@@ -598,172 +598,5 @@ public class EmailService {
             </body>
             </html>
             """.formatted(guestName, propertyName, confirmationNumber, changesDetailHtml, paymentInfoHtml, newTotalAmount);
-    }
-    @Async
-    public void sendPayoutProcessedEmail(String toEmail, com.b4code.backend.models.Payout payout) {
-        try {
-            MimeMessage message = mailSender.createMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
-
-            helper.setFrom(fromEmail, "Prime Stay Finance");
-            helper.setTo(toEmail);
-            helper.setSubject("Payout Processed - " + payout.getPropertyName());
-
-            String htmlContent = buildPayoutProcessedHtml(payout);
-            helper.setText(htmlContent, true);
-
-            mailSender.send(message);
-            log.info("Payout processed email sent to: {}", toEmail);
-        } catch (Exception e) {
-            log.error("Failed to send payout processed email to {}: {}", toEmail, e.getMessage());
-        }
-    }
-
-    @Async
-    public void sendPayoutRejectedEmail(String toEmail, com.b4code.backend.models.Payout payout) {
-        try {
-            MimeMessage message = mailSender.createMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
-
-            helper.setFrom(fromEmail, "Prime Stay Finance");
-            helper.setTo(toEmail);
-            helper.setSubject("Payout Request Rejected - " + payout.getPropertyName());
-
-            String htmlContent = buildPayoutRejectedHtml(payout);
-            helper.setText(htmlContent, true);
-
-            mailSender.send(message);
-            log.info("Payout rejected email sent to: {}", toEmail);
-        } catch (Exception e) {
-            log.error("Failed to send payout rejected email to {}: {}", toEmail, e.getMessage());
-        }
-    }
-
-    private String buildPayoutProcessedHtml(com.b4code.backend.models.Payout payout) {
-        String netAmount = payout.getAmount() != null ? String.format("%.2f", payout.getAmount()) : "0.00";
-        String bankRef = payout.getBankReference() != null ? payout.getBankReference() : "N/A";
-        return """
-            <!DOCTYPE html>
-            <html lang="en">
-            <head>
-              <meta charset="UTF-8" />
-              <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-            </head>
-            <body style="margin:0;padding:0;background:#f5f5f5;font-family:'Segoe UI',Arial,sans-serif;">
-              <table width="100%%" cellpadding="0" cellspacing="0" style="background:#f5f5f5;padding:40px 0;">
-                <tr>
-                  <td align="center">
-                    <table width="520" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08);">
-                      <!-- Header -->
-                      <tr>
-                        <td style="background:linear-gradient(135deg,#16A34A,#15803D);padding:36px 40px;text-align:center;">
-                          <h1 style="margin:0;color:#ffffff;font-size:26px;font-weight:800;letter-spacing:-0.5px;">PRIME STAY</h1>
-                          <p style="margin:6px 0 0;color:rgba(255,255,255,0.9);font-size:13px;">Payout Processed Successfully</p>
-                        </td>
-                      </tr>
-                      <!-- Body -->
-                      <tr>
-                        <td style="padding:40px;">
-                          <h2 style="margin:0 0 12px;color:#1d1d1d;font-size:20px;font-weight:700;">Hello %s,</h2>
-                          <p style="margin:0 0 24px;color:#555555;font-size:15px;line-height:1.6;">
-                            We have successfully processed your payout request for <strong>%s</strong>. The funds have been transferred to your registered bank account.
-                          </p>
-                          
-                          <!-- Payout Card -->
-                          <div style="background:#f0fdf4;border:1px solid #dcfce7;border-radius:12px;padding:24px;margin:0 0 28px;">
-                            <table width="100%%" cellpadding="0" cellspacing="0">
-                              <tr>
-                                <td style="padding-bottom:12px;color:#166534;font-size:12px;text-transform:uppercase;letter-spacing:1px;font-weight:bold;">Transfer Details</td>
-                              </tr>
-                              <tr>
-                                <td style="padding-bottom:12px;color:#15803D;font-size:20px;font-weight:800;">LKR %s</td>
-                              </tr>
-                              <tr>
-                                <td style="padding-bottom:8px;color:#1d1d1d;font-size:14px;"><strong>Bank Reference:</strong> %s</td>
-                              </tr>
-                            </table>
-                          </div>
-                          
-                          <p style="margin:0 0 28px;color:#555555;font-size:14px;line-height:1.6;">
-                            Please allow 1-3 business days for the funds to reflect in your account, depending on your bank's processing times.
-                          </p>
-                          
-                          <hr style="border:none;border-top:1px solid #eeeeee;margin:0 0 24px;"/>
-                          
-                          <p style="margin:0;color:#aaaaaa;font-size:12px;line-height:1.6;text-align:center;">
-                            Thank you for partnering with Prime Stay.<br/>
-                            &copy; 2025 All rights reserved.
-                          </p>
-                        </td>
-                      </tr>
-                    </table>
-                  </td>
-                </tr>
-              </table>
-            </body>
-            </html>
-            """.formatted(payout.getOwnerName() != null ? payout.getOwnerName() : "Owner", payout.getPropertyName(), netAmount, bankRef);
-    }
-
-    private String buildPayoutRejectedHtml(com.b4code.backend.models.Payout payout) {
-        String note = payout.getAdminNote() != null && !payout.getAdminNote().isBlank() ? payout.getAdminNote() : "No specific reason provided.";
-        return """
-            <!DOCTYPE html>
-            <html lang="en">
-            <head>
-              <meta charset="UTF-8" />
-              <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-            </head>
-            <body style="margin:0;padding:0;background:#f5f5f5;font-family:'Segoe UI',Arial,sans-serif;">
-              <table width="100%%" cellpadding="0" cellspacing="0" style="background:#f5f5f5;padding:40px 0;">
-                <tr>
-                  <td align="center">
-                    <table width="520" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08);">
-                      <!-- Header -->
-                      <tr>
-                        <td style="background:linear-gradient(135deg,#DC2626,#991B1B);padding:36px 40px;text-align:center;">
-                          <h1 style="margin:0;color:#ffffff;font-size:26px;font-weight:800;letter-spacing:-0.5px;">PRIME STAY</h1>
-                          <p style="margin:6px 0 0;color:rgba(255,255,255,0.9);font-size:13px;">Payout Request Rejected</p>
-                        </td>
-                      </tr>
-                      <!-- Body -->
-                      <tr>
-                        <td style="padding:40px;">
-                          <h2 style="margin:0 0 12px;color:#1d1d1d;font-size:20px;font-weight:700;">Hello %s,</h2>
-                          <p style="margin:0 0 24px;color:#555555;font-size:15px;line-height:1.6;">
-                            Unfortunately, your recent payout request for <strong>%s</strong> could not be processed and has been rejected by our finance team.
-                          </p>
-                          
-                          <!-- Rejection Reason Card -->
-                          <div style="background:#fef2f2;border:1px solid #fee2e2;border-radius:12px;padding:24px;margin:0 0 28px;">
-                            <table width="100%%" cellpadding="0" cellspacing="0">
-                              <tr>
-                                <td style="padding-bottom:12px;color:#991B1B;font-size:12px;text-transform:uppercase;letter-spacing:1px;font-weight:bold;">Reason for Rejection</td>
-                              </tr>
-                              <tr>
-                                <td style="color:#7f1d1d;font-size:14px;line-height:1.5;">%s</td>
-                              </tr>
-                            </table>
-                          </div>
-                          
-                          <p style="margin:0 0 28px;color:#555555;font-size:14px;line-height:1.6;">
-                            Please review the reason above, update your bank details if necessary, and submit a new payout request through your owner dashboard.
-                          </p>
-                          
-                          <hr style="border:none;border-top:1px solid #eeeeee;margin:0 0 24px;"/>
-                          
-                          <p style="margin:0;color:#aaaaaa;font-size:12px;line-height:1.6;text-align:center;">
-                            If you have questions, please contact our support team.<br/>
-                            &copy; 2025 All rights reserved.
-                          </p>
-                        </td>
-                      </tr>
-                    </table>
-                  </td>
-                </tr>
-              </table>
-            </body>
-            </html>
-            """.formatted(payout.getOwnerName() != null ? payout.getOwnerName() : "Owner", payout.getPropertyName(), note);
     }
 }

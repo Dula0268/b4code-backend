@@ -1,19 +1,19 @@
 package com.b4code.backend.dto.owner;
 
-import com.b4code.backend.models.Room;
+import com.b4code.backend.models.RoomType;
 import lombok.Builder;
 import lombok.Data;
 
 @Data
 @Builder
-public class OwnerRoomDto {
+public class OwnerRoomTypeDto {
 
     private Long id;
     private Long propertyId;
     private String propertyName;
     private String name;
     private String description;
-    private String roomType;
+    private String roomCategory;
     private Integer maxOccupancy;
     private Integer maxChildren;
     private String bedType;
@@ -23,18 +23,18 @@ public class OwnerRoomDto {
     private String status;
     private String imageUrl;
 
-    public static OwnerRoomDto fromEntity(Room r) {
+    public static OwnerRoomTypeDto fromEntity(RoomType r) {
         String imgUrl = (r.getImage() != null) ? r.getImage().getUrl() : null;
         String propName = (r.getProperty() != null) ? r.getProperty().getName() : null;
         Long propId = (r.getProperty() != null) ? r.getProperty().getId() : null;
 
-        return OwnerRoomDto.builder()
+        return OwnerRoomTypeDto.builder()
                 .id(r.getId())
                 .propertyId(propId)
                 .propertyName(propName)
                 .name(r.getName())
                 .description(r.getDescription())
-                .roomType(r.getRoomType() != null ? r.getRoomType().name() : null)
+                .roomCategory(r.getRoomCategory() != null ? r.getRoomCategory().name() : null)
                 .maxOccupancy(r.getMaxOccupancy())
                 .maxChildren(r.getMaxChildren() != null ? r.getMaxChildren() : 0)
                 .bedType(r.getBedType() != null ? r.getBedType().name() : null)

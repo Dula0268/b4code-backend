@@ -42,8 +42,6 @@ public class FinanceServiceImpl implements FinanceService {
         private final com.b4code.backend.dao.UserRepository userRepository;
         private final NotificationService notificationService;
         private final com.b4code.backend.dao.BookingRepository bookingRepository;
-        private final com.b4code.backend.service.EmailService emailService;
-        private final com.b4code.backend.dao.PropertyRepository propertyRepository;
 
         private static final String COMMISSION_KEY = "COMMISSION_RATE";
         private static final BigDecimal DEFAULT_COMMISSION = new BigDecimal("20.00");
@@ -53,24 +51,16 @@ public class FinanceServiceImpl implements FinanceService {
         @Transactional(readOnly = true)
         public FinanceSummaryDto getFinanceSummary() {
                 BigDecimal approvedRefunds = refundRepository.sumApprovedRefunds();
-                BigDecimal totalRev = transactionRepository.sumTotalRevenue();
-                BigDecimal platformComm = transactionRepository.sumPlatformCommission();
-                BigDecimal totalPay = payoutRepository.sumProcessedPayouts();
-
-                Long pendingRefundsCount = refundRepository.countPendingRefunds();
-
                 return FinanceSummaryDto.builder()
-                                .totalRevenue(totalRev != null ? totalRev : BigDecimal.ZERO)
+                                .totalRevenue(transactionRepository.sumTotalRevenue())
                                 .revenueGrowth("+12.5%")
-                                .platformCommission(platformComm != null ? platformComm : BigDecimal.ZERO)
+                                .platformCommission(transactionRepository.sumPlatformCommission())
                                 .commissionGrowth("+8.2%")
-                                .totalPayouts(totalPay != null ? totalPay : BigDecimal.ZERO)
+                                .totalPayouts(payoutRepository.sumProcessedPayouts())
                                 .payoutGrowth("+15.0%")
-                                .totalRefunds(approvedRefunds != null ? approvedRefunds : BigDecimal.ZERO)
+                                .totalRefunds(approvedRefunds)
                                 .refundsGrowth("-2.4%")
-                                .pendingRefunds(pendingRefundsCount)
-                                .allPayoutsCount(payoutRepository.count())
-                                .pendingPayouts(payoutRepository.countByStatus(PayoutStatus.PENDING))
+                                .pendingRefunds(approvedRefunds) // frontend reads pendingRefunds
                                 .currency("LKR")
                                 .build();
         }
@@ -161,10 +151,10 @@ public class FinanceServiceImpl implements FinanceService {
         // ── Refunds: paginated list
         @Override
         @Transactional(readOnly = true)
-        public RefundPageDto getAllRefunds(String search, RefundStatus status, Boolean resolved, int page, int size) {
+        public RefundPageDto getAllRefunds(String search, RefundStatus status, int page, int size) {
                 String searchTerm = (search == null || search.isBlank()) ? null : search.trim();
                 Page<Refund> pageResult = refundRepository.findAllWithFilters(
-                                status, resolved, searchTerm,
+                                status, searchTerm,
                                 PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "requestedAt")));
                 return RefundPageDto.builder()
                                 .content(pageResult.map(RefundDto::fromEntity).toList())
@@ -295,7 +285,6 @@ public class FinanceServiceImpl implements FinanceService {
                                 "Payout approved",
                                 "Your payout request for " + saved.getPropertyName() + " has been processed successfully."
                         );
-                        emailService.sendPayoutProcessedEmail(owner.getEmail(), saved);
                 }
                 log.info("Payout id={} PROCESSED — ref='{}'", id, bankReference);
                 return mapToPayoutDto(saved);
@@ -303,22 +292,20 @@ public class FinanceServiceImpl implements FinanceService {
 
         @Override
         @Transactional
-        public PayoutDto rejectPayout(Long id, String adminNote) {
+        public PayoutDto rejectPayout(Long id) {
                 Payout payout = payoutRepository.findById(id)
                                 .orElseThrow(() -> new CustomException("Payout id=" + id + " not found.",
                                                 HttpStatus.NOT_FOUND));
 
                 payout.setStatus(PayoutStatus.REJECTED);
-                payout.setAdminNote(adminNote);
                 Payout saved = payoutRepository.save(payout);
                 User owner = userRepository.findById(saved.getOwnerId()).orElse(null);
                 if (owner != null) {
                         notificationService.createNotification(
                                 owner,
                                 "Payout rejected",
-                                "Your payout request for " + saved.getPropertyName() + " was rejected by the admin. Please review your email for details."
+                                "Your payout request for " + saved.getPropertyName() + " was rejected by the admin. Please review your bank details or contact support."
                         );
-                        emailService.sendPayoutRejectedEmail(owner.getEmail(), saved);
                 }
                 log.info("Payout id={} REJECTED", id);
                 return mapToPayoutDto(saved);
@@ -326,16 +313,6 @@ public class FinanceServiceImpl implements FinanceService {
 
         public PayoutDto mapToPayoutDto(Payout p) {
                 PayoutDto dto = PayoutDto.fromEntity(p);
-                if (p.getPropertyId() != null) {
-                        propertyRepository.findById(p.getPropertyId())
-                                .ifPresent(prop -> {
-                                        if (prop.getImageUrl() != null && !prop.getImageUrl().isEmpty()) {
-                                                dto.setPropertyImage(prop.getImageUrl());
-                                        } else if (prop.getImageSrc() != null && !prop.getImageSrc().isEmpty()) {
-                                                dto.setPropertyImage(prop.getImageSrc());
-                                        }
-                                });
-                }
                 if (p.getOwnerId() != null) {
                         List<com.b4code.backend.models.BankAccount> accounts = bankAccountRepository.findByOwnerIdOrderByIsPrimaryDescCreatedAtDesc(p.getOwnerId());
                         if (accounts != null && !accounts.isEmpty()) {
