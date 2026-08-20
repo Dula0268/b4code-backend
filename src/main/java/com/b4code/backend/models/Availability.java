@@ -21,7 +21,7 @@ public class Availability {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "room_id", nullable = false)
-    private RoomType roomType;
+    private Room room;
 
     @Column(nullable = false)
     private LocalDate date;

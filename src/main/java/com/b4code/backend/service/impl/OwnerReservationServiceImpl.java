@@ -2,14 +2,14 @@ package com.b4code.backend.service.impl;
 
 import com.b4code.backend.dao.BookingRepository;
 import com.b4code.backend.dao.PropertyRepository;
-import com.b4code.backend.dao.RoomTypeRepository;
+import com.b4code.backend.dao.RoomRepository;
 import com.b4code.backend.dao.UserRepository;
 import com.b4code.backend.dto.owner.ManualBookingRequest;
 import com.b4code.backend.dto.owner.OwnerReservationDto;
 import com.b4code.backend.exceptions.CustomException;
 import com.b4code.backend.models.Booking;
 import com.b4code.backend.models.Property;
-import com.b4code.backend.models.RoomType;
+import com.b4code.backend.models.Room;
 import com.b4code.backend.models.User;
 import com.b4code.backend.service.OwnerReservationService;
 import lombok.RequiredArgsConstructor;
@@ -29,7 +29,7 @@ public class OwnerReservationServiceImpl implements OwnerReservationService {
 
     private final BookingRepository bookingRepository;
     private final PropertyRepository propertyRepository;
-    private final RoomTypeRepository roomTypeRepository;
+    private final RoomRepository roomRepository;
     private final UserRepository userRepository;
 
     @Override
@@ -63,7 +63,7 @@ public class OwnerReservationServiceImpl implements OwnerReservationService {
             throw new CustomException("Property does not belong to this owner", HttpStatus.FORBIDDEN);
         }
 
-        RoomType roomType = roomTypeRepository.findById(request.getRoomId())
+        Room room = roomRepository.findById(request.getRoomId())
                 .orElseThrow(() -> new CustomException("Room not found", HttpStatus.NOT_FOUND));
 
         BigDecimal total = request.getTotalAmount() != null ? request.getTotalAmount() : BigDecimal.ZERO;
@@ -84,7 +84,7 @@ public class OwnerReservationServiceImpl implements OwnerReservationService {
                 .checkOut(request.getCheckOut())
                 .adults(request.getAdults() != null ? request.getAdults() : 1)
                 .children(request.getChildren() != null ? request.getChildren() : 0)
-                .roomType(roomType)
+                .room(room)
                 .property(property)
                 .paymentMethod(payMethod)
                 .status(Booking.BookingStatus.CONFIRMED)

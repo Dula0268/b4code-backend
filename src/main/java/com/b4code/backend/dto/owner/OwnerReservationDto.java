@@ -18,7 +18,6 @@ public class OwnerReservationDto {
     private Integer children;
     private Long roomId;
     private String roomName;
-    private String roomNumber;
     private Long propertyId;
     private String propertyName;
     private String status;
@@ -32,8 +31,8 @@ public class OwnerReservationDto {
     private Boolean isManual;
 
     public static OwnerReservationDto fromEntity(Booking b) {
-        String roomName = b.getRoomType() != null ? b.getRoomType().getName() : null;
-        Long roomId = b.getRoomType() != null ? b.getRoomType().getId() : null;
+        String roomName = b.getRoom() != null ? b.getRoom().getName() : null;
+        Long roomId = b.getRoom() != null ? b.getRoom().getId() : null;
         Long propId = b.getProperty() != null ? b.getProperty().getId() : null;
         String propName = b.getProperty() != null ? b.getProperty().getName() : null;
 
@@ -49,7 +48,6 @@ public class OwnerReservationDto {
                 .children(b.getChildren())
                 .roomId(roomId)
                 .roomName(roomName)
-                .roomNumber(b.getRoomNumber())
                 .propertyId(propId)
                 .propertyName(propName)
                 .status(b.getStatus() != null ? b.getStatus().name() : null)

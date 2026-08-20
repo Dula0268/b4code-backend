@@ -15,7 +15,7 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
 
     @Query("""
         SELECT COALESCE(SUM(b.roomQuantity), 0) FROM Booking b
-        WHERE b.roomType.id = :roomId
+        WHERE b.room.id = :roomId
           AND b.status <> 'CANCELLED'
           AND b.checkIn  < :checkOut
           AND b.checkOut > :checkIn
@@ -29,7 +29,7 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
     @Query("""
         SELECT COALESCE(SUM(b.roomQuantity), 0) FROM Booking b
         WHERE b.id <> :bookingId
-          AND b.roomType.id = :roomId
+          AND b.room.id = :roomId
           AND b.status <> 'CANCELLED'
           AND b.checkIn  < :checkOut
           AND b.checkOut > :checkIn
@@ -49,15 +49,10 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
 
     Optional<Booking> findByConfirmationCode(String confirmationCode);
 
-    /** Used by check-in (to stop double-assigning an occupied room) and by the
-     * guest-facing room-status lookup (to know if a scanned room QR is checked in). */
-    Optional<Booking> findByPropertyIdAndRoomNumberIgnoreCaseAndStatus(
-        Long propertyId, String roomNumber, Booking.BookingStatus status);
-
     @Query("""
         SELECT b FROM Booking b
         WHERE b.property.id = :propertyId
-          AND b.roomType.id = :roomId
+          AND b.room.id = :roomId
           AND b.status = 'CHECKED_IN'
     """)
     Optional<Booking> findActiveBookingByRoom(

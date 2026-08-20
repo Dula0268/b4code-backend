@@ -46,7 +46,7 @@ public class AuthController {
         return ResponseEntity.ok("Email verified successfully.");
     }
 
-    @PostMapping("/roomType-login")
+    @PostMapping("/room-login")
     public ResponseEntity<AuthResponse> roomLogin(@RequestBody RoomLoginRequest request) {
         return ResponseEntity.ok(authService.roomLogin(request));
     }

@@ -11,7 +11,7 @@ public class OwnerDashboardDto {
     private long activeBookings;
     private String totalRevenue;
     private long totalProperties;
-    private long totalRoomTypes;
+    private long totalRooms;
     private List<RecentBookingDto> recentBookings;
 
     @Data

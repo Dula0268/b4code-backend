@@ -46,12 +46,7 @@ public class Booking {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "room_id", nullable = false)
-    private RoomType roomType;
-
-    /** Physical room number staff assign at check-in (e.g. "101") — distinct from
-     * {@link #roomType}, which is only the booked room category (e.g. "Standard Room"). */
-    @Column(name = "room_number", length = 50)
-    private String roomNumber;
+    private Room room;
 
     @Column(nullable = false, columnDefinition = "integer default 1")
     @Builder.Default
