@@ -18,7 +18,7 @@ public interface PropertyRepository extends JpaRepository<Property, Long> {
 
     @Query("""
             SELECT DISTINCT p FROM Property p
-            JOIN Room r ON r.property = p
+            JOIN RoomType r ON r.property = p
             WHERE (LOWER(p.city) LIKE LOWER(CONCAT('%', :destination, '%'))
                    OR LOWER(p.country) LIKE LOWER(CONCAT('%', :destination, '%'))
                    OR LOWER(p.name) LIKE LOWER(CONCAT('%', :destination, '%')))
@@ -31,32 +31,32 @@ public interface PropertyRepository extends JpaRepository<Property, Long> {
                   SELECT COALESCE(SUM(
                       r2.inventory - CASE WHEN :hasDates = true THEN (
                           SELECT COALESCE(MAX(ri.bookedQuantity), 0) FROM RoomDateInventory ri
-                          WHERE ri.room = r2
+                          WHERE ri.roomType = r2
                               AND ri.date >= :checkIn
                               AND ri.date < :checkOut
                       ) ELSE 0 END
-                  ), 0) FROM Room r2 WHERE r2.property = p
+                  ), 0) FROM RoomType r2 WHERE r2.property = p
                   AND r2.inventory > CASE WHEN :hasDates = true THEN (
                       SELECT COALESCE(MAX(ri.bookedQuantity), 0) FROM RoomDateInventory ri
-                      WHERE ri.room = r2
+                      WHERE ri.roomType = r2
                           AND ri.date >= :checkIn
                           AND ri.date < :checkOut
                   ) ELSE 0 END
-              ) >= :rooms
+              ) >= :roomTypes
               AND (
                   SELECT COALESCE(SUM(
                       r3.maxOccupancy * (
                           r3.inventory - CASE WHEN :hasDates = true THEN (
                               SELECT COALESCE(MAX(ri.bookedQuantity), 0) FROM RoomDateInventory ri
-                              WHERE ri.room = r3
+                              WHERE ri.roomType = r3
                                   AND ri.date >= :checkIn
                                   AND ri.date < :checkOut
                           ) ELSE 0 END
                       )
-                  ), 0) FROM Room r3 WHERE r3.property = p
+                  ), 0) FROM RoomType r3 WHERE r3.property = p
                   AND r3.inventory > CASE WHEN :hasDates = true THEN (
                       SELECT COALESCE(MAX(ri.bookedQuantity), 0) FROM RoomDateInventory ri
-                      WHERE ri.room = r3
+                      WHERE ri.roomType = r3
                           AND ri.date >= :checkIn
                           AND ri.date < :checkOut
                   ) ELSE 0 END
@@ -68,14 +68,14 @@ public interface PropertyRepository extends JpaRepository<Property, Long> {
             @Param("checkIn") LocalDate checkIn,
             @Param("checkOut") LocalDate checkOut,
             @Param("guests") Integer guests,
-            @Param("rooms") Integer rooms,
+            @Param("roomTypes") Integer roomTypes,
             @Param("minPrice") BigDecimal minPrice,
             @Param("maxPrice") BigDecimal maxPrice,
             Pageable pageable);
 
     @Query("""
             SELECT DISTINCT p FROM Property p
-            JOIN Room r ON r.property = p
+            JOIN RoomType r ON r.property = p
             WHERE (LOWER(p.city) LIKE LOWER(CONCAT('%', :destination, '%'))
                    OR LOWER(p.country) LIKE LOWER(CONCAT('%', :destination, '%'))
                    OR LOWER(p.name) LIKE LOWER(CONCAT('%', :destination, '%')))
@@ -87,32 +87,32 @@ public interface PropertyRepository extends JpaRepository<Property, Long> {
                   SELECT COALESCE(SUM(
                       r2.inventory - CASE WHEN :hasDates = true THEN (
                           SELECT COALESCE(MAX(ri.bookedQuantity), 0) FROM RoomDateInventory ri
-                          WHERE ri.room = r2
+                          WHERE ri.roomType = r2
                               AND ri.date >= :checkIn
                               AND ri.date < :checkOut
                       ) ELSE 0 END
-                  ), 0) FROM Room r2 WHERE r2.property = p
+                  ), 0) FROM RoomType r2 WHERE r2.property = p
                   AND r2.inventory > CASE WHEN :hasDates = true THEN (
                       SELECT COALESCE(MAX(ri.bookedQuantity), 0) FROM RoomDateInventory ri
-                      WHERE ri.room = r2
+                      WHERE ri.roomType = r2
                           AND ri.date >= :checkIn
                           AND ri.date < :checkOut
                   ) ELSE 0 END
-              ) >= :rooms
+              ) >= :roomTypes
               AND (
                   SELECT COALESCE(SUM(
                       r3.maxOccupancy * (
                           r3.inventory - CASE WHEN :hasDates = true THEN (
                               SELECT COALESCE(MAX(ri.bookedQuantity), 0) FROM RoomDateInventory ri
-                              WHERE ri.room = r3
+                              WHERE ri.roomType = r3
                                   AND ri.date >= :checkIn
                                   AND ri.date < :checkOut
                           ) ELSE 0 END
                       )
-                  ), 0) FROM Room r3 WHERE r3.property = p
+                  ), 0) FROM RoomType r3 WHERE r3.property = p
                   AND r3.inventory > CASE WHEN :hasDates = true THEN (
                       SELECT COALESCE(MAX(ri.bookedQuantity), 0) FROM RoomDateInventory ri
-                      WHERE ri.room = r3
+                      WHERE ri.roomType = r3
                           AND ri.date >= :checkIn
                           AND ri.date < :checkOut
                   ) ELSE 0 END
@@ -124,7 +124,7 @@ public interface PropertyRepository extends JpaRepository<Property, Long> {
             @Param("checkIn") LocalDate checkIn,
             @Param("checkOut") LocalDate checkOut,
             @Param("guests") Integer guests,
-            @Param("rooms") Integer rooms,
+            @Param("roomTypes") Integer roomTypes,
             @Param("minPrice") BigDecimal minPrice,
             @Param("maxPrice") BigDecimal maxPrice);
 
@@ -167,10 +167,10 @@ public interface PropertyRepository extends JpaRepository<Property, Long> {
             @Param("status") com.b4code.backend.models.enums.PropertyStatus status,
             Pageable pageable);
 
-    @Query("SELECT MIN(r.pricePerNight) FROM Room r")
+    @Query("SELECT MIN(r.pricePerNight) FROM RoomType r")
     BigDecimal findMinPrice();
 
-    @Query("SELECT MAX(r.pricePerNight) FROM Room r")
+    @Query("SELECT MAX(r.pricePerNight) FROM RoomType r")
     BigDecimal findMaxPrice();
 
     long countByCreatedAtAfter(LocalDateTime date);

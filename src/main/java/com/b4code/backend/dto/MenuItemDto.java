@@ -36,4 +36,9 @@ public class MenuItemDto {
     private Integer calories;
     private List<MenuItemVariantDto> variants;
     private List<MenuItemModifierDto> modifiers;
+
+    /** Average of {@code ItemReview.rating} for this item, rounded to 1 decimal; null if no reviews yet. */
+    private Double avgRating;
+    /** Total number of reviews backing {@link #avgRating}. */
+    private Long reviewCount;
 }

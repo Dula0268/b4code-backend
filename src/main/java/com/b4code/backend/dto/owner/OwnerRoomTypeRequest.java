@@ -4,11 +4,11 @@ import lombok.Data;
 import java.math.BigDecimal;
 
 @Data
-public class OwnerRoomRequest {
+public class OwnerRoomTypeRequest {
     private Long propertyId;
     private String name;
     private String description;
-    private String roomType;
+    private String roomCategory;
     private Integer maxOccupancy;
     private Integer maxChildren;
     private String bedType;

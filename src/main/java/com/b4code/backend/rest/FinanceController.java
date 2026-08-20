@@ -77,12 +77,11 @@ public class FinanceController {
     public ResponseEntity<RefundPageDto> getAllRefunds(
             @RequestParam(required = false, defaultValue = "") String search,
             @RequestParam(required = false) RefundStatus status,
-            @RequestParam(required = false) Boolean resolved,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
         if (page < 0)
             page = 0;
-        return ResponseEntity.ok(financeService.getAllRefunds(search, status, resolved, page, size));
+        return ResponseEntity.ok(financeService.getAllRefunds(search, status, page, size));
     }
 
     // ── APPROVE refund
@@ -159,11 +158,9 @@ public class FinanceController {
     @PutMapping("/payouts/{id}/reject")
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     @Operation(summary = "Reject a payout")
-    public ResponseEntity<PayoutDto> rejectPayout(
-            @PathVariable Long id,
-            @RequestBody PayoutRejectRequest request) {
+    public ResponseEntity<PayoutDto> rejectPayout(@PathVariable Long id) {
         log.info("PUT /api/admin/finance/payouts/{}/reject", id);
-        return ResponseEntity.ok(financeService.rejectPayout(id, request.adminNote()));
+        return ResponseEntity.ok(financeService.rejectPayout(id));
     }
 
     // ── GET commission rate
@@ -195,9 +192,6 @@ public class FinanceController {
     }
 
     public record PayoutProcessRequest(String bankReference, BigDecimal commissionRate) {
-    }
-
-    public record PayoutRejectRequest(String adminNote) {
     }
 
     public record CommissionUpdateRequest(BigDecimal commissionRate) {

@@ -13,9 +13,7 @@ public class FinanceSummaryDto {
     private String payoutGrowth;
     private java.math.BigDecimal totalRefunds;
     private String refundsGrowth;
-    private Long pendingRefunds;
-    private Long allPayoutsCount;
-    private Long pendingPayouts;
+    private java.math.BigDecimal pendingRefunds;  // same as totalRefunds, named for frontend
     private String currency;
 }
 

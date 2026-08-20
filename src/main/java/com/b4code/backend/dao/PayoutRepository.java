@@ -32,8 +32,6 @@ public interface PayoutRepository extends JpaRepository<Payout, Long> {
     @Query("SELECT COALESCE(SUM(p.amount), 0) FROM Payout p WHERE p.status = 'PROCESSED'")
     BigDecimal sumProcessedPayouts();
 
-    long countByStatus(PayoutStatus status);
-
     @Query("""
             SELECT p FROM Payout p
             WHERE p.ownerId = :ownerId

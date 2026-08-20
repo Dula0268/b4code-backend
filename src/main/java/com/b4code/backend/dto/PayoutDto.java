@@ -19,7 +19,6 @@ public class PayoutDto {
     private String ownerName;
     private Long propertyId;
     private String propertyName;
-    private String propertyImage;
     private BigDecimal amount;
     private BigDecimal hotelAmount;
     private BigDecimal foodAmount;

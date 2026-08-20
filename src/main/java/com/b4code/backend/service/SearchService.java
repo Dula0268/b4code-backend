@@ -2,7 +2,7 @@ package com.b4code.backend.service;
 
 import com.b4code.backend.dto.SearchDTO.*;
 import com.b4code.backend.models.Property;
-import com.b4code.backend.models.Room;
+import com.b4code.backend.models.RoomType;
 import com.b4code.backend.models.Review;
 import com.b4code.backend.dao.PropertyRepository;
 import com.b4code.backend.dao.ReviewRepository;
@@ -59,7 +59,7 @@ public class SearchService {
             LocalDate checkIn,
             LocalDate checkOut,
             Integer guests,
-            Integer rooms,
+            Integer roomTypes,
             BigDecimal minPrice,
             BigDecimal maxPrice,
             Double minRating,
@@ -70,11 +70,11 @@ public class SearchService {
             int size) {
 
         log.info(
-                "Search request: destination={}, guests={}, rooms={}, price=[{}-{}], rating>={}, types={}, sort={}, page={}, size={}",
-                destination, guests, rooms, minPrice, maxPrice, minRating, sortBy, page, size);
+                "Search request: destination={}, guests={}, roomTypes={}, price=[{}-{}], rating>={}, types={}, sort={}, page={}, size={}",
+                destination, guests, roomTypes, minPrice, maxPrice, minRating, sortBy, page, size);
 
         int guestsVal = guests != null ? guests : 1;
-        int roomsVal = rooms != null ? rooms : 1;
+        int roomTypesVal = roomTypes != null ? roomTypes : 1;
 
         // Build sort — price sorts are done in-memory since they cross a JOIN
         Sort sort = buildSort(sortBy);
@@ -94,14 +94,14 @@ public class SearchService {
         LocalDate safeCheckOut = checkOut != null ? checkOut : LocalDate.of(1970, 1, 1);
 
         Page<Property> propertyPage = propertyRepository.searchAvailableProperties(
-                safeDestination, hasDates, safeCheckIn, safeCheckOut, guestsVal, roomsVal,
+                safeDestination, hasDates, safeCheckIn, safeCheckOut, guestsVal, roomTypesVal,
                 safeMinPrice, safeMaxPrice, pageable);
 
         // Filter by amenities in-memory (amenities stored as comma-separated string)
         List<PropertySearchResult> allResults = propertyPage.getContent().stream()
                 .filter(p -> matchesAmenities(p, amenities))
                 .map(p -> mapToPropertySearchResult(p, guestsVal, checkIn, checkOut))
-                .filter(p -> p.getMatchingRoomsCount() >= roomsVal) // Double check room count
+                .filter(p -> p.getMatchingRoomTypesCount() >= roomTypesVal) // Double check roomType count
                 .filter(p -> p.getRating() >= safeMinRating) // Filter by minimum rating
                 .collect(Collectors.toList());
 
@@ -285,8 +285,8 @@ public class SearchService {
 
     private PropertySearchResult mapToPropertySearchResult(Property property, int guests, LocalDate checkIn,
             LocalDate checkOut) {
-        List<Room> availableRooms = property.getRooms() != null
-                ? property.getRooms().stream()
+        List<RoomType> availableRoomTypes = property.getRoomTypes() != null
+                ? property.getRoomTypes().stream()
                         .filter(r -> {
                             if (checkIn == null || checkOut == null)
                                 return true;
@@ -296,15 +296,15 @@ public class SearchService {
                         .collect(Collectors.toList())
                 : Collections.emptyList();
 
-        int matchingRoomsCount = availableRooms.size();
+        int matchingRoomTypesCount = availableRoomTypes.size();
 
-        BigDecimal lowestPrice = availableRooms.stream()
-                .map(Room::getPricePerNight)
+        BigDecimal lowestPrice = availableRoomTypes.stream()
+                .map(RoomType::getPricePerNight)
                 .min(BigDecimal::compareTo)
                 .orElse(BigDecimal.ZERO);
 
-        BigDecimal highestPrice = availableRooms.stream()
-                .map(Room::getPricePerNight)
+        BigDecimal highestPrice = availableRoomTypes.stream()
+                .map(RoomType::getPricePerNight)
                 .max(BigDecimal::compareTo)
                 .orElse(BigDecimal.ZERO);
 
@@ -353,7 +353,7 @@ public class SearchService {
                 .amenities(amenityLabels)
                 .lat(property.getLatitude())
                 .lng(property.getLongitude())
-                .matchingRoomsCount(matchingRoomsCount)
+                .matchingRoomTypesCount(matchingRoomTypesCount)
                 .build();
     }
 
@@ -413,9 +413,9 @@ public class SearchService {
         if (property.getAvgValue() != null)
             breakdown.add(new ReviewBreakdownDTO("Value", property.getAvgValue()));
 
-        // Rooms
-        List<RoomDTO> roomDTOs = property.getRooms() != null
-                ? property.getRooms().stream()
+        // RoomTypes
+        List<RoomDTO> roomDTOs = property.getRoomTypes() != null
+                ? property.getRoomTypes().stream()
                         .filter(r -> {
                             if (checkIn == null || checkOut == null)
                                 return true;
@@ -431,7 +431,7 @@ public class SearchService {
                             }
                             return RoomDTO.builder()
                                     .id(r.getId().toString())
-                                    .name(r.getRoomType() != null ? r.getRoomType().name() : "")
+                                    .name(r.getRoomCategory() != null ? r.getRoomCategory().name() : "")
                                     .maxGuests(r.getMaxOccupancy() != null ? r.getMaxOccupancy() : 2)
                                     .bedType(r.getBedType() != null ? r.getBedType().name() : "")
                                     .sqft(0)
@@ -472,7 +472,7 @@ public class SearchService {
                 .amenities(amenitiesList)
                 .reviewBreakdown(breakdown)
                 .reviews(reviewDTOs)
-                .rooms(roomDTOs)
+                .roomTypes(roomDTOs)
                 .lat(property.getLatitude())
                 .lng(property.getLongitude())
                 .checkInTime(property.getCheckInTime())
@@ -502,3 +502,4 @@ public class SearchService {
         return AVATAR_COLORS[(int) (id % AVATAR_COLORS.length)];
     }
 }
+

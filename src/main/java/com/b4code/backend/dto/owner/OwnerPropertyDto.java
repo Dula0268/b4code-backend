@@ -2,7 +2,7 @@ package com.b4code.backend.dto.owner;
 
 import com.b4code.backend.models.Amenity;
 import com.b4code.backend.models.Property;
-import com.b4code.backend.models.Room;
+import com.b4code.backend.models.RoomType;
 import com.b4code.backend.models.enums.PropertyStatus;
 import lombok.*;
 
@@ -39,8 +39,8 @@ public class OwnerPropertyDto {
     private Integer roomCount;
 
     public static OwnerPropertyDto fromEntity(Property p) {
-        BigDecimal minPrice = p.getRooms().stream()
-                .map(Room::getPricePerNight)
+        BigDecimal minPrice = p.getRoomTypes().stream()
+                .map(RoomType::getPricePerNight)
                 .min(Comparator.naturalOrder())
                 .orElse(null);
 
@@ -81,7 +81,7 @@ public class OwnerPropertyDto {
                 .contactEmail(p.getContactEmail())
                 .propertyType(p.getPropertyType())
                 .amenities(amenityNames)
-                .roomCount(p.getRooms() != null ? p.getRooms().size() : 0)
+                .roomCount(p.getRoomTypes() != null ? p.getRoomTypes().size() : 0)
                 .build();
     }
 
@@ -98,3 +98,4 @@ public class OwnerPropertyDto {
         };
     }
 }
+

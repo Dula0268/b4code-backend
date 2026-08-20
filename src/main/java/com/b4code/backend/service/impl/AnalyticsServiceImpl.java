@@ -1,7 +1,7 @@
 package com.b4code.backend.service.impl;
 
 import com.b4code.backend.dao.BookingRepository;
-import com.b4code.backend.dao.RoomRepository;
+import com.b4code.backend.dao.RoomTypeRepository;
 import com.b4code.backend.dao.UserRepository;
 import com.b4code.backend.dao.PropertyRepository;
 import com.b4code.backend.dao.TransactionRepository;
@@ -25,7 +25,7 @@ public class AnalyticsServiceImpl implements AnalyticsService {
     private final TransactionRepository transactionRepository;
     private final PropertyRepository propertyRepository;
     private final UserRepository userRepository;
-    private final RoomRepository roomRepository;
+    private final RoomTypeRepository roomTypeRepository;
     private final BookingRepository bookingRepository;
 
     private static final int COMMISSION_RATE = 20;
@@ -117,7 +117,7 @@ public class AnalyticsServiceImpl implements AnalyticsService {
     public List<RevParDto> getRevParBreakdown() {
         log.debug("Computing RevPAR breakdown (cache miss)");
 
-        List<com.b4code.backend.models.Room> rooms = roomRepository.findAllWithRelations();
+        List<com.b4code.backend.models.RoomType> roomTypes = roomTypeRepository.findAllWithRelations();
         List<Object[]> aggregatedMetrics = bookingRepository.getRoomAggregatedMetrics();
 
         // Build a map for O(1) lookup
@@ -127,8 +127,8 @@ public class AnalyticsServiceImpl implements AnalyticsService {
             metricsMap.put(roomId.longValue(), row);
         }
 
-        return rooms.stream().map(room -> {
-            long roomId = room.getId();
+        return roomTypes.stream().map(roomType -> {
+            long roomId = roomType.getId();
 
             long soldNights = 0;
             BigDecimal totalRevenue = BigDecimal.ZERO;
@@ -150,18 +150,18 @@ public class AnalyticsServiceImpl implements AnalyticsService {
 
             BigDecimal revpar = adr.multiply(BigDecimal.valueOf(occupancy / 100.0)).setScale(2, RoundingMode.HALF_UP);
 
-            String imageUrl = room.getImage() != null && room.getImage().getUrl() != null
-                    ? room.getImage().getUrl()
+            String imageUrl = roomType.getImage() != null && roomType.getImage().getUrl() != null
+                    ? roomType.getImage().getUrl()
                     : "/images/placeholder-property.jpg";
 
-            String propertyName = room.getProperty() != null ? room.getProperty().getName() : "Unknown Property";
+            String propertyName = roomType.getProperty() != null ? roomType.getProperty().getName() : "Unknown Property";
 
             return RevParDto.builder()
-                    .propertyId(room.getProperty() != null ? room.getProperty().getId() : 0L)
+                    .propertyId(roomType.getProperty() != null ? roomType.getProperty().getId() : 0L)
                     .propertyName(propertyName)
-                    .type(room.getRoomType() != null ? room.getRoomType().name() : "N/A")
+                    .type(roomType.getRoomCategory() != null ? roomType.getRoomCategory().name() : "N/A")
                     .roomNumber("Room " + roomId)
-                    .adults(room.getMaxOccupancy() != null ? room.getMaxOccupancy() : 2)
+                    .adults(roomType.getMaxOccupancy() != null ? roomType.getMaxOccupancy() : 2)
                     .sqm(0) // Default if no SQM
                     .image(imageUrl)
                     .avgDailyRate(adr)
