@@ -37,7 +37,7 @@ public class AdminUserServiceImpl implements AdminUserService {
     private final EmailService emailService;
     private final PasswordResetTokenRepository passwordResetTokenRepository;
 
-    @Value("${b4code.frontend.url:http://localhost:3000}")
+    @Value("${app.frontend-url:http://localhost:3000}")
     private String frontendUrl;
 
     // ── GET ALL USERS ──────────────────────────────────

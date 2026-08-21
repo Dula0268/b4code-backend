@@ -1,0 +1,80 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://${DB_HOST}:${DB_PORT:5432}/${DB_NAME}?sslmode=${DB_SSLMODE:require}
+    username: ${DB_USER}
+    password: ${DB_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      connection-timeout: 20000
+      maximum-pool-size: 10
+      minimum-idle: 2
+
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+
+  sql:
+    init:
+      mode: always
+      schema-locations: classpath:schema.sql
+
+  # No Redis runs in the k3s cluster. spring-session-data-redis is on the classpath,
+  # so Boot would otherwise auto-select the Redis session store and its listener
+  # container would fail to connect at startup. Auth is STATELESS (SecurityConfig)
+  # and nothing reads HttpSession, so sessions are simply switched off here.
+  session:
+    store-type: none
+
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: ${MAIL_USERNAME:hello@prime-stay.app}
+    password: ${MAIL_PASSWORD}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+            required: true
+
+app:
+  # Public site URL for emailed links (password reset, staff invites) and QR code targets.
+  frontend-url: ${APP_FRONTEND_URL:https://prime-stay.app}
+
+  # The frontend is served from prime-stay.app and calls this API on api.prime-stay.app,
+  # so every browser request is cross-origin and must be listed here.
+  cors:
+    allowed-origins: ${APP_CORS_ALLOWED_ORIGINS:https://prime-stay.app,https://www.prime-stay.app}
+
+b4code:
+  qr:
+    base-url: https://prime-stay.app
+  security:
+    jwt:
+      secret: ${JWT_SECRET}
+      expirationMs: 3600000
+      refreshExpirationMs: 86400000
+
+payhere:
+  merchant-id: ${PAYHERE_MERCHANT_ID:1235421}
+  merchant-secret: ${PAYHERE_SECRET}
+  sandbox: ${PAYHERE_SANDBOX:false}
+  checkout-url: ${PAYHERE_CHECKOUT_URL:https://www.payhere.lk/pay/checkout}
+  notify-url: https://api.prime-stay.app/api/payments/notify
+  return-url: https://prime-stay.app/guest/booking
+  cancel-url: https://prime-stay.app/payment
+
+cloudinary:
+  cloud-name: ${CLOUDINARY_CLOUD_NAME}
+  api-key: ${CLOUDINARY_API_KEY}
+  api-secret: ${CLOUDINARY_API_SECRET}

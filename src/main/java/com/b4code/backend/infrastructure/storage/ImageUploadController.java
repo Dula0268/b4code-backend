@@ -22,7 +22,6 @@ import java.util.Map;
  */
 @RestController
 @RequestMapping("/api/images")
-@CrossOrigin(origins = "*")
 @RequiredArgsConstructor
 public class ImageUploadController {
 

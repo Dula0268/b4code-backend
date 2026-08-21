@@ -14,7 +14,6 @@ import org.springframework.web.bind.annotation.*;
 import java.util.Map;
 
 @RestController
-@CrossOrigin(origins = {"http://localhost:3000", "http://localhost:3001", "http://localhost:5173"})
 @RequiredArgsConstructor
 @Tag(name = "Settings", description = "Role permissions and system settings")
 public class SettingsController {

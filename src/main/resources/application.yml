@@ -22,6 +22,18 @@ server:
     protocol: TLSv1.3
     ciphers: TLS_AES_128_GCM_SHA256,TLS_AES_256_GCM_SHA384,TLS_CHACHA20_POLY1305_SHA256
 
+app:
+  # Base URL of the user-facing site. Used to build links that get EMAILED or embedded in
+  # QR codes, so it must be the public address - a localhost value here produces dead links
+  # in password-reset mail, staff invites, and printed QR codes.
+  frontend-url: ${APP_FRONTEND_URL:http://localhost:3000}
+
+  # Browser origins allowed to call this API (see SecurityConfig#corsConfigurationSource).
+  # These are the local dev defaults; application-prod.yml overrides them, and
+  # APP_CORS_ALLOWED_ORIGINS can override them again at runtime without a rebuild.
+  cors:
+    allowed-origins: ${APP_CORS_ALLOWED_ORIGINS:http://localhost:3000,http://localhost:3001,http://localhost:3002,http://localhost:3003,http://localhost:5173}
+
 logging:
   level:
     root: INFO

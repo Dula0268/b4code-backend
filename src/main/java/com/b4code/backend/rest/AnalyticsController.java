@@ -13,7 +13,6 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/admin/analytics")
-@CrossOrigin(origins = { "http://localhost:3000", "http://localhost:5173" })
 @RequiredArgsConstructor
 @Tag(name = "Admin — Analytics", description = "Platform-wide analytics data")
 public class AnalyticsController {

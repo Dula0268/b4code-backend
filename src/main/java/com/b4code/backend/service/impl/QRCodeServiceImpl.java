@@ -31,7 +31,7 @@ public class QRCodeServiceImpl implements QRCodeService {
 
     private final QRCodeRepository qrCodeRepository;
 
-    @Value("${app.qr.base-url:http://localhost:3000}")
+    @Value("${b4code.qr.base-url:http://localhost:3000}")
     private String baseUrl;
 
     private static final String STATUS_ACTIVE = "ACTIVE";

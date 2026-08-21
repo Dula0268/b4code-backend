@@ -56,6 +56,12 @@ public class PaymentService {
     @Value("${payhere.cancel-url:http://localhost:3000/payment}")
     private String cancelUrl;
 
+    // PayHere calls this back to confirm payment, so it must be publicly reachable and
+    // therefore has to come from config. A hardcoded localhost here leaves every card
+    // payment stuck in PENDING because the callback never arrives.
+    @Value("${payhere.notify-url:http://localhost:8080/api/payments/notify}")
+    private String notifyUrl;
+
     public PaymentResponse initiatePayment(PaymentRequest request, Long userId) {
         // Create payment record with PENDING status
         Payment payment = new Payment();
@@ -327,7 +333,7 @@ public class PaymentService {
             return "merchant_id=" + merchantId +
                     "&return_url=" + java.net.URLEncoder.encode(finalReturnUrl, "UTF-8") +
                     "&cancel_url=" + java.net.URLEncoder.encode(cancelUrl, "UTF-8") +
-                    "&notify_url=" + java.net.URLEncoder.encode("http://localhost:8080/api/payments/notify", "UTF-8") +
+                    "&notify_url=" + java.net.URLEncoder.encode(notifyUrl, "UTF-8") +
                     "&order_id=" + payment.getOrderId() +
                     "&items=" + (payment.getFoodOrderId() != null ? "Food+Order" : "PrimeStay+Booking") +
                     "&currency=" + payment.getCurrency() +

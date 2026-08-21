@@ -15,7 +15,6 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/admin/dashboard")
-@CrossOrigin(origins = {"http://localhost:3000", "http://localhost:5173"})
 @RequiredArgsConstructor
 @Tag(name = "Admin — Dashboard", description = "Data for the admin home page")
 public class DashboardController {

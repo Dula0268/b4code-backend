@@ -1,0 +1,14 @@
+target
+.mvn
+.git
+.github
+Dockerfile
+.dockerignore
+README.md
+*.log
+*.txt
+docker/
+kubernetes/
+.env
+.env.*
+!.env.example

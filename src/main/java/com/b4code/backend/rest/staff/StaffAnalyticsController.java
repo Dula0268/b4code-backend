@@ -21,7 +21,6 @@ import java.util.List;
 @RequestMapping("/api/staff/analytics")
 @RequiredArgsConstructor
 @Slf4j
-@CrossOrigin(origins = "*")
 @Tag(name = "Staff Analytics", description = "Endpoints for staff to view analytics and performance")
 public class StaffAnalyticsController {
 
