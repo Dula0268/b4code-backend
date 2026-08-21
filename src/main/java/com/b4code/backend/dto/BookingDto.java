@@ -144,6 +144,10 @@ public class BookingDto {
         @Min(value = 1, message = "At least 1 guest required")
         private Integer guests;
 
+        @NotNull(message = "Room quantity is required")
+        @Min(value = 1, message = "At least 1 room required")
+        private Integer roomQuantity;
+
         private PaymentMethod paymentMethod;
     }
 

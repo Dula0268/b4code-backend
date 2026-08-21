@@ -401,7 +401,7 @@ public class BookingService {
                 .mapToInt(com.b4code.backend.models.RoomDateInventory::getBookedQuantity)
                 .max().orElse(0);
 
-        if (roomType.getInventory() - peakBooked < booking.getRoomQuantity()) {
+        if (roomType.getInventory() - peakBooked < request.getRoomQuantity()) {
             // Revert the temporary inventory freeing
             updateInventory(booking.getRoomType(), booking.getCheckIn(), booking.getCheckOut(), booking.getRoomQuantity());
             throw new RoomNotAvailableException("Room is not available for the selected dates with the current quantity");
@@ -412,7 +412,7 @@ public class BookingService {
 
         List<String> currentPromoCodes = booking.getPromoCode() != null ? Arrays.asList(booking.getPromoCode().split(",")) : null;
         PriceBreakdown newPrice = calculatePrice(roomType, request.getCheckInDate(), request.getCheckOutDate(),
-                booking.getRoomQuantity(), currentPromoCodes, false);
+                request.getRoomQuantity(), currentPromoCodes, false);
         BigDecimal previousTotal = booking.getTotalAmount();
         BigDecimal newTotal = newPrice.getTotalAmount();
         BigDecimal difference = newTotal.subtract(previousTotal);
@@ -421,6 +421,7 @@ public class BookingService {
         booking.setCheckIn(request.getCheckInDate());
         booking.setCheckOut(request.getCheckOutDate());
         booking.setGuestCount(request.getGuests());
+        booking.setRoomQuantity(request.getRoomQuantity());
         booking.setTotalAmount(newTotal);
         booking.setTaxAmount(newPrice.getTaxAmount());
         booking.setDiscountAmount(newPrice.getDiscountAmount());
@@ -430,7 +431,7 @@ public class BookingService {
         Booking saved = bookingRepository.save(booking);
 
         // Consume new inventory
-        updateInventory(roomType, request.getCheckInDate(), request.getCheckOutDate(), booking.getRoomQuantity());
+        updateInventory(roomType, request.getCheckInDate(), request.getCheckOutDate(), request.getRoomQuantity());
 
         boolean isPaidOnline = saved.getPaymentMethod() == Booking.PaymentMethod.ONLINE_CARD;
 

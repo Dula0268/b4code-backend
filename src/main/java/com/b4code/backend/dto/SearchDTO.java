@@ -58,6 +58,7 @@ public class SearchDTO {
         private String location;
         private String fullAddress;
         private String propertyType;
+        private Boolean freeCancellation;
         private BigDecimal pricePerNight;
         private Double rating;
         private Integer reviewCount;
@@ -209,5 +210,6 @@ public class SearchDTO {
         private List<String> features;
         private String imageSrc;
         private Integer availableCount;
+        private String roomNumbers;
     }
 }

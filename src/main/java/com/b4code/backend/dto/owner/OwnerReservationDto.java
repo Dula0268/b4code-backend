@@ -18,6 +18,7 @@ public class OwnerReservationDto {
     private Integer children;
     private Long roomId;
     private String roomName;
+    private Integer roomQuantity;
     private String roomNumber;
     private Long propertyId;
     private String propertyName;
@@ -49,6 +50,7 @@ public class OwnerReservationDto {
                 .children(b.getChildren())
                 .roomId(roomId)
                 .roomName(roomName)
+                .roomQuantity(b.getRoomQuantity() != null ? b.getRoomQuantity() : 1)
                 .roomNumber(b.getRoomNumber())
                 .propertyId(propId)
                 .propertyName(propName)
