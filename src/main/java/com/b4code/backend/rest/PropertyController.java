@@ -16,7 +16,6 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/admin/properties")
-@CrossOrigin(origins = {"http://localhost:3000", "http://localhost:5173"})
 @Slf4j
 @RequiredArgsConstructor
 @Tag(name = "Admin — Property Verification", description = "Manage property onboarding requests")

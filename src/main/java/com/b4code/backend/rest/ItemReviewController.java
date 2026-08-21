@@ -18,7 +18,6 @@ import java.util.Optional;
 @RequestMapping("/api")
 @RequiredArgsConstructor
 @Slf4j
-@CrossOrigin(origins = "*")
 public class ItemReviewController {
 
     private final OrderRepository orderRepository;

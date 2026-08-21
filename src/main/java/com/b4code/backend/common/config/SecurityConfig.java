@@ -2,6 +2,7 @@ package com.b4code.backend.common.config;
 
 import com.b4code.backend.common.security.JwtAuthFilter;
 import com.b4code.backend.common.security.JwtUtil;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
@@ -30,6 +31,14 @@ public class SecurityConfig {
 
     private final JwtAuthFilter jwtAuthFilter;
     private final JwtUtil jwtUtil;
+
+    /**
+     * Browser origins allowed to call this API, from {@code app.cors.allowed-origins}.
+     * Defaults to the local dev ports in application.yml; the prod profile overrides it
+     * with the real domains, since the frontend and API sit on different subdomains.
+     */
+    @Value("${app.cors.allowed-origins}")
+    private java.util.List<String> allowedOrigins;
 
     @Bean
     public JwtDecoder jwtDecoder() {
@@ -93,13 +102,9 @@ public class SecurityConfig {
     @Bean
     public org.springframework.web.cors.CorsConfigurationSource corsConfigurationSource() {
         org.springframework.web.cors.CorsConfiguration configuration = new org.springframework.web.cors.CorsConfiguration();
-        configuration.setAllowedOrigins(java.util.List.of(
-                "http://localhost:5173",
-                "http://localhost:3000",
-                "http://localhost:3001",
-                "http://localhost:3002",
-                "http://localhost:3003"
-        ));
+        // Patterns rather than exact origins: allowCredentials(true) forbids a literal "*",
+        // but patterns still permit wildcards such as https://*.prime-stay.app.
+        configuration.setAllowedOriginPatterns(allowedOrigins);
         configuration.setAllowedMethods(java.util.List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(java.util.List.of("Authorization", "Content-Type", "X-Requested-With"));
         configuration.setAllowCredentials(true);

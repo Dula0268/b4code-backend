@@ -16,7 +16,6 @@ import java.util.Map;
 @RequestMapping("/api/staff/properties")
 @RequiredArgsConstructor
 @Slf4j
-@CrossOrigin(origins = "*")
 public class StaffPropertyController {
 
     private final PropertyRepository propertyRepository;

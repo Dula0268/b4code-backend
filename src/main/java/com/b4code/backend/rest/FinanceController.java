@@ -21,7 +21,6 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/admin/finance")
-@CrossOrigin(origins = { "http://localhost:3000", "http://localhost:5173" })
 @Slf4j
 @RequiredArgsConstructor
 @Tag(name = "Admin — Finance", description = "Manage transactions, refunds and payouts")
