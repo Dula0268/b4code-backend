@@ -24,7 +24,6 @@ import java.util.List;
 @RequiredArgsConstructor
 @PreAuthorize("hasAnyRole('OWNER', 'ADMIN', 'SUPER_ADMIN')")
 @Tag(name = "Owner — Settings")
-@CrossOrigin(origins = {"http://localhost:3000", "http://localhost:3001", "http://localhost:3002", "http://localhost:3003", "http://localhost:5173"})
 public class OwnerSettingsController {
 
     private final OwnerSettingsService ownerSettingsService;

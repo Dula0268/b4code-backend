@@ -12,7 +12,6 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/admin/audit-logs")
-@CrossOrigin(origins = {"http://localhost:3000", "http://localhost:5173"})
 @RequiredArgsConstructor
 @Tag(name = "Admin — Audit Logs", description = "System audit logs and history")
 public class AuditLogController {

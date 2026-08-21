@@ -28,7 +28,6 @@ import java.util.stream.Collectors;
 @RequestMapping("/api/menu-items")
 @RequiredArgsConstructor
 @Slf4j
-@CrossOrigin(origins = "*")
 public class MenuItemController {
 
     private final MenuItemRepository menuItemRepository;

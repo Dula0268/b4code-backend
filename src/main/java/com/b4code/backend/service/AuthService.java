@@ -39,7 +39,7 @@ public class AuthService {
     private final VerificationOTPRepository verificationOTPRepository;
     private final com.b4code.backend.dao.BookingRepository bookingRepository;
 
-    @Value("${app.frontend-url:http://localhost:3001}")
+    @Value("${app.frontend-url:http://localhost:3000}")
     private String frontendUrl;
 
     // ───────────────────────── REGISTER ─────────────────────────

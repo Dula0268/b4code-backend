@@ -14,7 +14,6 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/guest/bookings")
-@CrossOrigin(origins = "*") // adjust for prod
 @RequiredArgsConstructor
 public class BookingController {
 

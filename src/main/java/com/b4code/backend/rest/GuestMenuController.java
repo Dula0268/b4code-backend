@@ -14,7 +14,6 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api/guest/order")
 @RequiredArgsConstructor
 @Slf4j
-@CrossOrigin(origins = "*")
 public class GuestMenuController {
 
     private final GuestMenuService guestMenuService;

@@ -14,7 +14,6 @@ import java.util.Map;
  */
 @RestController
 @RequestMapping("/api/guest/test")
-@CrossOrigin(origins = "*")
 @RequiredArgsConstructor
 public class TestCloudinaryController {
 

@@ -20,7 +20,6 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/admin/moderation")
-@CrossOrigin(origins = {"http://localhost:3000", "http://localhost:5173"})
 @RequiredArgsConstructor
 @Tag(name = "Admin — Moderation", description = "Reviews queue, disputes hub, and moderation history")
 public class ModerationController {

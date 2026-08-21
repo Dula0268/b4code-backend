@@ -13,7 +13,6 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/staff/notifications")
-@CrossOrigin(origins = { "http://localhost:3000", "http://localhost:5173" })
 @RequiredArgsConstructor
 @Tag(name = "Staff - Notifications")
 public class StaffNotificationController {

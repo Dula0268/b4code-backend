@@ -22,7 +22,6 @@ import java.util.Map;
 @RequestMapping("/api/staff/reviews")
 @RequiredArgsConstructor
 @Slf4j
-@CrossOrigin(origins = "*")
 public class StaffReviewController {
 
     private final JdbcTemplate jdbcTemplate;

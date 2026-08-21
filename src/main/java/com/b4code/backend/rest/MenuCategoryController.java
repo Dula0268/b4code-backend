@@ -16,7 +16,6 @@ import java.util.stream.Collectors;
 @RequestMapping("/api/menu-categories")
 @RequiredArgsConstructor
 @Slf4j
-@CrossOrigin(origins = "*")
 public class MenuCategoryController {
 
     private final MenuCategoryRepository menuCategoryRepository;
