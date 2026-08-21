@@ -72,7 +72,7 @@ jobs:
     # KUBECONFIG was exported. Without this, kubectl falls back to
     # localhost:8080 and fails.
     env:
-      KUBECONFIG: /home/ubuntu/.kube/config
+      KUBECONFIG: /home/ubuntu/.kube/deploy-config
     steps:
       - name: Roll out backend
         run: |
