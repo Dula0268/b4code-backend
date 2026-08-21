@@ -1,0 +1,83 @@
+name: Deploy Backend
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Queue overlapping runs rather than racing two rollouts onto a single-replica
+# Deployment.
+concurrency:
+  group: deploy-backend
+  cancel-in-progress: false
+
+env:
+  AWS_REGION: ap-southeast-2
+  ECR_REGISTRY: 502869771838.dkr.ecr.ap-southeast-2.amazonaws.com
+  IMAGE: primestay-backend
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          java-version: "21"
+          distribution: "temurin"
+          cache: maven
+      # Self-contained: application-test.yml uses in-memory H2, so no DB or
+      # secrets are needed on the runner.
+      - run: mvn test -B
+
+  build-and-push:
+    runs-on: ubuntu-latest
+    needs: test
+    permissions:
+      id-token: write   # required to request the OIDC token
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      # No stored AWS keys: GitHub's OIDC token is exchanged for short-lived
+      # credentials for a role trusted only by these two repos.
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::502869771838:role/primestay-github-deploy
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build and push
+        run: |
+          docker build --provenance=false --sbom=false \
+            -t $ECR_REGISTRY/$IMAGE:${{ github.sha }} \
+            -t $ECR_REGISTRY/$IMAGE:latest .
+          docker push $ECR_REGISTRY/$IMAGE:${{ github.sha }}
+          docker push $ECR_REGISTRY/$IMAGE:latest
+
+      - name: Trivy scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: "${{ env.ECR_REGISTRY }}/${{ env.IMAGE }}:${{ github.sha }}"
+          format: "table"
+          severity: "CRITICAL,HIGH"
+
+  deploy:
+    runs-on: self-hosted
+    needs: build-and-push
+    # The runner is a systemd service and does not source ~/.bashrc, where
+    # KUBECONFIG was exported. Without this, kubectl falls back to
+    # localhost:8080 and fails.
+    env:
+      KUBECONFIG: /home/ubuntu/.kube/config
+    steps:
+      - name: Roll out backend
+        run: |
+          kubectl set image deployment/primestay-backend \
+            backend=502869771838.dkr.ecr.ap-southeast-2.amazonaws.com/primestay-backend:${{ github.sha }}
+          # Generous timeout: Spring Boot takes ~35s to start, plus image pull
+          # on a 2 vCPU box.
+          kubectl rollout status deployment/primestay-backend --timeout=300s
