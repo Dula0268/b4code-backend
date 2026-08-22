@@ -22,6 +22,8 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/staff/orders")
@@ -40,13 +42,28 @@ public class StaffOrderController {
     public ResponseEntity<Page<OrderResponse>> getOrdersByProperty(
             @PathVariable Long propertyId,
             @RequestParam(required = false) OrderStatus status,
+            @RequestParam(required = false) List<OrderStatus> statuses,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
             @PageableDefault(size = 20) Pageable pageable) {
         log.info("Fetching orders for property: {}", propertyId);
         LocalDateTime startDate = date != null ? date.atStartOfDay() : null;
         LocalDateTime endDate = date != null ? date.plusDays(1).atStartOfDay() : null;
-        
+
+        // `statuses` is an additive, optional filter (the staff queue's "In-Progress" tab
+        // covers both IN_PROGRESS and READY). Existing callers that send `status` — or
+        // neither param — keep the exact behaviour they had before.
+        if (statuses != null && !statuses.isEmpty()) {
+            return ResponseEntity.ok(staffOrderService.getOrdersByProperty(propertyId, statuses, startDate, endDate, pageable));
+        }
+
         return ResponseEntity.ok(staffOrderService.getOrdersByProperty(propertyId, status, startDate, endDate, pageable));
+    }
+
+    @Operation(summary = "Get order counts per status", description = "Totals per status for a property, used to label paginated queue tabs")
+    @PreAuthorize("hasAnyRole('STAFF', 'OWNER', 'ADMIN')")
+    @GetMapping("/property/{propertyId}/status-counts")
+    public ResponseEntity<Map<OrderStatus, Long>> getOrderStatusCounts(@PathVariable Long propertyId) {
+        return ResponseEntity.ok(staffOrderService.getOrderCountsByStatus(propertyId));
     }
 
     @Operation(summary = "Accept an order", description = "Changes order status to ACCEPTED")

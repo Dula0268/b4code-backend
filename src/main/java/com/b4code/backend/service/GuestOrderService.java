@@ -17,6 +17,8 @@ import com.b4code.backend.exception.OrderNotFoundException;
 import com.b4code.backend.exception.StatusTransitionException;
 import com.b4code.backend.exceptions.CustomException;
 import com.b4code.backend.models.OrderStatusLog;
+import com.b4code.backend.models.enums.OrderActorType;
+import com.b4code.backend.models.enums.OrderRefundStatus;
 import com.b4code.backend.models.enums.OrderStatus;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -54,6 +56,7 @@ public class GuestOrderService {
     private final UserRepository userRepository;
     private final NotificationService notificationService;
     private final OrderSseService orderSseService;
+    private final PaymentService paymentService;
 
     @Transactional
     public Order placeOrder(OrderRequest request) {
@@ -99,20 +102,24 @@ public class GuestOrderService {
                 // ignored here).
                 BigDecimal authoritativePrice = resolveAuthoritativePrice(menuItem, itemReq);
 
+                int quantity = itemReq.getQuantity() != null ? itemReq.getQuantity() : 0;
+                BigDecimal lineTotal = authoritativePrice.multiply(BigDecimal.valueOf(quantity))
+                        .setScale(2, RoundingMode.HALF_UP);
+
                 OrderItem item = new OrderItem();
                 item.setOrder(order);
                 item.setQuantity(itemReq.getQuantity());
                 item.setPriceAtOrder(authoritativePrice.doubleValue());
+                item.setLineTotal(lineTotal.doubleValue());
                 item.setNote(itemReq.getNote());
                 item.setMenuItem(menuItem);
                 order.getItems().add(item);
 
-                int quantity = itemReq.getQuantity() != null ? itemReq.getQuantity() : 0;
-                subtotal = subtotal.add(authoritativePrice.multiply(BigDecimal.valueOf(quantity)));
+                subtotal = subtotal.add(lineTotal);
             }
         }
 
-        order.setTotalAmount(computeTotal(request.getPropertyId(), subtotal).doubleValue());
+        applyPricing(order, request.getPropertyId(), subtotal);
 
         Order savedOrder = orderRepository.save(order);
 
@@ -121,6 +128,7 @@ public class GuestOrderService {
         log.setOldStatus(null);
         log.setNewStatus(savedOrder.getStatus());
         log.setChangedBy(actor);
+        log.setChangedByRole(OrderActorType.GUEST);
         orderStatusLogRepository.save(log);
         
         // Broadcast SSE to staff
@@ -174,11 +182,17 @@ public class GuestOrderService {
     }
 
     /**
-     * Recomputes the order total server-side from the resolved (authoritative) line prices,
-     * applying the property's configured service charge rate plus the fixed platform tax rate -
-     * the same charges the frontend displays via PublicPropertyController#getCharges.
+     * Computes the full money breakdown server-side from the resolved (authoritative) line
+     * prices and persists every component on the order: subtotal, service charge, tax,
+     * discount and the grand total, plus the rates actually used. This is the single source
+     * of truth for order money — the guest checkout screen and every staff view render these
+     * persisted values rather than re-deriving anything client-side.
+     *
+     * <p>Each component is rounded to 2dp independently and the grand total is the sum of the
+     * rounded components, so subtotal + serviceCharge + tax - discount always adds up exactly
+     * to the displayed total (no "the parts don't sum to the total" artefacts).</p>
      */
-    private BigDecimal computeTotal(Long propertyId, BigDecimal subtotal) {
+    private void applyPricing(Order order, Long propertyId, BigDecimal rawSubtotal) {
         BigDecimal serviceChargeRate = DEFAULT_SERVICE_CHARGE_RATE_PERCENT;
         if (propertyId != null) {
             Property property = propertyRepository.findById(propertyId).orElse(null);
@@ -186,12 +200,50 @@ public class GuestOrderService {
                 serviceChargeRate = BigDecimal.valueOf(property.getServiceChargeRate());
             }
         }
+        BigDecimal taxRate = FIXED_TAX_RATE_PERCENT;
 
-        BigDecimal combinedRate = BigDecimal.ONE
-                .add(serviceChargeRate.divide(HUNDRED, 6, RoundingMode.HALF_UP))
-                .add(FIXED_TAX_RATE_PERCENT.divide(HUNDRED, 6, RoundingMode.HALF_UP));
+        BigDecimal subtotal = rawSubtotal.setScale(2, RoundingMode.HALF_UP);
+        BigDecimal serviceCharge = subtotal
+                .multiply(serviceChargeRate.divide(HUNDRED, 6, RoundingMode.HALF_UP))
+                .setScale(2, RoundingMode.HALF_UP);
+        BigDecimal tax = subtotal
+                .multiply(taxRate.divide(HUNDRED, 6, RoundingMode.HALF_UP))
+                .setScale(2, RoundingMode.HALF_UP);
+        // No discount scheme exists yet; persisted explicitly so the breakdown is complete
+        // and a future discount only has to change this one line.
+        BigDecimal discount = BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
 
-        return subtotal.multiply(combinedRate).setScale(2, RoundingMode.HALF_UP);
+        BigDecimal total = subtotal.add(serviceCharge).add(tax).subtract(discount)
+                .setScale(2, RoundingMode.HALF_UP);
+
+        order.setSubtotalAmount(subtotal.doubleValue());
+        order.setServiceChargeAmount(serviceCharge.doubleValue());
+        order.setTaxAmount(tax.doubleValue());
+        order.setDiscountAmount(discount.doubleValue());
+        order.setServiceChargeRate(serviceChargeRate.doubleValue());
+        order.setTaxRate(taxRate.doubleValue());
+        order.setTotalAmount(total.doubleValue());
+    }
+
+    /**
+     * Reverses the payment behind a cancelled order and records the outcome on the order.
+     * The refunded amount is the authoritative amount stored on the Payment row - never a
+     * client-supplied figure. Orders that were never actually paid (cash / pay-at-property, or
+     * an online order still awaiting settlement) are marked NOT_APPLICABLE.
+     */
+    private void applyRefund(Order order) {
+        PaymentService.FoodOrderRefundResult result = paymentService.refundFoodOrderPayment(order.getId());
+        if (result.refunded()) {
+            order.setRefundStatus(OrderRefundStatus.REFUNDED);
+            order.setRefundAmount(result.amount());
+            order.setRefundReference(result.reference());
+            order.setRefundedAt(java.time.LocalDateTime.now());
+        } else {
+            order.setRefundStatus(OrderRefundStatus.NOT_APPLICABLE);
+            order.setRefundAmount(null);
+            order.setRefundReference(null);
+            order.setRefundedAt(null);
+        }
     }
 
     private String resolveActor(String guestName, String guestSessionId) {
@@ -243,10 +295,33 @@ public class GuestOrderService {
         }
     }
 
+    /**
+     * Statuses a guest may still cancel from. Once the kitchen is actually cooking
+     * (IN_PROGRESS) or the food is plated/handed over (READY, DELIVERED), only staff can
+     * cancel - a guest self-cancel there would strand food the property already paid to make.
+     */
+    private static final java.util.Set<OrderStatus> GUEST_CANCELLABLE_STATUSES =
+            java.util.EnumSet.of(OrderStatus.PAYMENT_PENDING, OrderStatus.PLACED, OrderStatus.ACCEPTED);
+
+    /**
+     * Guest-initiated cancellation.
+     *
+     * <p>Runs in a single transaction covering the status transition, the refund and the audit
+     * log, so a failing refund rolls the cancellation back rather than leaving a
+     * cancelled-but-unrefunded order. Idempotent on an already-CANCELLED order: it returns the
+     * existing (already refunded) order instead of refunding a second time.</p>
+     */
     @Transactional
     public Order cancelOrder(Long orderId, String guestSessionId) {
+        // Ownership check first: getOrderById(id, session) throws a generic 404 on mismatch so a
+        // guest can never cancel - or even probe for - somebody else's order.
         Order order = getOrderById(orderId, guestSessionId);
-        if (order.getStatus() == OrderStatus.DELIVERED || order.getStatus() == OrderStatus.CANCELLED) {
+
+        if (order.getStatus() == OrderStatus.CANCELLED) {
+            // Idempotency guard: a double-tap / retried request must not trigger a second refund.
+            return order;
+        }
+        if (!GUEST_CANCELLABLE_STATUSES.contains(order.getStatus())) {
             throw new StatusTransitionException("Order cannot be cancelled in current status: " + order.getStatus());
         }
 
@@ -254,6 +329,13 @@ public class GuestOrderService {
         OrderStatus oldStatus = order.getStatus();
         order.setStatus(OrderStatus.CANCELLED);
         order.setUpdatedBy(actor);
+        order.setCancelledBy(OrderActorType.GUEST);
+        order.setCancelledAt(java.time.LocalDateTime.now());
+
+        // Refund inside the same transaction. Any provider/persistence failure propagates and
+        // rolls back the CANCELLED transition above.
+        applyRefund(order);
+
         Order savedOrder = orderRepository.save(order);
 
         OrderStatusLog log = new OrderStatusLog();
@@ -261,8 +343,9 @@ public class GuestOrderService {
         log.setOldStatus(oldStatus);
         log.setNewStatus(OrderStatus.CANCELLED);
         log.setChangedBy(actor);
+        log.setChangedByRole(OrderActorType.GUEST);
         orderStatusLogRepository.save(log);
-        
+
         orderSseService.sendPropertyEvent(savedOrder.getPropertyId(), "status-update", savedOrder);
         List<User> staff = userRepository.findByPropertyIdAndDeletedFalse(savedOrder.getPropertyId());
         String msg = String.format("Order #%d was cancelled by guest", savedOrder.getId());
@@ -291,6 +374,7 @@ public class GuestOrderService {
         log.setOldStatus(oldStatus);
         log.setNewStatus(OrderStatus.PLACED);
         log.setChangedBy(actor);
+        log.setChangedByRole(OrderActorType.SYSTEM);
         orderStatusLogRepository.save(log);
         
         orderSseService.sendPropertyEvent(savedOrder.getPropertyId(), "status-update", savedOrder);
