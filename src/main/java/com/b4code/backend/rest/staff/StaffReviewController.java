@@ -89,7 +89,12 @@ public class StaffReviewController {
         final Long finalOwnerId = ownerId;
         
         jdbcTemplate.update(connection -> {
-            java.sql.PreparedStatement ps = connection.prepareStatement(sql, java.sql.Statement.RETURN_GENERATED_KEYS);
+            // Ask Postgres to return ONLY the generated id. RETURN_GENERATED_KEYS makes
+            // Postgres hand back every column of the new row, so KeyHolder#getKey() throws
+            // ("current key entry contains multiple keys") even though the INSERT succeeded —
+            // which surfaced to staff as "an error occurred" while still writing the flag row
+            // (and piling up duplicates on every retry).
+            java.sql.PreparedStatement ps = connection.prepareStatement(sql, new String[]{"id"});
             ps.setString(1, flagTypeStr);
             ps.setString(2, ReviewStatus.FLAGGED.name());
             ps.setTimestamp(3, Timestamp.valueOf(LocalDateTime.now()));
