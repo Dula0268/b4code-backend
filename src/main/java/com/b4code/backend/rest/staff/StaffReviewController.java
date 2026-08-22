@@ -1,8 +1,9 @@
 package com.b4code.backend.rest.staff;
 
+import com.b4code.backend.dao.PropertyRepository;
 import com.b4code.backend.dao.UserRepository;
+import com.b4code.backend.models.Property;
 import com.b4code.backend.models.User;
-import com.b4code.backend.models.enums.FlagType;
 import com.b4code.backend.models.enums.ReviewStatus;
 import com.b4code.backend.service.AdminNotificationService;
 import lombok.RequiredArgsConstructor;
@@ -26,6 +27,7 @@ public class StaffReviewController {
 
     private final JdbcTemplate jdbcTemplate;
     private final UserRepository userRepository;
+    private final PropertyRepository propertyRepository;
     private final AdminNotificationService adminNotificationService;
 
     @PreAuthorize("hasAnyRole('STAFF', 'OWNER', 'ADMIN')")
@@ -111,10 +113,24 @@ public class StaffReviewController {
 
         Long flaggedReviewId = keyHolder.getKey() != null ? keyHolder.getKey().longValue() : reviewId;
 
-        // Notify Admin
+        // Resolve property name for a more informative notification
+        String propertyName = propertyRepository.findById(propertyId)
+                .map(Property::getName)
+                .orElse("Property #" + propertyId);
+
+        // Resolve staff member's display name
+        String staffDisplayName = "Staff";
+        if (currentUserEmail != null) {
+            User staffUser = userRepository.findByEmail(currentUserEmail).orElse(null);
+            if (staffUser != null) {
+                staffDisplayName = staffUser.getFirstName() + " " + staffUser.getLastName();
+            }
+        }
+
+        // Notify Admin with property name and staff name included
         adminNotificationService.createNotification(
-            "Review Flagged",
-            "A review for property ID " + propertyId + " has been flagged by staff.",
+            "Review Flagged by Staff",
+            staffDisplayName + " flagged a review for \"" + propertyName + "\". Please review it in the moderation queue.",
             com.b4code.backend.models.enums.AdminNotificationType.FLAGGED_REVIEW,
             flaggedReviewId.toString()
         );
