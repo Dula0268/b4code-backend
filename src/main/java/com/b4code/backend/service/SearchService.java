@@ -416,18 +416,12 @@ public class SearchService {
         // RoomTypes
         List<RoomDTO> roomDTOs = property.getRoomTypes() != null
                 ? property.getRoomTypes().stream()
-                        .filter(r -> {
-                            LocalDate effectiveCheckIn = checkIn != null ? checkIn : LocalDate.now();
-                            LocalDate effectiveCheckOut = checkOut != null ? checkOut : LocalDate.now().plusDays(1);
-                            int booked = roomDateInventoryRepository.getMaxBookedQuantity(r.getId(), effectiveCheckIn, effectiveCheckOut);
-                            return (r.getInventory() - booked) > 0;
-                        })
                         .map(r -> {
                             int availableCount = r.getInventory() != null ? r.getInventory() : 3;
                             LocalDate effectiveCheckIn = checkIn != null ? checkIn : LocalDate.now();
                             LocalDate effectiveCheckOut = checkOut != null ? checkOut : LocalDate.now().plusDays(1);
                             int booked = roomDateInventoryRepository.getMaxBookedQuantity(r.getId(), effectiveCheckIn, effectiveCheckOut);
-                            availableCount -= booked;
+                            availableCount = Math.max(0, availableCount - booked);
                             return RoomDTO.builder()
                                     .id(r.getId().toString())
                                     .name(r.getRoomCategory() != null ? r.getRoomCategory().name() : "")

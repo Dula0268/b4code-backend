@@ -16,6 +16,32 @@ public class BookingDto {
     @NoArgsConstructor
     @AllArgsConstructor
     @Builder
+    public static class GuestOTPRequest {
+        @NotBlank(message = "Guest name is required")
+        private String guestName;
+
+        @NotBlank(message = "Guest email is required")
+        @Email(message = "Valid email is required")
+        private String guestEmail;
+    }
+
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Builder
+    public static class GuestOTPVerifyRequest {
+        @NotBlank(message = "Guest email is required")
+        @Email(message = "Valid email is required")
+        private String guestEmail;
+
+        @NotBlank(message = "OTP is required")
+        private String otp;
+    }
+
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Builder
     public static class CreateBookingRequest {
 
         @NotNull(message = "Room ID is required")

@@ -91,11 +91,28 @@ public class BookingService {
         PriceBreakdown price = getPrice(
                 roomType.getId(), request.getCheckIn(), request.getCheckOut(), request.getRoomQuantity(), request.getPromoCodes());
 
+        String passkey = request.getNicNumber();
+        if (request.getPaymentMethod() == Booking.PaymentMethod.PAY_AT_PROPERTY) {
+            if (request.getRoomQuantity() > 2) {
+                throw new com.b4code.backend.exceptions.CustomException("Pay at Property is limited to a maximum of 2 rooms per booking. Please pay online for larger bookings.");
+            }
+            int activeBookings = bookingRepository.countByGuestEmailAndPaymentMethodAndStatusIn(
+                request.getGuestEmail(), 
+                Booking.PaymentMethod.PAY_AT_PROPERTY, 
+                java.util.List.of(Booking.BookingStatus.PENDING, Booking.BookingStatus.CONFIRMED)
+            );
+            if (activeBookings >= 1) {
+                throw new com.b4code.backend.exceptions.CustomException("You already have an active Pay at Property booking. Please complete or cancel it before making another, or pay online.");
+            }
+            
+            passkey = UUID.randomUUID().toString().substring(0, 6).toUpperCase();
+        }
+
         Booking booking = Booking.builder()
                 .confirmationCode(UUID.randomUUID().toString().substring(0, 8).toUpperCase())
                 .guestName(request.getGuestName())
                 .guestEmail(request.getGuestEmail())
-                .nicNumber(request.getNicNumber())
+                .nicNumber(passkey)
                 .roomType(roomType)
                 .roomQuantity(request.getRoomQuantity())
                 .property(property)
