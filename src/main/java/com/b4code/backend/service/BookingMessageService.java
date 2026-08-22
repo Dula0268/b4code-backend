@@ -90,17 +90,23 @@ public class BookingMessageService {
             List<BookingMessage> messages = bookingMessageRepository.findByBookingIdOrderByCreatedAtAsc(bookingId);
             BookingMessage latestMessage = messages.get(messages.size() - 1);
             
+            String role = latestMessage.getSenderRole();
+            if ("system@b4code.com".equals(latestMessage.getSenderEmail())) {
+                role = "AUTO_REPLY";
+            }
+
             return ActiveConversationDto.builder()
                     .bookingId(booking.getId())
                     .confirmationCode(booking.getConfirmationCode())
                     .guestName(booking.getGuestName())
                     .propertyName(booking.getProperty().getName())
                     .roomName(booking.getRoomType() != null ? booking.getRoomType().getName() : null)
+                    .roomNumber(booking.getRoomNumber())
                     .checkIn(booking.getCheckIn())
                     .checkOut(booking.getCheckOut())
                     .latestMessageContent(latestMessage.getContent())
                     .latestMessageAt(latestMessage.getCreatedAt())
-                    .latestMessageSenderRole(latestMessage.getSenderRole())
+                    .latestMessageSenderRole(role)
                     .build();
         }).collect(Collectors.toList());
     }

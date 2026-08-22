@@ -19,6 +19,19 @@ public class BookingController {
 
     private final BookingService bookingService;
     private final com.b4code.backend.service.BookingReminderService bookingReminderService;
+    private final com.b4code.backend.service.GuestOTPService guestOTPService;
+
+    @PostMapping("/send-otp")
+    public ResponseEntity<String> sendOtp(@Valid @RequestBody GuestOTPRequest request) {
+        guestOTPService.sendGuestOTP(request.getGuestEmail(), request.getGuestName());
+        return ResponseEntity.ok("OTP sent successfully");
+    }
+
+    @PostMapping("/verify-otp")
+    public ResponseEntity<String> verifyOtp(@Valid @RequestBody GuestOTPVerifyRequest request) {
+        guestOTPService.verifyGuestOTP(request.getGuestEmail(), request.getOtp());
+        return ResponseEntity.ok("OTP verified successfully");
+    }
 
     @PostMapping("/trigger-reminders")
     public ResponseEntity<String> triggerReminders() {

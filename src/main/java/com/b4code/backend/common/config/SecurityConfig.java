@@ -80,7 +80,11 @@ public class SecurityConfig {
                                 "/api/qr/value/**",
                                 "/api/qr/*/scan",
                                 "/api/properties/public/**",
-                                "/api/guest/**",
+                                "/api/guest/properties/**",
+                                "/api/guest/bookings/**",
+                                "/api/guest/order/**",
+                                "/api/guest/reviews/**",
+                                "/api/guest/test/**",
                                 "/api/staff/**",
                                 "/api/menu-items/**",
                                 "/api/orders/**",
@@ -91,6 +95,7 @@ public class SecurityConfig {
                                 "/api/staff/orders/property/*/stream",
                                 "/ws/**"
                         ).permitAll()
+                        .requestMatchers("/api/guest/notifications/**").authenticated()
                         .requestMatchers("/api/owner/**").hasAnyRole("OWNER", "ADMIN", "SUPER_ADMIN")
                         .requestMatchers("/actuator/**").permitAll()
                         .requestMatchers(
