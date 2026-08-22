@@ -325,14 +325,17 @@ public class SearchService {
         Double avgRating = reviewRepository.calculateAverageRating(property.getId());
         Long reviewCount = reviewRepository.countByPropertyId(property.getId());
 
-        String primaryImage = "/images/placeholder-property.jpg";
-        if (property.getImages() != null && !property.getImages().isEmpty()) {
-            primaryImage = property.getImages().stream()
-                    .filter(img -> com.b4code.backend.models.ImageType.PROPERTY.equals(img.getType())
-                            || com.b4code.backend.models.ImageType.GALLERY.equals(img.getType()))
-                    .map(com.b4code.backend.models.Image::getUrl)
-                    .findFirst()
-                    .orElse(property.getImages().get(0).getUrl());
+        String primaryImage = property.getImageSrc();
+        if (primaryImage == null || primaryImage.trim().isEmpty()) {
+            primaryImage = "/images/placeholder-property.jpg";
+            if (property.getImages() != null && !property.getImages().isEmpty()) {
+                primaryImage = property.getImages().stream()
+                        .filter(img -> com.b4code.backend.models.ImageType.PROPERTY.equals(img.getType())
+                                || com.b4code.backend.models.ImageType.GALLERY.equals(img.getType()))
+                        .map(com.b4code.backend.models.Image::getUrl)
+                        .findFirst()
+                        .orElse(property.getImages().get(0).getUrl());
+            }
         }
 
         return PropertySearchResult.builder()
@@ -359,15 +362,21 @@ public class SearchService {
 
     private PropertyDetailResult mapToPropertyDetailResult(Property property, LocalDate checkIn, LocalDate checkOut) {
         // Gallery images
-        List<String> galleryImages = property.getImages() != null
-                ? property.getImages().stream()
-                        .filter(img -> com.b4code.backend.models.ImageType.PROPERTY.equals(img.getType())
-                                || com.b4code.backend.models.ImageType.GALLERY.equals(img.getType()))
-                        .map(com.b4code.backend.models.Image::getUrl)
-                        .collect(java.util.stream.Collectors.toList())
-                : new java.util.ArrayList<>();
+        List<String> galleryImages = new java.util.ArrayList<>();
+        if (property.getGalleryImages() != null && !property.getGalleryImages().isEmpty()) {
+            galleryImages.addAll(java.util.Arrays.asList(property.getGalleryImages().split(",")));
+        } else if (property.getImages() != null) {
+            galleryImages = property.getImages().stream()
+                    .filter(img -> com.b4code.backend.models.ImageType.PROPERTY.equals(img.getType())
+                            || com.b4code.backend.models.ImageType.GALLERY.equals(img.getType()))
+                    .map(com.b4code.backend.models.Image::getUrl)
+                    .collect(java.util.stream.Collectors.toList());
+        }
 
-        String primaryImage = galleryImages.isEmpty() ? "/images/placeholder-property.jpg" : galleryImages.get(0);
+        String primaryImage = property.getImageSrc();
+        if (primaryImage == null || primaryImage.trim().isEmpty()) {
+            primaryImage = galleryImages.isEmpty() ? "/images/placeholder-property.jpg" : galleryImages.get(0);
+        }
 
         // Amenities
         List<AmenityDTO> amenitiesList = new ArrayList<>();
