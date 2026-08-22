@@ -22,6 +22,10 @@ import org.springframework.data.domain.Pageable;
 import com.b4code.backend.dto.OrderResponse;
 import com.b4code.backend.dto.OrderMapper;
 import java.time.LocalDateTime;
+import java.util.Collection;
+import java.util.EnumMap;
+import java.util.List;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -32,6 +36,7 @@ public class StaffOrderService {
     private final OrderSseService orderSseService;
     private final UserRepository userRepository;
     private final NotificationService notificationService;
+    private final PaymentService paymentService;
 
     @Transactional(readOnly = true)
     public Page<OrderResponse> getOrdersByProperty(Long propertyId, OrderStatus status, LocalDateTime startDate, LocalDateTime endDate, Pageable pageable) {
@@ -44,6 +49,33 @@ public class StaffOrderService {
             orders = orderRepository.findStaffOrders(propertyId, status, startDate, endDate, pageable);
         }
         return orders.map(OrderMapper::toResponse);
+    }
+
+    /**
+     * Paginated variant that filters on a set of statuses instead of a single one.
+     * An empty/null collection means "no status filter" and behaves exactly like
+     * {@link #getOrdersByProperty(Long, OrderStatus, LocalDateTime, LocalDateTime, Pageable)}.
+     */
+    @Transactional(readOnly = true)
+    public Page<OrderResponse> getOrdersByProperty(Long propertyId, Collection<OrderStatus> statuses, LocalDateTime startDate, LocalDateTime endDate, Pageable pageable) {
+        if (statuses == null || statuses.isEmpty()) {
+            return getOrdersByProperty(propertyId, (OrderStatus) null, startDate, endDate, pageable);
+        }
+        assertPropertyAccess(resolveCurrentUser(), propertyId);
+        return orderRepository.findStaffOrdersByStatuses(propertyId, statuses, startDate, endDate, pageable)
+                .map(OrderMapper::toResponse);
+    }
+
+    /** Order totals per status for a property; used to label the paginated staff queue tabs. */
+    @Transactional(readOnly = true)
+    public Map<OrderStatus, Long> getOrderCountsByStatus(Long propertyId) {
+        assertPropertyAccess(resolveCurrentUser(), propertyId);
+        Map<OrderStatus, Long> counts = new EnumMap<>(OrderStatus.class);
+        List<Object[]> rows = orderRepository.countOrdersByStatusForProperty(propertyId);
+        for (Object[] row : rows) {
+            counts.put((OrderStatus) row[0], ((Number) row[1]).longValue());
+        }
+        return counts;
     }
 
     @Transactional
@@ -59,6 +91,13 @@ public class StaffOrderService {
 
         order.setStatus(newStatus);
         order.setUpdatedBy(actor.getEmail());
+        if (newStatus == OrderStatus.CANCELLED && oldStatus != OrderStatus.CANCELLED) {
+            // A staff-driven status change to CANCELLED must refund and be attributed just like
+            // an explicit rejection, otherwise the guest silently loses their money.
+            order.setCancelledBy(com.b4code.backend.models.enums.OrderActorType.STAFF);
+            order.setCancelledAt(LocalDateTime.now());
+            applyRefund(order);
+        }
         Order saved = orderRepository.save(order);
 
         OrderStatusLog log = new OrderStatusLog();
@@ -66,6 +105,7 @@ public class StaffOrderService {
         log.setOldStatus(oldStatus);
         log.setNewStatus(newStatus);
         log.setChangedBy(actor.getEmail());
+        log.setChangedByRole(com.b4code.backend.models.enums.OrderActorType.STAFF);
         orderStatusLogRepository.save(log);
 
         orderSseService.sendEvent(orderId, "status-update",
@@ -100,6 +140,9 @@ public class StaffOrderService {
         OrderStatus oldStatus = order.getStatus();
         order.setStatus(OrderStatus.CANCELLED);
         order.setUpdatedBy(actor.getEmail());
+        order.setCancelledBy(com.b4code.backend.models.enums.OrderActorType.STAFF);
+        order.setCancelledAt(LocalDateTime.now());
+        applyRefund(order);
         if (actionDto.getReason() != null) {
             order.setStaffNotes(order.getStaffNotes() != null
                     ? order.getStaffNotes() + "\nRejection reason: " + actionDto.getReason()
@@ -112,6 +155,7 @@ public class StaffOrderService {
         log.setOldStatus(oldStatus);
         log.setNewStatus(OrderStatus.CANCELLED);
         log.setChangedBy(actor.getEmail());
+        log.setChangedByRole(com.b4code.backend.models.enums.OrderActorType.STAFF);
         orderStatusLogRepository.save(log);
 
         orderSseService.sendEvent(orderId, "status-update",
@@ -126,6 +170,26 @@ public class StaffOrderService {
         }
 
         return saved;
+    }
+
+    /**
+     * Reverses the payment behind a staff-cancelled order and records the outcome on the order.
+     * Runs inside the caller's transaction so a refund failure rolls the cancellation back.
+     * Idempotent via {@link PaymentService#refundFoodOrderPayment(Long)}.
+     */
+    private void applyRefund(Order order) {
+        PaymentService.FoodOrderRefundResult result = paymentService.refundFoodOrderPayment(order.getId());
+        if (result.refunded()) {
+            order.setRefundStatus(com.b4code.backend.models.enums.OrderRefundStatus.REFUNDED);
+            order.setRefundAmount(result.amount());
+            order.setRefundReference(result.reference());
+            order.setRefundedAt(LocalDateTime.now());
+        } else {
+            order.setRefundStatus(com.b4code.backend.models.enums.OrderRefundStatus.NOT_APPLICABLE);
+            order.setRefundAmount(null);
+            order.setRefundReference(null);
+            order.setRefundedAt(null);
+        }
     }
 
     private User resolveCurrentUser() {
