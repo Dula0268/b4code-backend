@@ -36,6 +36,15 @@ public class OrderStatusLog {
     @Column(name = "changed_by")
     private String changedBy;
 
+    /**
+     * Type of actor behind {@link #changedBy}. {@code changedBy} alone is ambiguous - it holds
+     * a guest display name for guest actions and a staff email for staff actions - so the
+     * audit trail (and the "cancelled by ..." UI) needs this explicit discriminator.
+     */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "changed_by_role", length = 20)
+    private com.b4code.backend.models.enums.OrderActorType changedByRole;
+
     @Column(name = "changed_at", nullable = false, updatable = false)
     private LocalDateTime changedAt;
 

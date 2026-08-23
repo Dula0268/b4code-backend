@@ -40,6 +40,8 @@ class GuestOrderServiceTest {
     private com.b4code.backend.service.NotificationService notificationService;
     @Mock
     private com.b4code.backend.service.OrderSseService orderSseService;
+    @Mock
+    private com.b4code.backend.service.PaymentService paymentService;
 
     @InjectMocks
     private GuestOrderService guestOrderService;
@@ -104,11 +106,107 @@ class GuestOrderServiceTest {
         order.setGuestSessionId("test-session-id");
         when(orderRepository.findById(1L)).thenReturn(Optional.of(order));
         when(orderRepository.save(any(Order.class))).thenReturn(order);
+        when(paymentService.refundFoodOrderPayment(1L))
+                .thenReturn(PaymentService.FoodOrderRefundResult.nothingToRefund());
 
         Order result = guestOrderService.cancelOrder(1L, "test-session-id");
 
         assertEquals(OrderStatus.CANCELLED, result.getStatus());
         verify(orderStatusLogRepository).save(any());
+    }
+
+    @Test
+    void cancelOrder_RefundsPaidOrderAndRecordsGuestAsActor() {
+        Order order = new Order();
+        order.setId(1L);
+        order.setStatus(OrderStatus.PLACED);
+        order.setGuestSessionId("test-session-id");
+        order.setPaymentMethod("card");
+        order.setTotalAmount(4200.0);
+        when(orderRepository.findById(1L)).thenReturn(Optional.of(order));
+        when(orderRepository.save(any(Order.class))).thenAnswer(i -> i.getArguments()[0]);
+        when(paymentService.refundFoodOrderPayment(1L))
+                .thenReturn(new PaymentService.FoodOrderRefundResult(true, 4200.0, "ORDER-9F2A1B"));
+
+        Order result = guestOrderService.cancelOrder(1L, "test-session-id");
+
+        assertEquals(OrderStatus.CANCELLED, result.getStatus());
+        assertEquals(com.b4code.backend.models.enums.OrderActorType.GUEST, result.getCancelledBy());
+        assertNotNull(result.getCancelledAt());
+        assertEquals(com.b4code.backend.models.enums.OrderRefundStatus.REFUNDED, result.getRefundStatus());
+        // Authoritative amount comes from the payment record, not the caller.
+        assertEquals(4200.0, result.getRefundAmount());
+        assertEquals("ORDER-9F2A1B", result.getRefundReference());
+        assertNotNull(result.getRefundedAt());
+        verify(paymentService).refundFoodOrderPayment(1L);
+    }
+
+    @Test
+    void cancelOrder_UnpaidOrderIsMarkedNotApplicable() {
+        Order order = new Order();
+        order.setId(1L);
+        order.setStatus(OrderStatus.PLACED);
+        order.setGuestSessionId("test-session-id");
+        order.setPaymentMethod("cash");
+        when(orderRepository.findById(1L)).thenReturn(Optional.of(order));
+        when(orderRepository.save(any(Order.class))).thenAnswer(i -> i.getArguments()[0]);
+        when(paymentService.refundFoodOrderPayment(1L))
+                .thenReturn(PaymentService.FoodOrderRefundResult.nothingToRefund());
+
+        Order result = guestOrderService.cancelOrder(1L, "test-session-id");
+
+        assertEquals(com.b4code.backend.models.enums.OrderRefundStatus.NOT_APPLICABLE, result.getRefundStatus());
+        assertNull(result.getRefundAmount());
+    }
+
+    /** A double-cancel must be a no-op: no second refund, no second audit row. */
+    @Test
+    void cancelOrder_IsIdempotent_DoesNotRefundTwice() {
+        Order order = new Order();
+        order.setId(1L);
+        order.setStatus(OrderStatus.CANCELLED);
+        order.setGuestSessionId("test-session-id");
+        order.setCancelledBy(com.b4code.backend.models.enums.OrderActorType.GUEST);
+        order.setRefundStatus(com.b4code.backend.models.enums.OrderRefundStatus.REFUNDED);
+        order.setRefundAmount(4200.0);
+        when(orderRepository.findById(1L)).thenReturn(Optional.of(order));
+
+        Order result = guestOrderService.cancelOrder(1L, "test-session-id");
+
+        assertEquals(OrderStatus.CANCELLED, result.getStatus());
+        assertEquals(4200.0, result.getRefundAmount());
+        verify(paymentService, never()).refundFoodOrderPayment(any());
+        verify(orderStatusLogRepository, never()).save(any());
+        verify(orderRepository, never()).save(any(Order.class));
+    }
+
+    /** A guest must not be able to cancel somebody else's order (IDOR guard). */
+    @Test
+    void cancelOrder_ForeignSessionIsRejectedWithoutRefund() {
+        Order order = new Order();
+        order.setId(1L);
+        order.setStatus(OrderStatus.PLACED);
+        order.setGuestSessionId("owner-session-id");
+        when(orderRepository.findById(1L)).thenReturn(Optional.of(order));
+
+        assertThrows(com.b4code.backend.exceptions.CustomException.class,
+                () -> guestOrderService.cancelOrder(1L, "attacker-session-id"));
+
+        assertEquals(OrderStatus.PLACED, order.getStatus());
+        verify(paymentService, never()).refundFoodOrderPayment(any());
+    }
+
+    /** Once the kitchen is cooking, only staff may cancel — no guest self-refund. */
+    @Test
+    void cancelOrder_FailsOnceInProgress() {
+        Order order = new Order();
+        order.setId(1L);
+        order.setStatus(OrderStatus.IN_PROGRESS);
+        order.setGuestSessionId("test-session-id");
+        when(orderRepository.findById(1L)).thenReturn(Optional.of(order));
+
+        assertThrows(StatusTransitionException.class, () -> guestOrderService.cancelOrder(1L, "test-session-id"));
+        verify(paymentService, never()).refundFoodOrderPayment(any());
     }
 
     @Test

@@ -68,7 +68,7 @@ class StaffOrderControllerTest {
         com.b4code.backend.dto.OrderResponse response = new com.b4code.backend.dto.OrderResponse();
         response.setId(1L);
         org.springframework.data.domain.Page<com.b4code.backend.dto.OrderResponse> page = new org.springframework.data.domain.PageImpl<>(java.util.Collections.singletonList(response));
-        when(staffOrderService.getOrdersByProperty(eq(1L), any(), any(), any(), any())).thenReturn(page);
+        when(staffOrderService.getOrdersByProperty(eq(1L), any(OrderStatus.class), any(), any(), any())).thenReturn(page);
 
         mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get("/api/staff/orders/property/1").param("size", "100"))
                 .andDo(org.springframework.test.web.servlet.result.MockMvcResultHandlers.print())

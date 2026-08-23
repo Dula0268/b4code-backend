@@ -37,6 +37,9 @@ public class StaffOrderServiceTest {
 
     @Mock
     private com.b4code.backend.dao.UserRepository userRepository;
+    @Mock
+    private PaymentService paymentService;
+
 
     @InjectMocks
     private StaffOrderService staffOrderService;
@@ -86,10 +89,15 @@ public class StaffOrderServiceTest {
 
         when(orderRepository.findById(1L)).thenReturn(java.util.Optional.of(order));
         when(orderRepository.save(any(Order.class))).thenAnswer(i -> i.getArguments()[0]);
+        when(paymentService.refundFoodOrderPayment(1L))
+                .thenReturn(new PaymentService.FoodOrderRefundResult(true, 2500.0, "ORDER-ABC123"));
 
         Order rejectedOrder = staffOrderService.rejectOrder(1L, actionDto);
 
         assertEquals(OrderStatus.CANCELLED, rejectedOrder.getStatus());
         assertEquals("Rejection reason: Item out of stock", rejectedOrder.getStaffNotes());
+        assertEquals(com.b4code.backend.models.enums.OrderActorType.STAFF, rejectedOrder.getCancelledBy());
+        assertEquals(com.b4code.backend.models.enums.OrderRefundStatus.REFUNDED, rejectedOrder.getRefundStatus());
+        assertEquals(2500.0, rejectedOrder.getRefundAmount());
     }
 }
