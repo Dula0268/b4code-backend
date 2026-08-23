@@ -104,10 +104,36 @@ public class ModerationServiceImpl implements ModerationService {
                 .orElseThrow(() -> new CustomException("Dispute id=" + id + " not found.", HttpStatus.NOT_FOUND));
         dispute.setStatus(DisputeStatus.RESOLVED);
         dispute.setResolutionNote(resolution);
-        log.info("Dispute id={} RESOLVED — refundApproved={}", id, refundApproved);
+
+        // Determine if this is a complaint (amount == 0) or a refund request
+        boolean isComplaint = dispute.getAmount() != null
+                && dispute.getAmount().compareTo(java.math.BigDecimal.ZERO) == 0;
+
+        // Build a rich outcome label based on case type + admin decision
+        String richOutcome;
+        ModerationAction action;
+        if (isComplaint) {
+            if (refundApproved) {
+                richOutcome = "Complaint Resolved (Guest Wins)";
+                action = ModerationAction.REVIEW_KEPT;   // reuse existing — guest-wins branch
+            } else {
+                richOutcome = "Complaint Dismissed";
+                action = ModerationAction.APPEAL_DENIED; // reuse existing — dismissed branch
+            }
+        } else {
+            if (refundApproved) {
+                richOutcome = "Approved Refund";
+                action = ModerationAction.REFUND_ISSUED;
+            } else {
+                richOutcome = "Denied Refund (Host Wins)";
+                action = ModerationAction.APPEAL_DENIED;
+            }
+        }
+
+        log.info("Dispute id={} RESOLVED — isComplaint={}, refundApproved={}, outcome='{}'",
+                id, isComplaint, refundApproved, richOutcome);
         DisputeDto dto = DisputeDto.fromEntity(disputeRepository.save(dispute));
-        ModerationAction action = refundApproved ? ModerationAction.REFUND_ISSUED : ModerationAction.APPEAL_DENIED;
-        saveHistory(dispute.getDisputeId(), action, resolution);
+        saveHistory(dispute.getDisputeId(), action, richOutcome);
 
         // Trigger notification
         if (dispute.getGuest() != null) {
