@@ -81,6 +81,7 @@ public class SecurityConfig {
                                 "/api/qr/*/scan",
                                 "/api/properties/public/**",
                                 "/api/guest/properties/**",
+                                "/api/guest/search/**",
                                 "/api/guest/bookings/**",
                                 "/api/guest/order/**",
                                 "/api/guest/reviews/**",

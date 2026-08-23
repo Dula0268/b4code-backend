@@ -81,6 +81,7 @@ public class EmailService {
         }
     }
 
+    @Async
     public void sendBookingConfirmationEmail(String toEmail, String guestName, String confirmationNumber, 
                                             String propertyName, String checkIn, String checkOut, String totalAmount) {
         try {
