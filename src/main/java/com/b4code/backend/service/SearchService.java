@@ -288,9 +288,9 @@ public class SearchService {
         List<RoomType> availableRoomTypes = property.getRoomTypes() != null
                 ? property.getRoomTypes().stream()
                         .filter(r -> {
-                            if (checkIn == null || checkOut == null)
-                                return true;
-                            int booked = roomDateInventoryRepository.getMaxBookedQuantity(r.getId(), checkIn, checkOut);
+                            LocalDate effectiveCheckIn = checkIn != null ? checkIn : LocalDate.now();
+                            LocalDate effectiveCheckOut = checkOut != null ? checkOut : LocalDate.now().plusDays(1);
+                            int booked = roomDateInventoryRepository.getMaxBookedQuantity(r.getId(), effectiveCheckIn, effectiveCheckOut);
                             return (r.getInventory() - booked) > 0;
                         })
                         .collect(Collectors.toList())
@@ -325,14 +325,17 @@ public class SearchService {
         Double avgRating = reviewRepository.calculateAverageRating(property.getId());
         Long reviewCount = reviewRepository.countByPropertyId(property.getId());
 
-        String primaryImage = "/images/placeholder-property.jpg";
-        if (property.getImages() != null && !property.getImages().isEmpty()) {
-            primaryImage = property.getImages().stream()
-                    .filter(img -> com.b4code.backend.models.ImageType.PROPERTY.equals(img.getType())
-                            || com.b4code.backend.models.ImageType.GALLERY.equals(img.getType()))
-                    .map(com.b4code.backend.models.Image::getUrl)
-                    .findFirst()
-                    .orElse(property.getImages().get(0).getUrl());
+        String primaryImage = property.getImageSrc();
+        if (primaryImage == null || primaryImage.trim().isEmpty()) {
+            primaryImage = "/images/placeholder-property.jpg";
+            if (property.getImages() != null && !property.getImages().isEmpty()) {
+                primaryImage = property.getImages().stream()
+                        .filter(img -> com.b4code.backend.models.ImageType.PROPERTY.equals(img.getType())
+                                || com.b4code.backend.models.ImageType.GALLERY.equals(img.getType()))
+                        .map(com.b4code.backend.models.Image::getUrl)
+                        .findFirst()
+                        .orElse(property.getImages().get(0).getUrl());
+            }
         }
 
         return PropertySearchResult.builder()
@@ -359,15 +362,21 @@ public class SearchService {
 
     private PropertyDetailResult mapToPropertyDetailResult(Property property, LocalDate checkIn, LocalDate checkOut) {
         // Gallery images
-        List<String> galleryImages = property.getImages() != null
-                ? property.getImages().stream()
-                        .filter(img -> com.b4code.backend.models.ImageType.PROPERTY.equals(img.getType())
-                                || com.b4code.backend.models.ImageType.GALLERY.equals(img.getType()))
-                        .map(com.b4code.backend.models.Image::getUrl)
-                        .collect(java.util.stream.Collectors.toList())
-                : new java.util.ArrayList<>();
+        List<String> galleryImages = new java.util.ArrayList<>();
+        if (property.getGalleryImages() != null && !property.getGalleryImages().isEmpty()) {
+            galleryImages.addAll(java.util.Arrays.asList(property.getGalleryImages().split(",")));
+        } else if (property.getImages() != null) {
+            galleryImages = property.getImages().stream()
+                    .filter(img -> com.b4code.backend.models.ImageType.PROPERTY.equals(img.getType())
+                            || com.b4code.backend.models.ImageType.GALLERY.equals(img.getType()))
+                    .map(com.b4code.backend.models.Image::getUrl)
+                    .collect(java.util.stream.Collectors.toList());
+        }
 
-        String primaryImage = galleryImages.isEmpty() ? "/images/placeholder-property.jpg" : galleryImages.get(0);
+        String primaryImage = property.getImageSrc();
+        if (primaryImage == null || primaryImage.trim().isEmpty()) {
+            primaryImage = galleryImages.isEmpty() ? "/images/placeholder-property.jpg" : galleryImages.get(0);
+        }
 
         // Amenities
         List<AmenityDTO> amenitiesList = new ArrayList<>();
@@ -416,19 +425,12 @@ public class SearchService {
         // RoomTypes
         List<RoomDTO> roomDTOs = property.getRoomTypes() != null
                 ? property.getRoomTypes().stream()
-                        .filter(r -> {
-                            if (checkIn == null || checkOut == null)
-                                return true;
-                            int booked = roomDateInventoryRepository.getMaxBookedQuantity(r.getId(), checkIn, checkOut);
-                            return (r.getInventory() - booked) > 0;
-                        })
                         .map(r -> {
                             int availableCount = r.getInventory() != null ? r.getInventory() : 3;
-                            if (checkIn != null && checkOut != null) {
-                                int booked = roomDateInventoryRepository.getMaxBookedQuantity(r.getId(), checkIn,
-                                        checkOut);
-                                availableCount -= booked;
-                            }
+                            LocalDate effectiveCheckIn = checkIn != null ? checkIn : LocalDate.now();
+                            LocalDate effectiveCheckOut = checkOut != null ? checkOut : LocalDate.now().plusDays(1);
+                            int booked = roomDateInventoryRepository.getMaxBookedQuantity(r.getId(), effectiveCheckIn, effectiveCheckOut);
+                            availableCount = Math.max(0, availableCount - booked);
                             return RoomDTO.builder()
                                     .id(r.getId().toString())
                                     .name(r.getRoomCategory() != null ? r.getRoomCategory().name() : "")
@@ -441,6 +443,7 @@ public class SearchService {
                                     .features(new ArrayList<>())
                                     .imageSrc(r.getImage() != null ? r.getImage().getUrl() : null)
                                     .availableCount(availableCount)
+                                    .roomNumbers(r.getRoomNumbers())
                                     .build();
                         }).collect(Collectors.toList())
                 : new ArrayList<>();
@@ -457,7 +460,7 @@ public class SearchService {
                 .fullAddress((property.getAddressLine1() != null ? property.getAddressLine1() : "") + ", "
                         + (property.getCity() != null ? property.getCity() : "") + ", "
                         + (property.getCountry() != null ? property.getCountry() : ""))
-
+                .freeCancellation(property.getFreeCancellation())
                 .pricePerNight(price)
                 .rating(avgRating != null ? avgRating : 0.0)
                 .reviewCount(reviewCount != null ? reviewCount.intValue() : 0)

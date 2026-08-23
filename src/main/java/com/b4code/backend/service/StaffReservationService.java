@@ -93,20 +93,38 @@ public class StaffReservationService {
         }
 
         String trimmedRoomNumber = roomNumber.trim();
-        bookingRepository.findByPropertyIdAndRoomNumberIgnoreCaseAndStatus(propertyId, trimmedRoomNumber, Booking.BookingStatus.CHECKED_IN)
-                .ifPresent(existing -> {
-                    throw new CustomException("Room " + trimmedRoomNumber + " is already occupied by another checked-in guest", HttpStatus.CONFLICT);
-                });
+        java.util.List<String> newRooms = java.util.Arrays.stream(trimmedRoomNumber.split(","))
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .collect(java.util.stream.Collectors.toList());
 
+        java.util.List<Booking> checkedInBookings = bookingRepository.findByPropertyIdAndStatus(propertyId, Booking.BookingStatus.CHECKED_IN);
+        for (Booking existing : checkedInBookings) {
+            if (existing.getRoomNumber() != null && !existing.getId().equals(bookingId)) {
+                java.util.List<String> existingRooms = java.util.Arrays.stream(existing.getRoomNumber().split(","))
+                        .map(String::trim)
+                        .filter(s -> !s.isEmpty())
+                        .collect(java.util.stream.Collectors.toList());
+                for (String r : newRooms) {
+                    if (existingRooms.contains(r)) {
+                        throw new CustomException("Room " + r + " is already occupied by another checked-in guest", HttpStatus.CONFLICT);
+                    }
+                }
+            }
+        }
+
+        booking.setRoomNumber(trimmedRoomNumber);
         Long roomTypeId = booking.getRoomType().getId();
         List<PhysicalRoom> availableRooms = physicalRoomRepository.findAssignableByRoomTypeId(roomTypeId);
-        PhysicalRoom matchedRoom = availableRooms.stream()
-                .filter(r -> r.getDoorNumber() != null && r.getDoorNumber().equalsIgnoreCase(trimmedRoomNumber))
-                .findFirst()
-                .orElseThrow(() -> new CustomException("Room " + trimmedRoomNumber + " is not available for this room type", HttpStatus.BAD_REQUEST));
-
-        matchedRoom.setStatus("OCCUPIED");
-        physicalRoomRepository.save(matchedRoom);
+        
+        for (String r : newRooms) {
+            PhysicalRoom matchedRoom = availableRooms.stream()
+                    .filter(ar -> ar.getDoorNumber() != null && ar.getDoorNumber().equalsIgnoreCase(r))
+                    .findFirst()
+                    .orElseThrow(() -> new CustomException("Room " + r + " is not available for this room type", HttpStatus.BAD_REQUEST));
+            matchedRoom.setStatus("OCCUPIED");
+            physicalRoomRepository.save(matchedRoom);
+        }
 
         booking.setRoomNumber(trimmedRoomNumber);
         booking.setStatus(Booking.BookingStatus.CHECKED_IN);

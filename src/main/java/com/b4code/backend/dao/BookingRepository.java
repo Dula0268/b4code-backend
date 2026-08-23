@@ -13,6 +13,8 @@ import java.util.Optional;
 @Repository
 public interface BookingRepository extends JpaRepository<Booking, Long> {
 
+    int countByGuestEmailAndPaymentMethodAndStatusIn(String guestEmail, Booking.PaymentMethod paymentMethod, List<Booking.BookingStatus> statuses);
+
     @Query("""
         SELECT COALESCE(SUM(b.roomQuantity), 0) FROM Booking b
         WHERE b.roomType.id = :roomId
@@ -43,6 +45,7 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
 
     List<Booking> findByGuestEmailOrderByCreatedAtDesc(String guestEmail);
     List<Booking> findByPropertyId(Long propertyId);
+    List<Booking> findByPropertyIdAndStatus(Long propertyId, Booking.BookingStatus status);
     
     @Query("SELECT b FROM Booking b WHERE b.checkIn = :checkIn AND b.status = :status")
     List<Booking> findByCheckInAndStatus(@Param("checkIn") LocalDate checkIn, @Param("status") Booking.BookingStatus status);

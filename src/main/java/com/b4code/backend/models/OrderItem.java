@@ -36,6 +36,13 @@ public class OrderItem {
     @Column(nullable = false)
     private Double priceAtOrder;
 
+    /**
+     * Authoritative line total (priceAtOrder * quantity) computed server-side at
+     * order creation. Persisted so clients never multiply on their own.
+     */
+    @Column(name = "line_total")
+    private Double lineTotal;
+
     @Column(columnDefinition = "TEXT")
     private String note;
 }

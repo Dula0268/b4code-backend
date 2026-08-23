@@ -57,5 +57,8 @@ public class RoomType {
     @Builder.Default
     private RoomStatus status = RoomStatus.AVAILABLE;
 
+    @Column(length = 255)
+    private String roomNumbers;
+
 }
 

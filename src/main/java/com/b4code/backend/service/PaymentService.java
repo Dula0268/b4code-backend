@@ -282,6 +282,82 @@ public class PaymentService {
         return PaymentResponse.fromEntity(payment);
     }
 
+    /**
+     * Outcome of a refund attempt for a food order. {@code refunded == false} with a null
+     * reference means there was simply nothing to refund (order was never actually paid).
+     */
+    public record FoodOrderRefundResult(boolean refunded, Double amount, String reference) {
+        public static FoodOrderRefundResult nothingToRefund() {
+            return new FoodOrderRefundResult(false, null, null);
+        }
+    }
+
+    /**
+     * Refunds the payment backing a food order, if that order was actually paid.
+     *
+     * <p>Deliberately reuses the existing {@link #refundPayment(Long)} provider path rather than
+     * introducing a second payment integration: PayHere is driven through the {@link Payment}
+     * record in this codebase, so flipping the authoritative payment row to REFUNDED (plus the
+     * ledger reversal below) is the project's existing refund mechanism.</p>
+     *
+     * <p>Idempotent: if the order's payment is already REFUNDED we report the original refund
+     * instead of issuing a second one. The refunded amount always comes from the stored
+     * {@link Payment#getAmount()} - never from anything a caller supplies.</p>
+     */
+    @org.springframework.transaction.annotation.Transactional
+    public FoodOrderRefundResult refundFoodOrderPayment(Long foodOrderId) {
+        if (foodOrderId == null) {
+            return FoodOrderRefundResult.nothingToRefund();
+        }
+
+        // Already refunded? Report the original refund rather than issuing another one.
+        for (Payment existing : paymentRepository.findByFoodOrderIdOrderByCreatedAtDesc(foodOrderId)) {
+            if (existing.getStatus() == Payment.PaymentStatus.REFUNDED) {
+                log.info("[REFUND] Food order {} already refunded under payment {}", foodOrderId, existing.getOrderId());
+                return new FoodOrderRefundResult(true, existing.getAmount(), existing.getOrderId());
+            }
+        }
+
+        Payment paid = paymentRepository
+                .findFirstByFoodOrderIdAndStatusOrderByCreatedAtDesc(foodOrderId, Payment.PaymentStatus.SUCCESS)
+                .orElse(null);
+        if (paid == null) {
+            // Cash / pay-at-property, or an online order cancelled before payment settled.
+            return FoodOrderRefundResult.nothingToRefund();
+        }
+
+        PaymentResponse refunded = refundPayment(paid.getId());
+        recordRefundTransaction(paid);
+        log.info("[REFUND] Refunded {} {} for food order {} (payment {})",
+                paid.getCurrency(), paid.getAmount(), foodOrderId, paid.getOrderId());
+        return new FoodOrderRefundResult(true, refunded.getAmount(), paid.getOrderId());
+    }
+
+    /**
+     * Writes the negative ledger entry mirroring {@link #recordTransaction(Payment)} so the
+     * finance ledger nets out after a refund. Guarded by the reference number so a replay
+     * cannot double-post.
+     */
+    private void recordRefundTransaction(Payment payment) {
+        if (payment == null || payment.getOrderId() == null) return;
+        String reference = "REFUND-" + payment.getOrderId();
+        try {
+            if (transactionRepository.findByReferenceNumber(reference).isPresent()) {
+                return;
+            }
+            Transaction tx = new Transaction();
+            tx.setReferenceNumber(reference);
+            tx.setAmount(BigDecimal.valueOf(payment.getAmount()).negate());
+            tx.setCurrency(payment.getCurrency() != null ? payment.getCurrency() : "LKR");
+            tx.setType(TransactionType.REFUND);
+            tx.setUser(payment.getUser());
+            tx.setDescription("Refund for cancelled food order #" + payment.getFoodOrderId());
+            transactionRepository.save(tx);
+        } catch (Exception e) {
+            log.error("[REFUND] Failed to record refund transaction for payment {}", payment.getOrderId(), e);
+        }
+    }
+
     public PaymentResponse getPaymentById(Long id) {
         return PaymentResponse.fromEntity(
                 paymentRepository.findById(id)

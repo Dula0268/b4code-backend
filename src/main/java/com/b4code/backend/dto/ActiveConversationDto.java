@@ -18,6 +18,7 @@ public class ActiveConversationDto {
     private String guestName;
     private String propertyName;
     private String roomName;
+    private String roomNumber;
     private LocalDate checkIn;
     private LocalDate checkOut;
     private String latestMessageContent;

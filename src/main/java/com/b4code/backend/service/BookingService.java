@@ -91,11 +91,28 @@ public class BookingService {
         PriceBreakdown price = getPrice(
                 roomType.getId(), request.getCheckIn(), request.getCheckOut(), request.getRoomQuantity(), request.getPromoCodes());
 
+        String passkey = request.getNicNumber();
+        if (request.getPaymentMethod() == Booking.PaymentMethod.PAY_AT_PROPERTY) {
+            if (request.getRoomQuantity() > 2) {
+                throw new com.b4code.backend.exceptions.CustomException("Pay at Property is limited to a maximum of 2 rooms per booking. Please pay online for larger bookings.");
+            }
+            int activeBookings = bookingRepository.countByGuestEmailAndPaymentMethodAndStatusIn(
+                request.getGuestEmail(), 
+                Booking.PaymentMethod.PAY_AT_PROPERTY, 
+                java.util.List.of(Booking.BookingStatus.PENDING, Booking.BookingStatus.CONFIRMED)
+            );
+            if (activeBookings >= 1) {
+                throw new com.b4code.backend.exceptions.CustomException("You already have an active Pay at Property booking. Please complete or cancel it before making another, or pay online.");
+            }
+            
+            passkey = UUID.randomUUID().toString().substring(0, 6).toUpperCase();
+        }
+
         Booking booking = Booking.builder()
                 .confirmationCode(UUID.randomUUID().toString().substring(0, 8).toUpperCase())
                 .guestName(request.getGuestName())
                 .guestEmail(request.getGuestEmail())
-                .nicNumber(request.getNicNumber())
+                .nicNumber(passkey)
                 .roomType(roomType)
                 .roomQuantity(request.getRoomQuantity())
                 .property(property)
@@ -183,30 +200,16 @@ public class BookingService {
             return;
         }
 
-        if (booking.getStatus() == Booking.BookingStatus.PENDING || booking.getStatus() == Booking.BookingStatus.CONFIRMED) {
-            booking.setStatus(Booking.BookingStatus.CONFIRMED);
-            booking.setIsPaid(true);
-            bookingRepository.save(booking);
-
-            // Update linked payment status & record transaction in Admin Finance Ledger
-            paymentRepository.findFirstByBookingIdAndStatusOrderByCreatedAtDesc(booking.getId(), com.b4code.backend.models.Payment.PaymentStatus.PENDING)
-                .ifPresentOrElse(p -> {
-                    p.setStatus(com.b4code.backend.models.Payment.PaymentStatus.SUCCESS);
-                    paymentRepository.save(p);
-                    paymentService.recordTransaction(p);
-                }, () -> {
-                    // Fallback: search for any existing payment for this booking
-                    paymentRepository.findAll().stream()
-                        .filter(p -> p.getBooking() != null && booking.getId().equals(p.getBooking().getId()))
-                        .findFirst()
-                        .ifPresent(p -> {
-                            p.setStatus(com.b4code.backend.models.Payment.PaymentStatus.SUCCESS);
-                            paymentRepository.save(p);
-                            paymentService.recordTransaction(p);
-                        });
-                });
-
-            log.info("[BOOKING] Confirmed booking {} after payment redirect and recorded transaction", confirmationCode);
+        // SECURITY: this endpoint used to CONFIRM the booking, mark it paid, flip the payment
+        // to SUCCESS and write revenue to the finance ledger — all with no proof of payment,
+        // keyed only on a guessable confirmation code. That let anyone confirm-and-"pay" any
+        // booking. Payment state must only ever change through PaymentService#handleNotification,
+        // which verifies PayHere's MD5 signature. Here we only SEND the receipt, and only once
+        // the booking has actually been confirmed by that verified path.
+        if (booking.getStatus() != Booking.BookingStatus.CONFIRMED || !Boolean.TRUE.equals(booking.getIsPaid())) {
+            log.warn("[EMAIL] Refusing to send receipt for booking {} – not yet confirmed via verified payment (status={}, isPaid={})",
+                    confirmationCode, booking.getStatus(), booking.getIsPaid());
+            return;
         }
 
         String propertyName = booking.getRoomType().getProperty().getName();
@@ -415,7 +418,7 @@ public class BookingService {
                 .mapToInt(com.b4code.backend.models.RoomDateInventory::getBookedQuantity)
                 .max().orElse(0);
 
-        if (roomType.getInventory() - peakBooked < booking.getRoomQuantity()) {
+        if (roomType.getInventory() - peakBooked < request.getRoomQuantity()) {
             // Revert the temporary inventory freeing
             updateInventory(booking.getRoomType(), booking.getCheckIn(), booking.getCheckOut(), booking.getRoomQuantity());
             throw new RoomNotAvailableException("Room is not available for the selected dates with the current quantity");
@@ -426,7 +429,7 @@ public class BookingService {
 
         List<String> currentPromoCodes = booking.getPromoCode() != null ? Arrays.asList(booking.getPromoCode().split(",")) : null;
         PriceBreakdown newPrice = calculatePrice(roomType, request.getCheckInDate(), request.getCheckOutDate(),
-                booking.getRoomQuantity(), currentPromoCodes, false);
+                request.getRoomQuantity(), currentPromoCodes, false);
         BigDecimal previousTotal = booking.getTotalAmount();
         BigDecimal newTotal = newPrice.getTotalAmount();
         BigDecimal difference = newTotal.subtract(previousTotal);
@@ -435,6 +438,7 @@ public class BookingService {
         booking.setCheckIn(request.getCheckInDate());
         booking.setCheckOut(request.getCheckOutDate());
         booking.setGuestCount(request.getGuests());
+        booking.setRoomQuantity(request.getRoomQuantity());
         booking.setTotalAmount(newTotal);
         booking.setTaxAmount(newPrice.getTaxAmount());
         booking.setDiscountAmount(newPrice.getDiscountAmount());
@@ -444,7 +448,7 @@ public class BookingService {
         Booking saved = bookingRepository.save(booking);
 
         // Consume new inventory
-        updateInventory(roomType, request.getCheckInDate(), request.getCheckOutDate(), booking.getRoomQuantity());
+        updateInventory(roomType, request.getCheckInDate(), request.getCheckOutDate(), request.getRoomQuantity());
 
         boolean isPaidOnline = saved.getPaymentMethod() == Booking.PaymentMethod.ONLINE_CARD;
 

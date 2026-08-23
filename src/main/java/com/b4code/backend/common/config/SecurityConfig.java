@@ -71,9 +71,21 @@ public class SecurityConfig {
                         .requestMatchers(
                                 "/api/auth/**",
                                 "/api/test/**",
-                                "/api/qr/**",
+                                // SECURITY: only the guest-facing QR *lookups* are public.
+                                // /api/qr/list, /generate, /{id}, update, toggle, delete are
+                                // staff management and must be authenticated — they used to be
+                                // exposed by a blanket /api/qr/** rule, leaking every QR's
+                                // ordering token (unique_qr_id) to anonymous callers.
+                                "/api/qr/unique/**",
+                                "/api/qr/value/**",
+                                "/api/qr/*/scan",
                                 "/api/properties/public/**",
-                                "/api/guest/**",
+                                "/api/guest/properties/**",
+                                "/api/guest/search/**",
+                                "/api/guest/bookings/**",
+                                "/api/guest/order/**",
+                                "/api/guest/reviews/**",
+                                "/api/guest/test/**",
                                 "/api/staff/**",
                                 "/api/menu-items/**",
                                 "/api/orders/**",
@@ -84,6 +96,7 @@ public class SecurityConfig {
                                 "/api/staff/orders/property/*/stream",
                                 "/ws/**"
                         ).permitAll()
+                        .requestMatchers("/api/guest/notifications/**").authenticated()
                         .requestMatchers("/api/owner/**").hasAnyRole("OWNER", "ADMIN", "SUPER_ADMIN")
                         .requestMatchers("/actuator/**").permitAll()
                         .requestMatchers(
