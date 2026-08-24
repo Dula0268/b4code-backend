@@ -2,7 +2,7 @@ package com.b4code.backend.dto;
 
 import com.b4code.backend.models.enums.OrderStatus;
 import lombok.Data;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 
 @Data
@@ -25,14 +25,14 @@ public class OrderResponse {
     private String guestInstructions;
     private String paymentMethod;
     private String staffNotes;
-    private LocalDateTime createdAt;
+    private Instant createdAt;
     // ─── Cancellation attribution + refund outcome (additive) ───
     private com.b4code.backend.models.enums.OrderActorType cancelledBy;
-    private LocalDateTime cancelledAt;
+    private Instant cancelledAt;
     private com.b4code.backend.models.enums.OrderRefundStatus refundStatus;
     private Double refundAmount;
     private String refundReference;
-    private LocalDateTime refundedAt;
+    private Instant refundedAt;
     private List<OrderItemResponse> items;
 
     @Data

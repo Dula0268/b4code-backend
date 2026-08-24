@@ -20,8 +20,9 @@ import org.springframework.web.bind.annotation.*;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
+import java.time.Instant;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Map;
 
@@ -46,8 +47,12 @@ public class StaffOrderController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
             @PageableDefault(size = 20) Pageable pageable) {
         log.info("Fetching orders for property: {}", propertyId);
-        LocalDateTime startDate = date != null ? date.atStartOfDay() : null;
-        LocalDateTime endDate = date != null ? date.plusDays(1).atStartOfDay() : null;
+        // Every property currently operates in Sri Lanka; the `date` filter is a
+        // property-local calendar day, so its bounds must be computed in that zone
+        // rather than UTC, or a day-boundary order would land in the wrong bucket.
+        ZoneId propertyZone = ZoneId.of("Asia/Colombo");
+        Instant startDate = date != null ? date.atStartOfDay(propertyZone).toInstant() : null;
+        Instant endDate = date != null ? date.plusDays(1).atStartOfDay(propertyZone).toInstant() : null;
 
         // `statuses` is an additive, optional filter (the staff queue's "In-Progress" tab
         // covers both IN_PROGRESS and READY). Existing callers that send `status` — or
