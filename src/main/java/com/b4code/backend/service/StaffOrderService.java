@@ -21,7 +21,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import com.b4code.backend.dto.OrderResponse;
 import com.b4code.backend.dto.OrderMapper;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.Collection;
 import java.util.EnumMap;
 import java.util.List;
@@ -39,7 +39,7 @@ public class StaffOrderService {
     private final PaymentService paymentService;
 
     @Transactional(readOnly = true)
-    public Page<OrderResponse> getOrdersByProperty(Long propertyId, OrderStatus status, LocalDateTime startDate, LocalDateTime endDate, Pageable pageable) {
+    public Page<OrderResponse> getOrdersByProperty(Long propertyId, OrderStatus status, Instant startDate, Instant endDate, Pageable pageable) {
         assertPropertyAccess(resolveCurrentUser(), propertyId);
 
         Page<Order> orders;
@@ -54,10 +54,10 @@ public class StaffOrderService {
     /**
      * Paginated variant that filters on a set of statuses instead of a single one.
      * An empty/null collection means "no status filter" and behaves exactly like
-     * {@link #getOrdersByProperty(Long, OrderStatus, LocalDateTime, LocalDateTime, Pageable)}.
+     * {@link #getOrdersByProperty(Long, OrderStatus, Instant, Instant, Pageable)}.
      */
     @Transactional(readOnly = true)
-    public Page<OrderResponse> getOrdersByProperty(Long propertyId, Collection<OrderStatus> statuses, LocalDateTime startDate, LocalDateTime endDate, Pageable pageable) {
+    public Page<OrderResponse> getOrdersByProperty(Long propertyId, Collection<OrderStatus> statuses, Instant startDate, Instant endDate, Pageable pageable) {
         if (statuses == null || statuses.isEmpty()) {
             return getOrdersByProperty(propertyId, (OrderStatus) null, startDate, endDate, pageable);
         }
@@ -95,7 +95,7 @@ public class StaffOrderService {
             // A staff-driven status change to CANCELLED must refund and be attributed just like
             // an explicit rejection, otherwise the guest silently loses their money.
             order.setCancelledBy(com.b4code.backend.models.enums.OrderActorType.STAFF);
-            order.setCancelledAt(LocalDateTime.now());
+            order.setCancelledAt(Instant.now());
             applyRefund(order);
         }
         Order saved = orderRepository.save(order);
@@ -141,7 +141,7 @@ public class StaffOrderService {
         order.setStatus(OrderStatus.CANCELLED);
         order.setUpdatedBy(actor.getEmail());
         order.setCancelledBy(com.b4code.backend.models.enums.OrderActorType.STAFF);
-        order.setCancelledAt(LocalDateTime.now());
+        order.setCancelledAt(Instant.now());
         applyRefund(order);
         if (actionDto.getReason() != null) {
             order.setStaffNotes(order.getStaffNotes() != null
@@ -183,7 +183,7 @@ public class StaffOrderService {
             order.setRefundStatus(com.b4code.backend.models.enums.OrderRefundStatus.REFUNDED);
             order.setRefundAmount(result.amount());
             order.setRefundReference(result.reference());
-            order.setRefundedAt(LocalDateTime.now());
+            order.setRefundedAt(Instant.now());
         } else {
             order.setRefundStatus(com.b4code.backend.models.enums.OrderRefundStatus.NOT_APPLICABLE);
             order.setRefundAmount(null);

@@ -237,7 +237,7 @@ public class GuestOrderService {
             order.setRefundStatus(OrderRefundStatus.REFUNDED);
             order.setRefundAmount(result.amount());
             order.setRefundReference(result.reference());
-            order.setRefundedAt(java.time.LocalDateTime.now());
+            order.setRefundedAt(java.time.Instant.now());
         } else {
             order.setRefundStatus(OrderRefundStatus.NOT_APPLICABLE);
             order.setRefundAmount(null);
@@ -330,7 +330,7 @@ public class GuestOrderService {
         order.setStatus(OrderStatus.CANCELLED);
         order.setUpdatedBy(actor);
         order.setCancelledBy(OrderActorType.GUEST);
-        order.setCancelledAt(java.time.LocalDateTime.now());
+        order.setCancelledAt(java.time.Instant.now());
 
         // Refund inside the same transaction. Any provider/persistence failure propagates and
         // rolls back the CANCELLED transition above.
