@@ -1,8 +1,11 @@
 package com.b4code.backend.service.impl;
 
+import com.b4code.backend.dao.ImageRepository;
 import com.b4code.backend.dao.PropertyRepository;
 import com.b4code.backend.dao.RoomTypeRepository;
 import com.b4code.backend.dao.UserRepository;
+import com.b4code.backend.models.Image;
+import com.b4code.backend.models.ImageType;
 import com.b4code.backend.dto.owner.OwnerRoomTypeDto;
 import com.b4code.backend.dto.owner.OwnerRoomTypeListDto;
 import com.b4code.backend.dto.owner.OwnerRoomTypeRequest;
@@ -31,6 +34,7 @@ public class OwnerRoomTypeServiceImpl implements OwnerRoomTypeService {
     private final RoomTypeRepository roomTypeRepository;
     private final PropertyRepository propertyRepository;
     private final UserRepository userRepository;
+    private final ImageRepository imageRepository;
 
     @Override
     @Transactional(readOnly = true)
@@ -95,6 +99,15 @@ public class OwnerRoomTypeServiceImpl implements OwnerRoomTypeService {
                 .status(parseRoomStatus(request.getStatus()))
                 .build();
 
+        if (request.getImageUrl() != null && !request.getImageUrl().isBlank()) {
+            Image image = imageRepository.save(Image.builder()
+                    .url(request.getImageUrl())
+                    .type(ImageType.ROOM)
+                    .property(property)
+                    .build());
+            roomType.setImage(image);
+        }
+
         RoomType saved = roomTypeRepository.save(roomType);
         log.info("Owner {} created roomType id={} for property id={}", ownerEmail, saved.getId(), property.getId());
         return OwnerRoomTypeDto.fromEntity(saved);
@@ -114,6 +127,14 @@ public class OwnerRoomTypeServiceImpl implements OwnerRoomTypeService {
         if (request.getPricePerNight() != null) roomType.setPricePerNight(request.getPricePerNight());
         if (request.getInventory() != null)     roomType.setInventory(request.getInventory());
         if (request.getStatus() != null)        roomType.setStatus(parseRoomStatus(request.getStatus()));
+        if (request.getImageUrl() != null && !request.getImageUrl().isBlank()) {
+            Image image = imageRepository.save(Image.builder()
+                    .url(request.getImageUrl())
+                    .type(ImageType.ROOM)
+                    .property(roomType.getProperty())
+                    .build());
+            roomType.setImage(image);
+        }
 
         RoomType saved = roomTypeRepository.save(roomType);
         log.info("Owner {} updated roomType id={}", ownerEmail, roomId);

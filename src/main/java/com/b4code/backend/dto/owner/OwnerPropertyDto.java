@@ -37,6 +37,9 @@ public class OwnerPropertyDto {
     private String propertyType;
     private List<String> amenities;
     private Integer roomCount;
+    private String currency;
+    private Double taxRate;
+    private String vatId;
 
     public static OwnerPropertyDto fromEntity(Property p) {
         BigDecimal minPrice = p.getRoomTypes().stream()
@@ -82,6 +85,9 @@ public class OwnerPropertyDto {
                 .propertyType(p.getPropertyType())
                 .amenities(amenityNames)
                 .roomCount(p.getRoomTypes() != null ? p.getRoomTypes().size() : 0)
+                .currency(p.getCurrency())
+                .taxRate(p.getTaxRate())
+                .vatId(p.getVatId())
                 .build();
     }
 

@@ -118,6 +118,16 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
     java.math.BigDecimal sumRevenueByOwner(@Param("ownerId") Long ownerId);
 
     @Query("""
+        SELECT COALESCE(SUM(b.totalAmount), 0) FROM Booking b
+        WHERE b.property.ownerId = :ownerId
+          AND b.status IN ('CONFIRMED', 'CHECKED_IN', 'COMPLETED')
+          AND b.checkIn >= :from AND b.checkIn < :to
+        """)
+    java.math.BigDecimal sumRevenueByOwnerAndMonth(@Param("ownerId") Long ownerId,
+                                                     @Param("from") java.time.LocalDate from,
+                                                     @Param("to") java.time.LocalDate to);
+
+    @Query("""
         SELECT COUNT(b) FROM Booking b
         WHERE b.property.ownerId = :ownerId
           AND b.status IN ('CONFIRMED', 'CHECKED_IN', 'COMPLETED')

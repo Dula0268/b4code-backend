@@ -21,4 +21,9 @@ public class OwnerPropertyRequest {
     private String houseRules;
     private String propertyType;
     private List<String> amenities;
+    private String cancellationPolicy;
+    private String imageUrl;
+    private String currency;
+    private Double taxRate;
+    private String vatId;
 }
