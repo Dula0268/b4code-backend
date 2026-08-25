@@ -114,7 +114,7 @@ public class E2EOrderFlowTest {
         Mockito.when(orderRepository.save(any(Order.class))).thenAnswer(i -> {
             Order order = i.getArgument(0);
             if (order.getId() == null) order.setId(100L);
-            if (order.getCreatedAt() == null) order.setCreatedAt(LocalDateTime.now());
+            if (order.getCreatedAt() == null) order.setCreatedAt(java.time.Instant.now());
             return order;
         });
 

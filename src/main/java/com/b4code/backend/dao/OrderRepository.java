@@ -8,7 +8,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import com.b4code.backend.models.enums.OrderStatus;
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 import java.util.Collection;
 import java.util.List;
@@ -25,13 +25,13 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
 
     @Query("SELECT o FROM Order o WHERE o.propertyId = :propertyId " +
            "AND (:status IS NULL OR o.status = :status) " +
-           "AND (cast(:startDate as timestamp) IS NULL OR o.createdAt >= :startDate) " +
-           "AND (cast(:endDate as timestamp) IS NULL OR o.createdAt < :endDate) " +
+           "AND (cast(:startDate as timestamp with time zone) IS NULL OR o.createdAt >= :startDate) " +
+           "AND (cast(:endDate as timestamp with time zone) IS NULL OR o.createdAt < :endDate) " +
            "ORDER BY o.createdAt DESC")
-    Page<Order> findStaffOrders(@Param("propertyId") Long propertyId, 
-                                @Param("status") OrderStatus status, 
-                                @Param("startDate") LocalDateTime startDate, 
-                                @Param("endDate") LocalDateTime endDate, 
+    Page<Order> findStaffOrders(@Param("propertyId") Long propertyId,
+                                @Param("status") OrderStatus status,
+                                @Param("startDate") Instant startDate,
+                                @Param("endDate") Instant endDate,
                                 Pageable pageable);
 
     /**
@@ -41,13 +41,13 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
      */
     @Query("SELECT o FROM Order o WHERE o.propertyId = :propertyId " +
            "AND o.status IN :statuses " +
-           "AND (cast(:startDate as timestamp) IS NULL OR o.createdAt >= :startDate) " +
-           "AND (cast(:endDate as timestamp) IS NULL OR o.createdAt < :endDate) " +
+           "AND (cast(:startDate as timestamp with time zone) IS NULL OR o.createdAt >= :startDate) " +
+           "AND (cast(:endDate as timestamp with time zone) IS NULL OR o.createdAt < :endDate) " +
            "ORDER BY o.createdAt DESC")
     Page<Order> findStaffOrdersByStatuses(@Param("propertyId") Long propertyId,
                                           @Param("statuses") Collection<OrderStatus> statuses,
-                                          @Param("startDate") LocalDateTime startDate,
-                                          @Param("endDate") LocalDateTime endDate,
+                                          @Param("startDate") Instant startDate,
+                                          @Param("endDate") Instant endDate,
                                           Pageable pageable);
 
     /** Total order count per status for a property, so paginated tabs can show real totals. */

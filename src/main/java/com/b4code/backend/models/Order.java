@@ -6,7 +6,7 @@ import lombok.Setter;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 @Entity
 @Table(name = "orders", schema = "staff")
@@ -94,7 +94,7 @@ public class Order {
     private com.b4code.backend.models.enums.OrderActorType cancelledBy;
 
     @Column(name = "cancelled_at")
-    private LocalDateTime cancelledAt;
+    private Instant cancelledAt;
 
     /**
      * Outcome of the refund attempt made when the order was cancelled. Persisted so both
@@ -113,13 +113,13 @@ public class Order {
     private String refundReference;
 
     @Column(name = "refunded_at")
-    private LocalDateTime refundedAt;
+    private Instant refundedAt;
 
     @Column(name = "created_at", updatable = false)
-    private LocalDateTime createdAt;
+    private Instant createdAt;
 
     @Column(name = "updated_at")
-    private LocalDateTime updatedAt;
+    private Instant updatedAt;
 
     @Column(name = "created_by")
     private String createdBy;
@@ -129,12 +129,12 @@ public class Order {
 
     @PrePersist
     protected void onCreate() {
-        this.createdAt = LocalDateTime.now();
-        this.updatedAt = LocalDateTime.now();
+        this.createdAt = Instant.now();
+        this.updatedAt = Instant.now();
     }
-    
+
     @PreUpdate
     protected void onUpdate() {
-        this.updatedAt = LocalDateTime.now();
+        this.updatedAt = Instant.now();
     }
 }

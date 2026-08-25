@@ -20,7 +20,7 @@ public class RoomTypeController {
     public ResponseEntity<List<RoomDTO>> getRoomTypesByProperty(@PathVariable Long propertyId) {
         List<PhysicalRoom> physicalRooms = physicalRoomRepository.findByPropertyId(propertyId);
         List<RoomDTO> dtos = physicalRooms.stream()
-                .map(r -> new RoomDTO(r.getId(), r.getRoomType().getName() + " " + r.getDoorNumber()))
+                .map(r -> new RoomDTO(r.getId(), r.getRoomType().getName() + " " + r.getDoorNumber(), r.getDoorNumber()))
                 .collect(Collectors.toList());
         return ResponseEntity.ok(dtos);
     }
@@ -37,10 +37,12 @@ public class RoomTypeController {
     public static class RoomDTO {
         public Long id;
         public String roomType;
+        public String doorNumber;
 
-        public RoomDTO(Long id, String roomType) {
+        public RoomDTO(Long id, String roomType, String doorNumber) {
             this.id = id;
             this.roomType = roomType;
+            this.doorNumber = doorNumber;
         }
     }
 

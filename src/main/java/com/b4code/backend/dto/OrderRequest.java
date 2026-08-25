@@ -5,6 +5,7 @@ import java.util.List;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.Valid;
 import com.b4code.backend.models.enums.OrderStatus;
 
@@ -24,6 +25,7 @@ public class OrderRequest {
     private String guestName;
     
     @NotBlank(message = "Guest Phone is required")
+    @Pattern(regexp = "^\\d{10}$", message = "Phone number must be 10 digits")
     private String guestPhone;
     
     @NotNull(message = "Total Amount is required")
