@@ -25,8 +25,8 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
 
     @Query("SELECT o FROM Order o WHERE o.propertyId = :propertyId " +
            "AND (:status IS NULL OR o.status = :status) " +
-           "AND (cast(:startDate as timestamp with time zone) IS NULL OR o.createdAt >= :startDate) " +
-           "AND (cast(:endDate as timestamp with time zone) IS NULL OR o.createdAt < :endDate) " +
+           "AND (cast(:startDate as timestamp) IS NULL OR o.createdAt >= :startDate) " +
+           "AND (cast(:endDate as timestamp) IS NULL OR o.createdAt < :endDate) " +
            "ORDER BY o.createdAt DESC")
     Page<Order> findStaffOrders(@Param("propertyId") Long propertyId,
                                 @Param("status") OrderStatus status,
@@ -41,8 +41,8 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
      */
     @Query("SELECT o FROM Order o WHERE o.propertyId = :propertyId " +
            "AND o.status IN :statuses " +
-           "AND (cast(:startDate as timestamp with time zone) IS NULL OR o.createdAt >= :startDate) " +
-           "AND (cast(:endDate as timestamp with time zone) IS NULL OR o.createdAt < :endDate) " +
+           "AND (cast(:startDate as timestamp) IS NULL OR o.createdAt >= :startDate) " +
+           "AND (cast(:endDate as timestamp) IS NULL OR o.createdAt < :endDate) " +
            "ORDER BY o.createdAt DESC")
     Page<Order> findStaffOrdersByStatuses(@Param("propertyId") Long propertyId,
                                           @Param("statuses") Collection<OrderStatus> statuses,
