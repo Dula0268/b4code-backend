@@ -123,6 +123,17 @@ public class Property {
     @Builder.Default
     private Double serviceChargeRate = 10.0;
 
+    // Pricing defaults
+    @Column(length = 10)
+    @Builder.Default
+    private String currency = "USD";
+
+    @Column(name = "tax_rate")
+    private Double taxRate;
+
+    @Column(name = "vat_id", length = 60)
+    private String vatId;
+
     // Admin & Reviews
     @CreationTimestamp
     @Column(updatable = false)

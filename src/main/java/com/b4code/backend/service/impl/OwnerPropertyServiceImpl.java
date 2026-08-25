@@ -88,6 +88,11 @@ public class OwnerPropertyServiceImpl implements OwnerPropertyService {
                 .houseRules(request.getHouseRules())
                 .propertyType(request.getPropertyType())
                 .status(PropertyStatus.PENDING)
+                .cancellationPolicy(request.getCancellationPolicy() != null ? request.getCancellationPolicy() : "Free cancellation until 48 hours before.\n50% refund within 48 hours.\nNo-shows will be charged full amount.")
+                .imageUrl(request.getImageUrl())
+                .currency(request.getCurrency() != null ? request.getCurrency() : "USD")
+                .taxRate(request.getTaxRate())
+                .vatId(request.getVatId())
                 .build();
 
         attachAmenities(property, request.getAmenities());
@@ -121,6 +126,11 @@ public class OwnerPropertyServiceImpl implements OwnerPropertyService {
         if (request.getCheckOut() != null)      property.setCheckOutTime(request.getCheckOut());
         if (request.getHouseRules() != null)    property.setHouseRules(request.getHouseRules());
         if (request.getPropertyType() != null)  property.setPropertyType(request.getPropertyType());
+        if (request.getCancellationPolicy() != null) property.setCancellationPolicy(request.getCancellationPolicy());
+        if (request.getImageUrl() != null)      property.setImageUrl(request.getImageUrl());
+        if (request.getCurrency() != null)      property.setCurrency(request.getCurrency());
+        if (request.getTaxRate() != null)       property.setTaxRate(request.getTaxRate());
+        if (request.getVatId() != null)         property.setVatId(request.getVatId());
 
         if (request.getAmenities() != null) {
             property.getAmenities().clear();

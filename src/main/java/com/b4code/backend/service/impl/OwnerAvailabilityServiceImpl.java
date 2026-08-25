@@ -58,6 +58,11 @@ public class OwnerAvailabilityServiceImpl implements OwnerAvailabilityService {
     public void bulkUpdate(String ownerEmail, AvailabilityBulkUpdateRequest request) {
         verifyOwnsProperty(ownerEmail, request.getPropertyId());
         List<RoomType> roomTypes = roomTypeRepository.findByPropertyId(request.getPropertyId());
+        if (request.getRoomId() != null) {
+            roomTypes = roomTypes.stream()
+                    .filter(rt -> rt.getId().equals(request.getRoomId()))
+                    .toList();
+        }
 
         for (String dateStr : request.getDates()) {
             LocalDate date = LocalDate.parse(dateStr);

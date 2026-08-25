@@ -118,11 +118,32 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
     java.math.BigDecimal sumRevenueByOwner(@Param("ownerId") Long ownerId);
 
     @Query("""
+        SELECT COALESCE(SUM(b.totalAmount), 0) FROM Booking b
+        WHERE b.property.ownerId = :ownerId
+          AND b.status IN ('CONFIRMED', 'CHECKED_IN', 'COMPLETED')
+          AND b.checkIn >= :from AND b.checkIn < :to
+        """)
+    java.math.BigDecimal sumRevenueByOwnerAndMonth(@Param("ownerId") Long ownerId,
+                                                     @Param("from") java.time.LocalDate from,
+                                                     @Param("to") java.time.LocalDate to);
+
+    @Query("""
         SELECT COUNT(b) FROM Booking b
         WHERE b.property.ownerId = :ownerId
           AND b.status IN ('CONFIRMED', 'CHECKED_IN', 'COMPLETED')
         """)
     long countActiveByOwner(@Param("ownerId") Long ownerId);
+
+    @Query("SELECT COUNT(b) FROM Booking b WHERE b.property.ownerId = :ownerId")
+    long countAllByOwner(@Param("ownerId") Long ownerId);
+
+    @Query("""
+        SELECT COUNT(b) FROM Booking b
+        WHERE b.property.ownerId = :ownerId
+          AND b.checkIn = :date
+          AND b.status IN ('CONFIRMED', 'CHECKED_IN')
+        """)
+    long countCheckInsByOwnerAndDate(@Param("ownerId") Long ownerId, @Param("date") java.time.LocalDate date);
 
     @Query("SELECT COALESCE(SUM(b.totalAmount), 0) FROM Booking b WHERE b.status IN ('CONFIRMED', 'CHECKED_IN', 'COMPLETED')")
     java.math.BigDecimal sumPlatformGrossRevenue();

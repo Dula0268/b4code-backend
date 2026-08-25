@@ -10,6 +10,8 @@ public class OwnerDashboardDto {
     private long totalBookings;
     private long activeBookings;
     private String totalRevenue;
+    private String monthRevenue;
+    private long todayCheckIns;
     private long totalProperties;
     private long totalRoomTypes;
     private List<RecentBookingDto> recentBookings;

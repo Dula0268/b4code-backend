@@ -30,6 +30,12 @@ public class OwnerDashboardServiceImpl implements OwnerDashboardService {
     @Override
     @Transactional(readOnly = true)
     public OwnerDashboardDto getDashboard(String ownerEmail) {
+        return getDashboard(ownerEmail, null, null);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public OwnerDashboardDto getDashboard(String ownerEmail, Integer year, Integer month) {
         User owner = userRepository.findByEmail(ownerEmail)
                 .orElseThrow(() -> new CustomException("Owner not found", HttpStatus.NOT_FOUND));
         Long ownerId = owner.getId();
@@ -39,6 +45,15 @@ public class OwnerDashboardServiceImpl implements OwnerDashboardService {
         long activeBookings = bookingRepository.countActiveByOwner(ownerId);
         BigDecimal revenue = bookingRepository.sumRevenueByOwner(ownerId);
         if (revenue == null) revenue = BigDecimal.ZERO;
+
+        java.time.YearMonth ym = (year != null && month != null)
+                ? java.time.YearMonth.of(year, month)
+                : java.time.YearMonth.now();
+        BigDecimal monthRevenue = bookingRepository.sumRevenueByOwnerAndMonth(
+                ownerId, ym.atDay(1), ym.plusMonths(1).atDay(1));
+        if (monthRevenue == null) monthRevenue = BigDecimal.ZERO;
+
+        long todayCheckIns = bookingRepository.countCheckInsByOwnerAndDate(ownerId, java.time.LocalDate.now());
 
         List<Booking> recent = bookingRepository.findRecentByOwner(ownerId, PageRequest.of(0, 5));
         List<OwnerDashboardDto.RecentBookingDto> recentDtos = recent.stream()
@@ -55,9 +70,11 @@ public class OwnerDashboardServiceImpl implements OwnerDashboardService {
                 .toList();
 
         return OwnerDashboardDto.builder()
-                .totalBookings(bookingRepository.countActiveByOwner(ownerId))
+                .totalBookings(bookingRepository.countAllByOwner(ownerId))
                 .activeBookings(activeBookings)
                 .totalRevenue(revenue.toPlainString())
+                .monthRevenue(monthRevenue.toPlainString())
+                .todayCheckIns(todayCheckIns)
                 .totalProperties(totalProperties)
                 .totalRoomTypes(totalRoomTypes)
                 .recentBookings(recentDtos)

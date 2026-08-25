@@ -9,6 +9,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.security.Principal;
@@ -24,7 +25,10 @@ public class OwnerDashboardController {
 
     @GetMapping
     @Operation(summary = "Get owner dashboard KPIs and recent bookings")
-    public ResponseEntity<OwnerDashboardDto> getDashboard(Principal principal) {
-        return ResponseEntity.ok(ownerDashboardService.getDashboard(principal.getName()));
+    public ResponseEntity<OwnerDashboardDto> getDashboard(
+            Principal principal,
+            @RequestParam(required = false) Integer calYear,
+            @RequestParam(required = false) Integer calMonth) {
+        return ResponseEntity.ok(ownerDashboardService.getDashboard(principal.getName(), calYear, calMonth));
     }
 }
