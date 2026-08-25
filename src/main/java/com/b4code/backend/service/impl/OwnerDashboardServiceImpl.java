@@ -53,6 +53,8 @@ public class OwnerDashboardServiceImpl implements OwnerDashboardService {
                 ownerId, ym.atDay(1), ym.plusMonths(1).atDay(1));
         if (monthRevenue == null) monthRevenue = BigDecimal.ZERO;
 
+        long todayCheckIns = bookingRepository.countCheckInsByOwnerAndDate(ownerId, java.time.LocalDate.now());
+
         List<Booking> recent = bookingRepository.findRecentByOwner(ownerId, PageRequest.of(0, 5));
         List<OwnerDashboardDto.RecentBookingDto> recentDtos = recent.stream()
                 .map(b -> OwnerDashboardDto.RecentBookingDto.builder()
@@ -68,10 +70,11 @@ public class OwnerDashboardServiceImpl implements OwnerDashboardService {
                 .toList();
 
         return OwnerDashboardDto.builder()
-                .totalBookings(bookingRepository.countActiveByOwner(ownerId))
+                .totalBookings(bookingRepository.countAllByOwner(ownerId))
                 .activeBookings(activeBookings)
                 .totalRevenue(revenue.toPlainString())
                 .monthRevenue(monthRevenue.toPlainString())
+                .todayCheckIns(todayCheckIns)
                 .totalProperties(totalProperties)
                 .totalRoomTypes(totalRoomTypes)
                 .recentBookings(recentDtos)
