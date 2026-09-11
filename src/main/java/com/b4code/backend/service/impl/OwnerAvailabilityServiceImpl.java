@@ -57,7 +57,14 @@ public class OwnerAvailabilityServiceImpl implements OwnerAvailabilityService {
     @Transactional
     public void bulkUpdate(String ownerEmail, AvailabilityBulkUpdateRequest request) {
         verifyOwnsProperty(ownerEmail, request.getPropertyId());
-        List<RoomType> roomTypes = roomTypeRepository.findByPropertyId(request.getPropertyId());
+        List<RoomType> roomTypes;
+        if (request.getRoomId() != null) {
+            roomTypes = roomTypeRepository.findById(request.getRoomId())
+                    .map(List::of)
+                    .orElse(java.util.Collections.emptyList());
+        } else {
+            roomTypes = roomTypeRepository.findByPropertyId(request.getPropertyId());
+        }
 
         for (String dateStr : request.getDates()) {
             LocalDate date = LocalDate.parse(dateStr);
@@ -65,9 +72,15 @@ public class OwnerAvailabilityServiceImpl implements OwnerAvailabilityService {
                 Availability avail = availabilityRepository
                         .findByRoomTypeIdAndDate(roomType.getId(), date)
                         .orElse(Availability.builder().roomType(roomType).date(date).build());
-                avail.setStatus(request.getNewStatus() != null ? request.getNewStatus() : "AVAILABLE");
-                avail.setCustomPrice(request.getCustomPrice());
-                avail.setNotes(request.getNotes());
+                if (request.getNewStatus() != null) {
+                    avail.setStatus(request.getNewStatus());
+                }
+                if (request.getCustomPrice() != null) {
+                    avail.setCustomPrice(request.getCustomPrice());
+                }
+                if (request.getNotes() != null) {
+                    avail.setNotes(request.getNotes());
+                }
                 availabilityRepository.save(avail);
             }
         }
@@ -91,6 +104,7 @@ public class OwnerAvailabilityServiceImpl implements OwnerAvailabilityService {
                 result.add(AvailabilityDayDto.builder()
                         .roomId(roomType.getId())
                         .roomName(roomType.getName())
+                        .basePrice(roomType.getPricePerNight())
                         .date(d.toString())
                         .status(a != null ? a.getStatus() : "AVAILABLE")
                         .customPrice(a != null && a.getCustomPrice() != null ? a.getCustomPrice().toPlainString() : null)
