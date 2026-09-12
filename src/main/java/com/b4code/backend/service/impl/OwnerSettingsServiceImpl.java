@@ -6,6 +6,9 @@ import com.b4code.backend.dao.PropertyRepository;
 import com.b4code.backend.dao.PropertySettingRepository;
 import com.b4code.backend.dao.ReservationRestrictionRepository;
 import com.b4code.backend.dao.UserRepository;
+import com.b4code.backend.dao.RoomTypeRepository;
+import com.b4code.backend.dao.PhysicalRoomRepository;
+import com.b4code.backend.dao.BookingRepository;
 import com.b4code.backend.dto.owner.BankAccountDto;
 import com.b4code.backend.dto.owner.BankAccountRequest;
 import com.b4code.backend.dto.owner.NotificationPrefDto;
@@ -19,6 +22,8 @@ import com.b4code.backend.models.Property;
 import com.b4code.backend.models.PropertySetting;
 import com.b4code.backend.models.ReservationRestriction;
 import com.b4code.backend.models.User;
+import com.b4code.backend.models.RoomType;
+import com.b4code.backend.models.PhysicalRoom;
 import com.b4code.backend.service.OwnerSettingsService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -26,6 +31,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -41,6 +47,9 @@ public class OwnerSettingsServiceImpl implements OwnerSettingsService {
     private final PropertyRepository propertyRepository;
     private final UserRepository userRepository;
     private final com.b4code.backend.dao.PayoutRepository payoutRepository;
+    private final RoomTypeRepository roomTypeRepository;
+    private final PhysicalRoomRepository physicalRoomRepository;
+    private final BookingRepository bookingRepository;
 
     @Override
     @Transactional(readOnly = true)
@@ -143,10 +152,22 @@ public class OwnerSettingsServiceImpl implements OwnerSettingsService {
     @Transactional
     public ReservationRestrictionDto createRestriction(String ownerEmail, RestrictionRequest request) {
         Property property = resolveOwnedProperty(ownerEmail, request.getPropertyId());
+
+        RoomType roomType = null;
+        if (request.getRoomTypeId() != null) {
+            roomType = roomTypeRepository.findById(request.getRoomTypeId())
+                    .orElseThrow(() -> new CustomException("Room type not found", HttpStatus.NOT_FOUND));
+        }
+
         ReservationRestriction r = ReservationRestriction.builder()
                 .property(property)
+                .roomType(roomType)
                 .name(request.getName())
                 .type(request.getType())
+                .minStay(request.getMinStay())
+                .maxStay(request.getMaxStay())
+                .closedToArrival(Boolean.TRUE.equals(request.getClosedToArrival()))
+                .closedToDeparture(Boolean.TRUE.equals(request.getClosedToDeparture()))
                 .startDate(request.getStartDate())
                 .endDate(request.getEndDate())
                 .reason(request.getReason())
@@ -164,12 +185,22 @@ public class OwnerSettingsServiceImpl implements OwnerSettingsService {
         if (!owner.getId().equals(r.getProperty().getOwnerId())) {
             throw new CustomException("Access denied", HttpStatus.FORBIDDEN);
         }
-        if (request.getName() != null)      r.setName(request.getName());
-        if (request.getType() != null)      r.setType(request.getType());
-        if (request.getStartDate() != null) r.setStartDate(request.getStartDate());
-        if (request.getEndDate() != null)   r.setEndDate(request.getEndDate());
-        if (request.getReason() != null)    r.setReason(request.getReason());
-        if (request.getIsActive() != null)  r.setIsActive(request.getIsActive());
+
+        if (request.getRoomTypeId() != null) {
+            RoomType roomType = roomTypeRepository.findById(request.getRoomTypeId())
+                    .orElseThrow(() -> new CustomException("Room type not found", HttpStatus.NOT_FOUND));
+            r.setRoomType(roomType);
+        }
+        if (request.getName() != null)              r.setName(request.getName());
+        if (request.getType() != null)              r.setType(request.getType());
+        if (request.getMinStay() != null)          r.setMinStay(request.getMinStay());
+        if (request.getMaxStay() != null)          r.setMaxStay(request.getMaxStay());
+        if (request.getClosedToArrival() != null)   r.setClosedToArrival(request.getClosedToArrival());
+        if (request.getClosedToDeparture() != null) r.setClosedToDeparture(request.getClosedToDeparture());
+        if (request.getStartDate() != null)         r.setStartDate(request.getStartDate());
+        if (request.getEndDate() != null)           r.setEndDate(request.getEndDate());
+        if (request.getReason() != null)            r.setReason(request.getReason());
+        if (request.getIsActive() != null)          r.setIsActive(request.getIsActive());
         return ReservationRestrictionDto.fromEntity(restrictionRepository.save(r));
     }
 
@@ -183,6 +214,40 @@ public class OwnerSettingsServiceImpl implements OwnerSettingsService {
             throw new CustomException("Access denied", HttpStatus.FORBIDDEN);
         }
         restrictionRepository.delete(r);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<com.b4code.backend.dto.owner.RoomInventoryLockDto> getInventoryLocks(String ownerEmail, Long propertyId) {
+        verifyOwnsProperty(ownerEmail, propertyId);
+        List<RoomType> rooms = roomTypeRepository.findByPropertyId(propertyId);
+        List<PhysicalRoom> allPhysical = physicalRoomRepository.findByPropertyId(propertyId);
+        LocalDate today = LocalDate.now();
+
+        return rooms.stream().map(rt -> {
+            List<PhysicalRoom> physicalRooms = allPhysical.stream()
+                    .filter(p -> p.getRoomType() != null && p.getRoomType().getId().equals(rt.getId()))
+                    .toList();
+
+            List<String> doors = physicalRooms.stream()
+                    .map(PhysicalRoom::getDoorNumber)
+                    .toList();
+
+            int booked = bookingRepository.getBookedQuantityForDates(rt.getId(), today, today.plusDays(1));
+            int available = Math.max(0, (rt.getInventory() != null ? rt.getInventory() : 0) - booked);
+            boolean locked = !physicalRooms.isEmpty() && physicalRooms.size() >= (rt.getInventory() != null ? rt.getInventory() : 0);
+
+            return com.b4code.backend.dto.owner.RoomInventoryLockDto.builder()
+                    .roomTypeId(rt.getId())
+                    .roomTypeName(rt.getName())
+                    .configuredInventory(rt.getInventory())
+                    .physicalRoomCount(physicalRooms.size())
+                    .doorNumbers(doors)
+                    .activeBookingsCount(booked)
+                    .availableCount(available)
+                    .isOverbookingLocked(locked)
+                    .build();
+        }).toList();
     }
 
     @Override
