@@ -9,6 +9,8 @@ import lombok.Data;
 public class RatePlanDto {
     private Long id;
     private Long propertyId;
+    private Long roomTypeId;
+    private String roomTypeName;
     private String name;
     private String type;
     private String basePrice;
@@ -21,6 +23,8 @@ public class RatePlanDto {
         return RatePlanDto.builder()
                 .id(r.getId())
                 .propertyId(r.getProperty() != null ? r.getProperty().getId() : null)
+                .roomTypeId(r.getRoomType() != null ? r.getRoomType().getId() : null)
+                .roomTypeName(r.getRoomType() != null ? r.getRoomType().getName() : null)
                 .name(r.getName())
                 .type(r.getType())
                 .basePrice(r.getBasePrice() != null ? r.getBasePrice().toPlainString() : "0")

@@ -7,6 +7,7 @@ import java.time.LocalDate;
 @Data
 public class DiscountRequest {
     private Long propertyId;
+    private Long roomTypeId;
     private String name;
     private String type;
     private BigDecimal percentage;
