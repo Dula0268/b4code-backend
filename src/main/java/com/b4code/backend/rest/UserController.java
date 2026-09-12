@@ -78,6 +78,16 @@ public class UserController {
         userService.changePassword(currentUser.getId(), request);
         return ResponseEntity.noContent().build();
     }
+
+    // UPDATE notification preferences
+    @PatchMapping("/me/preferences")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<UserResponse> updatePreferences(
+            Principal principal,
+            @RequestBody com.b4code.backend.dto.UpdatePreferencesRequest request) {
+        UserResponse currentUser = userService.getUserByEmail(principal.getName());
+        return ResponseEntity.ok(userService.updatePreferences(currentUser.getId(), request));
+    }
 }
 
 
