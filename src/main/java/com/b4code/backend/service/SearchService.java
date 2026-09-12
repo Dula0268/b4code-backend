@@ -33,6 +33,7 @@ public class SearchService {
     private final ReviewRepository reviewRepository;
     private final BookingRepository bookingRepository;
     private final RoomDateInventoryRepository roomDateInventoryRepository;
+    private final com.b4code.backend.dao.AvailabilityRepository availabilityRepository;
 
     // Icon mapping for property types
     private static final Map<String, String> PROPERTY_TYPE_ICONS = Map.of(
@@ -44,11 +45,13 @@ public class SearchService {
             "Cabin", "TreePine");
 
     public SearchService(PropertyRepository propertyRepository, ReviewRepository reviewRepository,
-            BookingRepository bookingRepository, RoomDateInventoryRepository roomDateInventoryRepository) {
+            BookingRepository bookingRepository, RoomDateInventoryRepository roomDateInventoryRepository,
+            com.b4code.backend.dao.AvailabilityRepository availabilityRepository) {
         this.propertyRepository = propertyRepository;
         this.reviewRepository = reviewRepository;
         this.bookingRepository = bookingRepository;
         this.roomDateInventoryRepository = roomDateInventoryRepository;
+        this.availabilityRepository = availabilityRepository;
     }
 
     // ─── Paginated Search ────────────────────────────────────────────────
@@ -291,7 +294,11 @@ public class SearchService {
                             LocalDate effectiveCheckIn = checkIn != null ? checkIn : LocalDate.now();
                             LocalDate effectiveCheckOut = checkOut != null ? checkOut : LocalDate.now().plusDays(1);
                             int booked = roomDateInventoryRepository.getMaxBookedQuantity(r.getId(), effectiveCheckIn, effectiveCheckOut);
-                            return (r.getInventory() - booked) > 0;
+                            if ((r.getInventory() - booked) <= 0) return false;
+                            if (checkIn != null && checkOut != null && isRoomBlocked(r.getId(), checkIn, checkOut)) {
+                                return false;
+                            }
+                            return true;
                         })
                         .collect(Collectors.toList())
                 : Collections.emptyList();
@@ -299,12 +306,12 @@ public class SearchService {
         int matchingRoomTypesCount = availableRoomTypes.size();
 
         BigDecimal lowestPrice = availableRoomTypes.stream()
-                .map(RoomType::getPricePerNight)
+                .map(r -> getEffectiveRoomPrice(r, checkIn, checkOut))
                 .min(BigDecimal::compareTo)
                 .orElse(BigDecimal.ZERO);
 
         BigDecimal highestPrice = availableRoomTypes.stream()
-                .map(RoomType::getPricePerNight)
+                .map(r -> getEffectiveRoomPrice(r, checkIn, checkOut))
                 .max(BigDecimal::compareTo)
                 .orElse(BigDecimal.ZERO);
 
@@ -428,16 +435,25 @@ public class SearchService {
                         .map(r -> {
                             int availableCount = r.getInventory() != null ? r.getInventory() : 3;
                             LocalDate effectiveCheckIn = checkIn != null ? checkIn : LocalDate.now();
-                            LocalDate effectiveCheckOut = checkOut != null ? checkOut : LocalDate.now().plusDays(1);
+                            LocalDate effectiveCheckOut = (checkOut != null && checkOut.isAfter(effectiveCheckIn)) 
+                                    ? checkOut 
+                                    : effectiveCheckIn.plusDays(1);
                             int booked = roomDateInventoryRepository.getMaxBookedQuantity(r.getId(), effectiveCheckIn, effectiveCheckOut);
                             availableCount = Math.max(0, availableCount - booked);
+
+                            if (isRoomBlocked(r.getId(), effectiveCheckIn, effectiveCheckOut)) {
+                                availableCount = 0;
+                            }
+
+                            BigDecimal effectivePrice = getEffectiveRoomPrice(r, effectiveCheckIn, effectiveCheckOut);
+
                             return RoomDTO.builder()
                                     .id(r.getId().toString())
-                                    .name(r.getRoomCategory() != null ? r.getRoomCategory().name() : "")
+                                    .name(r.getName() != null && !r.getName().isBlank() ? r.getName() : (r.getRoomCategory() != null ? r.getRoomCategory().name() : ""))
                                     .maxGuests(r.getMaxOccupancy() != null ? r.getMaxOccupancy() : 2)
                                     .bedType(r.getBedType() != null ? r.getBedType().name() : "")
                                     .sqft(0)
-                                    .pricePerNight(r.getPricePerNight())
+                                    .pricePerNight(effectivePrice)
                                     .originalPrice(r.getPricePerNight())
                                     .tag("")
                                     .features(new ArrayList<>())
@@ -503,6 +519,40 @@ public class SearchService {
 
     private String getAvatarColor(Long id) {
         return AVATAR_COLORS[(int) (id % AVATAR_COLORS.length)];
+    }
+
+    private BigDecimal getEffectiveRoomPrice(RoomType r, LocalDate checkIn, LocalDate checkOut) {
+        if (checkIn == null || checkOut == null || !checkOut.isAfter(checkIn)) {
+            return r.getPricePerNight();
+        }
+        long nights = java.time.temporal.ChronoUnit.DAYS.between(checkIn, checkOut);
+        if (nights <= 0) return r.getPricePerNight();
+
+        BigDecimal sumPrice = BigDecimal.ZERO;
+        LocalDate cur = checkIn;
+        while (cur.isBefore(checkOut)) {
+            var optAvail = availabilityRepository.findByRoomTypeIdAndDate(r.getId(), cur);
+            if (optAvail.isPresent() && optAvail.get().getCustomPrice() != null) {
+                sumPrice = sumPrice.add(optAvail.get().getCustomPrice());
+            } else {
+                sumPrice = sumPrice.add(r.getPricePerNight());
+            }
+            cur = cur.plusDays(1);
+        }
+        return sumPrice.divide(BigDecimal.valueOf(nights), 2, java.math.RoundingMode.HALF_UP);
+    }
+
+    private boolean isRoomBlocked(Long roomId, LocalDate checkIn, LocalDate checkOut) {
+        if (checkIn == null || checkOut == null) return false;
+        LocalDate cur = checkIn;
+        while (cur.isBefore(checkOut)) {
+            var optAvail = availabilityRepository.findByRoomTypeIdAndDate(roomId, cur);
+            if (optAvail.isPresent() && "BLOCKED".equalsIgnoreCase(optAvail.get().getStatus())) {
+                return true;
+            }
+            cur = cur.plusDays(1);
+        }
+        return false;
     }
 }
 

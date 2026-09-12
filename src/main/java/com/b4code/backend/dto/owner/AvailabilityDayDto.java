@@ -8,6 +8,7 @@ import lombok.Data;
 public class AvailabilityDayDto {
     private Long roomId;
     private String roomName;
+    private java.math.BigDecimal basePrice;
     private String date;
     private String status;
     private String customPrice;
