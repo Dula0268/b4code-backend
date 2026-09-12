@@ -13,7 +13,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.net.InetAddress;
 import java.net.URI;
+import java.net.UnknownHostException;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
@@ -122,6 +124,8 @@ public class IcalServiceImpl implements IcalService {
     public IcalSyncDto addSyncFeed(String ownerEmail, IcalSyncRequest request) {
         Property property = verifyOwner(ownerEmail, request.getPropertyId());
 
+        URI validatedUri = validateAndSanitizeFeedUri(request.getFeedUrl());
+
         RoomType roomType = null;
         if (request.getRoomTypeId() != null) {
             roomType = roomTypeRepository.findById(request.getRoomTypeId())
@@ -132,7 +136,7 @@ public class IcalServiceImpl implements IcalService {
                 .property(property)
                 .roomType(roomType)
                 .channelName(request.getChannelName() != null ? request.getChannelName().trim() : "External Channel")
-                .feedUrl(request.getFeedUrl().trim())
+                .feedUrl(validatedUri.toString())
                 .isActive(request.getIsActive() != null ? request.getIsActive() : true)
                 .syncStatus("PENDING")
                 .eventsImported(0)
@@ -180,15 +184,92 @@ public class IcalServiceImpl implements IcalService {
         icalSyncRepository.delete(sync);
     }
 
+    /**
+     * Validates an external iCal feed URL to prevent Server-Side Request Forgery (SSRF) attacks.
+     * Enforces HTTPS/HTTP scheme, valid FQDN domain patterns, and rejects internal/loopback/private IPs.
+     */
+    private URI validateAndSanitizeFeedUri(String rawUrl) {
+        if (rawUrl == null || rawUrl.isBlank()) {
+            throw new CustomException("Feed URL cannot be empty", HttpStatus.BAD_REQUEST);
+        }
+
+        URI uri;
+        try {
+            uri = URI.create(rawUrl.trim());
+        } catch (IllegalArgumentException e) {
+            throw new CustomException("Invalid URL syntax: " + e.getMessage(), HttpStatus.BAD_REQUEST);
+        }
+
+        String scheme = uri.getScheme();
+        if (scheme == null || (!scheme.equalsIgnoreCase("http") && !scheme.equalsIgnoreCase("https"))) {
+            throw new CustomException("Invalid URL scheme. Only HTTP and HTTPS are permitted.", HttpStatus.BAD_REQUEST);
+        }
+
+        String host = uri.getHost();
+        if (host == null || host.isBlank()) {
+            throw new CustomException("Feed URL must specify a valid host.", HttpStatus.BAD_REQUEST);
+        }
+
+        String lowerHost = host.toLowerCase(Locale.ROOT);
+
+        // Disallow localhost or internal network domain names
+        if (lowerHost.equals("localhost") || lowerHost.endsWith(".localhost") 
+                || lowerHost.endsWith(".internal") || lowerHost.endsWith(".local")) {
+            throw new CustomException("Internal network hosts are not permitted.", HttpStatus.BAD_REQUEST);
+        }
+
+        // Host must match a valid domain name pattern
+        if (!lowerHost.matches("^[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$")) {
+            throw new CustomException("Invalid domain name in feed URL.", HttpStatus.BAD_REQUEST);
+        }
+
+        // Validate port if explicitly specified: only standard web ports allowed
+        int port = uri.getPort();
+        if (port != -1 && port != 80 && port != 443 && port != 8080 && port != 8443) {
+            throw new CustomException("Port " + port + " is not permitted for iCal feeds.", HttpStatus.BAD_REQUEST);
+        }
+
+        // Resolve DNS and ensure the destination is not loopback, private, link-local, or multicast (SSRF prevention)
+        try {
+            InetAddress[] addresses = InetAddress.getAllByName(host);
+            for (InetAddress addr : addresses) {
+                if (addr.isLoopbackAddress() || addr.isSiteLocalAddress() 
+                        || addr.isLinkLocalAddress() || addr.isAnyLocalAddress() 
+                        || addr.isMulticastAddress()) {
+                    throw new CustomException("Access to internal/private IP addresses is forbidden.", HttpStatus.BAD_REQUEST);
+                }
+            }
+        } catch (UnknownHostException e) {
+            throw new CustomException("Could not resolve host: " + host, HttpStatus.BAD_REQUEST);
+        }
+
+        // Return sanitized URI
+        try {
+            return new URI(
+                    uri.getScheme().toLowerCase(Locale.ROOT),
+                    null,
+                    uri.getHost().toLowerCase(Locale.ROOT),
+                    uri.getPort(),
+                    uri.getPath(),
+                    uri.getQuery(),
+                    null
+            );
+        } catch (Exception e) {
+            throw new CustomException("Error constructing sanitized feed URI: " + e.getMessage(), HttpStatus.BAD_REQUEST);
+        }
+    }
+
     private void executeFeedSync(PropertyIcalSync sync) {
         try {
+            URI validatedUri = validateAndSanitizeFeedUri(sync.getFeedUrl());
+
             HttpClient client = HttpClient.newBuilder()
                     .connectTimeout(Duration.ofSeconds(10))
-                    .followRedirects(HttpClient.Redirect.ALWAYS)
+                    .followRedirects(HttpClient.Redirect.NEVER)
                     .build();
 
             HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create(sync.getFeedUrl()))
+                    .uri(validatedUri)
                     .timeout(Duration.ofSeconds(15))
                     .header("User-Agent", "PrimeStay-iCal-Sync/1.0")
                     .GET()
