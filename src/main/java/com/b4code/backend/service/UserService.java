@@ -86,4 +86,13 @@ public class UserService {
         user.setPasswordHash(passwordEncoder.encode(request.getNewPassword()));
         userRepository.save(user);
     }
+
+    public UserResponse updatePreferences(Long userId, com.b4code.backend.dto.UpdatePreferencesRequest request) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+                
+        user.setNotificationPreferences(request.getNotificationPreferences());
+        userRepository.save(user);
+        return UserResponse.fromEntity(user);
+    }
 }
