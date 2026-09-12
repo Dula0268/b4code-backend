@@ -76,21 +76,37 @@ public class OwnerPropertyServiceImpl implements OwnerPropertyService {
         Property property = Property.builder()
                 .ownerId(owner.getId())
                 .ownerName(owner.getFullName())
-                .name(request.getName())
+                .name(request.getPropertyName())
                 .description(request.getDescription())
                 .addressLine1(request.getAddress())
-                .city(request.getCity())
-                .country(request.getCountry())
-                .contactPhone(request.getContactPhone())
-                .contactEmail(request.getContactEmail())
-                .checkInTime(request.getCheckIn() != null ? request.getCheckIn() : "14:00")
-                .checkOutTime(request.getCheckOut() != null ? request.getCheckOut() : "11:00")
-                .houseRules(request.getHouseRules())
+                .latitude(request.getLatitude())
+                .longitude(request.getLongitude())
+                .checkInTime(request.getCheckInTime() != null ? request.getCheckInTime() : "14:00")
+                .checkOutTime(request.getCheckOutTime() != null ? request.getCheckOutTime() : "11:00")
+                .houseRules(request.getCustomRules())
                 .propertyType(request.getPropertyType())
+                .imageUrl(request.getCoverPhoto())
+                .galleryImages(request.getImages() != null ? String.join(",", request.getImages()) : null)
                 .status(PropertyStatus.PENDING)
                 .build();
 
         attachAmenities(property, request.getAmenities());
+        
+        if (request.getRooms() != null && !request.getRooms().isEmpty()) {
+            for (OwnerPropertyRequest.RoomRequest rm : request.getRooms()) {
+                com.b4code.backend.models.RoomType roomType = com.b4code.backend.models.RoomType.builder()
+                        .property(property)
+                        .name(rm.getName())
+                        .maxOccupancy(rm.getMaxCapacity() != null ? rm.getMaxCapacity() : 2)
+                        .pricePerNight(java.math.BigDecimal.ZERO)
+                        .inventory(1)
+                        .roomCategory(com.b4code.backend.models.RoomCategory.STANDARD_ROOM)
+                        .status(com.b4code.backend.models.enums.RoomStatus.AVAILABLE)
+                        .build();
+                property.getRoomTypes().add(roomType);
+            }
+        }
+
         Property saved = propertyRepository.save(property);
         log.info("Owner {} created property id={}", ownerEmail, saved.getId());
         
@@ -110,17 +126,17 @@ public class OwnerPropertyServiceImpl implements OwnerPropertyService {
     public OwnerPropertyDto updateProperty(String ownerEmail, Long propertyId, OwnerPropertyRequest request) {
         Property property = resolveOwnedProperty(ownerEmail, propertyId);
 
-        if (request.getName() != null)          property.setName(request.getName());
+        if (request.getPropertyName() != null)  property.setName(request.getPropertyName());
         if (request.getDescription() != null)   property.setDescription(request.getDescription());
         if (request.getAddress() != null)       property.setAddressLine1(request.getAddress());
-        if (request.getCity() != null)          property.setCity(request.getCity());
-        if (request.getCountry() != null)       property.setCountry(request.getCountry());
-        if (request.getContactPhone() != null)  property.setContactPhone(request.getContactPhone());
-        if (request.getContactEmail() != null)  property.setContactEmail(request.getContactEmail());
-        if (request.getCheckIn() != null)       property.setCheckInTime(request.getCheckIn());
-        if (request.getCheckOut() != null)      property.setCheckOutTime(request.getCheckOut());
-        if (request.getHouseRules() != null)    property.setHouseRules(request.getHouseRules());
+        if (request.getLatitude() != null)      property.setLatitude(request.getLatitude());
+        if (request.getLongitude() != null)     property.setLongitude(request.getLongitude());
+        if (request.getCheckInTime() != null)   property.setCheckInTime(request.getCheckInTime());
+        if (request.getCheckOutTime() != null)  property.setCheckOutTime(request.getCheckOutTime());
+        if (request.getCustomRules() != null)   property.setHouseRules(request.getCustomRules());
         if (request.getPropertyType() != null)  property.setPropertyType(request.getPropertyType());
+        if (request.getCoverPhoto() != null)    property.setImageUrl(request.getCoverPhoto());
+        if (request.getImages() != null)        property.setGalleryImages(String.join(",", request.getImages()));
 
         if (request.getAmenities() != null) {
             property.getAmenities().clear();
