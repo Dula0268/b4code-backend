@@ -184,9 +184,39 @@ public class IcalServiceImpl implements IcalService {
         icalSyncRepository.delete(sync);
     }
 
+    private static final Set<String> ALLOWED_HOSTS = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
+            "airbnb.com",
+            "www.airbnb.com",
+            "ical.airbnb.com",
+            "abnb.me",
+            "www.abnb.me",
+            "booking.com",
+            "www.booking.com",
+            "admin.booking.com",
+            "partner.booking.com",
+            "ical.booking.com",
+            "calendar.google.com",
+            "google.com",
+            "www.google.com",
+            "vrbo.com",
+            "www.vrbo.com",
+            "homeaway.com",
+            "www.homeaway.com",
+            "tripadvisor.com",
+            "www.tripadvisor.com",
+            "expedia.com",
+            "www.expedia.com",
+            "agoda.com",
+            "www.agoda.com",
+            "hotels.com",
+            "www.hotels.com",
+            "icalendar.org",
+            "www.icalendar.org"
+    )));
+
     /**
      * Validates an external iCal feed URL to prevent Server-Side Request Forgery (SSRF) attacks.
-     * Enforces HTTPS/HTTP scheme, valid FQDN domain patterns, and rejects internal/loopback/private IPs.
+     * Enforces HTTPS/HTTP scheme, trusted provider domain allowlist, and rejects internal/loopback/private IPs.
      */
     private URI validateAndSanitizeFeedUri(String rawUrl) {
         if (rawUrl == null || rawUrl.isBlank()) {
@@ -218,9 +248,9 @@ public class IcalServiceImpl implements IcalService {
             throw new CustomException("Internal network hosts are not permitted.", HttpStatus.BAD_REQUEST);
         }
 
-        // Host must match a valid domain name pattern
-        if (!lowerHost.matches("^[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$")) {
-            throw new CustomException("Invalid domain name in feed URL.", HttpStatus.BAD_REQUEST);
+        // Whitelist check for authorized calendar providers to prevent SSRF
+        if (!ALLOWED_HOSTS.contains(lowerHost)) {
+            throw new CustomException("Host '" + host + "' is not an authorized iCal calendar provider. Supported providers include Airbnb, Booking.com, VRBO, Google Calendar, Expedia, and TripAdvisor.", HttpStatus.BAD_REQUEST);
         }
 
         // Validate port if explicitly specified: only standard web ports allowed
@@ -231,7 +261,7 @@ public class IcalServiceImpl implements IcalService {
 
         // Resolve DNS and ensure the destination is not loopback, private, link-local, or multicast (SSRF prevention)
         try {
-            InetAddress[] addresses = InetAddress.getAllByName(host);
+            InetAddress[] addresses = InetAddress.getAllByName(lowerHost);
             for (InetAddress addr : addresses) {
                 if (addr.isLoopbackAddress() || addr.isSiteLocalAddress() 
                         || addr.isLinkLocalAddress() || addr.isAnyLocalAddress() 
@@ -240,15 +270,15 @@ public class IcalServiceImpl implements IcalService {
                 }
             }
         } catch (UnknownHostException e) {
-            throw new CustomException("Could not resolve host: " + host, HttpStatus.BAD_REQUEST);
+            throw new CustomException("Could not resolve host: " + lowerHost, HttpStatus.BAD_REQUEST);
         }
 
         // Return sanitized URI
         try {
             return new URI(
-                    uri.getScheme().toLowerCase(Locale.ROOT),
+                    scheme.toLowerCase(Locale.ROOT),
                     null,
-                    uri.getHost().toLowerCase(Locale.ROOT),
+                    lowerHost,
                     uri.getPort(),
                     uri.getPath(),
                     uri.getQuery(),
