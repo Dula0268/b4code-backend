@@ -80,7 +80,9 @@ public class PropertyServiceImpl implements PropertyService {
     public PropertyDto approveProperty(Long id) {
         Property property = findOrThrow(id);
         property.setStatus(PropertyStatus.APPROVED);
-        log.info("Property id={} APPROVED (Mock)", id);
+        property.setApprovedAt(java.time.LocalDateTime.now());
+        property.setRejectionReason(null);
+        log.info("Property id={} APPROVED", id);
         return convertToDto(propertyRepository.save(property));
     }
 
@@ -89,7 +91,9 @@ public class PropertyServiceImpl implements PropertyService {
     public PropertyDto rejectProperty(Long id, PropertyRejectionDto rejection) {
         Property property = findOrThrow(id);
         property.setStatus(PropertyStatus.REJECTED);
-        log.info("Property id={} REJECTED (Mock) — reason='{}'", id, rejection.getReason());
+        property.setRejectionReason(rejection.getReason());
+        property.setRejectedAt(java.time.LocalDateTime.now());
+        log.info("Property id={} REJECTED — reason='{}'", id, rejection.getReason());
         return convertToDto(propertyRepository.save(property));
     }
 
