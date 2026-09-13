@@ -1,12 +1,8 @@
 package com.b4code.backend.rest;
 
-import com.b4code.backend.dto.owner.BankAccountDto;
-import com.b4code.backend.dto.owner.BankAccountRequest;
-import com.b4code.backend.dto.owner.NotificationPrefDto;
-import com.b4code.backend.dto.owner.PropertySettingDto;
-import com.b4code.backend.dto.owner.ReservationRestrictionDto;
-import com.b4code.backend.dto.owner.RestrictionRequest;
+import com.b4code.backend.dto.owner.*;
 import com.b4code.backend.exceptions.CustomException;
+import com.b4code.backend.service.IcalService;
 import com.b4code.backend.service.OwnerSettingsService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -20,13 +16,14 @@ import java.security.Principal;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/owner/settings")
+@RequestMapping({"/api/v1/owner/settings", "/api/owner/settings"})
 @RequiredArgsConstructor
 @PreAuthorize("hasAnyRole('OWNER', 'ADMIN', 'SUPER_ADMIN')")
 @Tag(name = "Owner — Settings")
 public class OwnerSettingsController {
 
     private final OwnerSettingsService ownerSettingsService;
+    private final IcalService icalService;
 
     @GetMapping("/billing")
     @Operation(summary = "Get all bank accounts for the owner")
@@ -138,6 +135,48 @@ public class OwnerSettingsController {
             @PathVariable Long id) {
 
         ownerSettingsService.deleteRestriction(principal.getName(), id);
+        return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/inventory-locks")
+    @Operation(summary = "Get physical room counts and inventory lock status for property rooms")
+    public ResponseEntity<List<RoomInventoryLockDto>> getInventoryLocks(
+            Principal principal,
+            @RequestParam Long propertyId) {
+        return ResponseEntity.ok(ownerSettingsService.getInventoryLocks(principal.getName(), propertyId));
+    }
+
+    @GetMapping("/ical")
+    @Operation(summary = "Get all iCal sync channels for a property")
+    public ResponseEntity<List<IcalSyncDto>> getIcalFeeds(
+            Principal principal,
+            @RequestParam Long propertyId) {
+        return ResponseEntity.ok(icalService.getSyncFeeds(principal.getName(), propertyId));
+    }
+
+    @PostMapping("/ical")
+    @Operation(summary = "Add an external iCal sync feed (e.g. Airbnb, Booking.com)")
+    public ResponseEntity<IcalSyncDto> addIcalFeed(
+            Principal principal,
+            @RequestBody IcalSyncRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(icalService.addSyncFeed(principal.getName(), request));
+    }
+
+    @PostMapping("/ical/{id}/sync")
+    @Operation(summary = "Trigger immediate synchronization of an external iCal feed")
+    public ResponseEntity<IcalSyncDto> syncIcalFeed(
+            Principal principal,
+            @PathVariable Long id) {
+        return ResponseEntity.ok(icalService.syncFeedNow(principal.getName(), id));
+    }
+
+    @DeleteMapping("/ical/{id}")
+    @Operation(summary = "Delete an iCal sync channel and clear its imported blackout dates")
+    public ResponseEntity<Void> deleteIcalFeed(
+            Principal principal,
+            @PathVariable Long id) {
+        icalService.deleteSyncFeed(principal.getName(), id);
         return ResponseEntity.noContent().build();
     }
 }

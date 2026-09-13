@@ -80,6 +80,8 @@ public class SecurityConfig {
                                 "/api/qr/value/**",
                                 "/api/qr/*/scan",
                                 "/api/properties/public/**",
+                                "/api/v1/public/ical/**",
+                                "/api/public/ical/**",
                                 "/api/guest/properties/**",
                                 "/api/guest/search/**",
                                 "/api/guest/bookings/**",

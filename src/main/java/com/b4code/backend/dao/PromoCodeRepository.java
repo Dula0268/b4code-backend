@@ -10,4 +10,10 @@ import java.util.Optional;
 public interface PromoCodeRepository extends JpaRepository<PromoCode, Long> {
 
     Optional<PromoCode> findByCodeIgnoreCase(String code);
+
+    java.util.List<PromoCode> findByPropertyIdOrderByValidToDesc(Long propertyId);
+
+    java.util.List<PromoCode> findByPropertyIdInOrderByValidToDesc(java.util.List<Long> propertyIds);
+
+    boolean existsByCodeIgnoreCase(String code);
 }

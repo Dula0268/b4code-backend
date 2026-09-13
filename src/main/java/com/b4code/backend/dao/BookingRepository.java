@@ -46,6 +46,19 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
     List<Booking> findByGuestEmailOrderByCreatedAtDesc(String guestEmail);
     List<Booking> findByPropertyId(Long propertyId);
     List<Booking> findByPropertyIdAndStatus(Long propertyId, Booking.BookingStatus status);
+
+    @Query("""
+        SELECT b FROM Booking b
+        WHERE b.property.id = :propertyId
+          AND (:roomTypeId IS NULL OR b.roomType.id = :roomTypeId)
+          AND b.status <> 'CANCELLED'
+          AND b.checkOut >= :cutoffDate
+        ORDER BY b.checkIn ASC
+    """)
+    List<Booking> findActiveBookingsForIcal(
+            @Param("propertyId") Long propertyId,
+            @Param("roomTypeId") Long roomTypeId,
+            @Param("cutoffDate") LocalDate cutoffDate);
     
     @Query("SELECT b FROM Booking b WHERE b.checkIn = :checkIn AND b.status = :status")
     List<Booking> findByCheckInAndStatus(@Param("checkIn") LocalDate checkIn, @Param("status") Booking.BookingStatus status);
