@@ -17,5 +17,6 @@ public class AutoReplyRuleDto {
     private String keyword;
     private String replyMessage;
     private Boolean isActive;
+    private String targetRole;
     private LocalDateTime createdAt;
 }

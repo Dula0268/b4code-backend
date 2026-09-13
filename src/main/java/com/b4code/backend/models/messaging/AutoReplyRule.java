@@ -35,6 +35,9 @@ public class AutoReplyRule {
     @Builder.Default
     private Boolean isActive = true;
 
+    @Column(name = "target_role", columnDefinition = "varchar(50) default 'STAFF'")
+    private String targetRole;
+
     @CreationTimestamp
     @Column(updatable = false)
     private LocalDateTime createdAt;

@@ -16,6 +16,7 @@ public class BookingMessageDto {
     private Long bookingId;
     private String senderEmail;
     private String senderRole;
+    private String targetRole;
     private String content;
     private LocalDateTime createdAt;
 }
