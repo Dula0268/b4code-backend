@@ -56,6 +56,13 @@ public class DbMigrationRunner implements CommandLineRunner {
             jdbcTemplate.execute("""
                 INSERT INTO app_auth.role_permissions (role_name, section, permission_key, label, description, enabled)
                 VALUES 
+                  ('Owner', 'user', 'guest_messages', 'Guest Messages', 'Communicate with guests', true)
+                ON CONFLICT (role_name, permission_key) DO NOTHING;
+            """);
+
+            jdbcTemplate.execute("""
+                INSERT INTO app_auth.role_permissions (role_name, section, permission_key, label, description, enabled)
+                VALUES 
                   ('Property Staff', 'user', 'order_management', 'Order Management', 'Manage guest food orders', false),
                   ('Property Staff', 'user', 'menu_management', 'Menu Management', 'Add and edit menu items', false),
                   ('Property Staff', 'user', 'qr_management', 'QR Management', 'Generate and print QR codes', false),
