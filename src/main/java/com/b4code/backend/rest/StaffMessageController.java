@@ -32,14 +32,14 @@ public class StaffMessageController {
     @GetMapping("/property/{propertyId}/conversations")
     public ResponseEntity<List<ActiveConversationDto>> getConversations(@PathVariable Long propertyId, java.security.Principal principal) {
         assertBookingInboxAccess(principal.getName());
-        return ResponseEntity.ok(bookingMessageService.getConversationsForProperty(propertyId));
+        return ResponseEntity.ok(bookingMessageService.getConversationsForProperty(propertyId, "STAFF"));
     }
 
     @PreAuthorize("hasAnyRole('STAFF', 'OWNER', 'ADMIN')")
     @GetMapping("/booking/{bookingId}")
     public ResponseEntity<List<BookingMessageDto>> getMessages(@PathVariable String bookingId, java.security.Principal principal) {
         assertBookingInboxAccess(principal.getName());
-        return ResponseEntity.ok(bookingMessageService.getMessagesForBooking(bookingId));
+        return ResponseEntity.ok(bookingMessageService.getMessagesForBooking(bookingId, "STAFF"));
     }
 
     @PreAuthorize("hasAnyRole('STAFF', 'OWNER', 'ADMIN')")
@@ -54,7 +54,8 @@ public class StaffMessageController {
                 bookingId,
                 principal.getName(),
                 "STAFF",
-                request.getContent()
+                request.getContent(),
+                "GUEST"
         );
         return ResponseEntity.ok(message);
     }
