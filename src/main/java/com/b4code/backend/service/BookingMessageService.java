@@ -28,7 +28,7 @@ public class BookingMessageService {
     private final BookingSseService bookingSseService;
 
     @Transactional
-    public BookingMessageDto sendMessage(String identifier, String senderEmail, String senderRole, String content) {
+    public BookingMessageDto sendMessage(String identifier, String senderEmail, String senderRole, String content, String targetRole) {
         Booking booking = findBookingByIdentifier(identifier);
 
         // Basic authorization validation could be done here or in controller
@@ -44,20 +44,28 @@ public class BookingMessageService {
                 .booking(booking)
                 .senderEmail(senderEmail)
                 .senderRole(senderRole)
+                .targetRole(targetRole != null ? targetRole : "STAFF")
                 .content(content)
                 .build();
 
         message = bookingMessageRepository.save(message);
         BookingMessageDto dto = mapToDto(message);
 
-        // Broadcast to specific booking topics (both ID and confirmation code)
-        messagingTemplate.convertAndSend("/topic/booking/" + booking.getId(), dto);
+        // Broadcast to specific booking topics based on targetRole
+        String topicSuffix = ("OWNER".equals(message.getTargetRole()) || "OWNER".equals(message.getSenderRole())) ? "/owner" : "";
+        messagingTemplate.convertAndSend("/topic/booking/" + booking.getId() + topicSuffix, dto);
         if (booking.getConfirmationCode() != null) {
-            messagingTemplate.convertAndSend("/topic/booking/" + booking.getConfirmationCode(), dto);
+            messagingTemplate.convertAndSend("/topic/booking/" + booking.getConfirmationCode() + topicSuffix, dto);
         }
 
         // Broadcast to property topic for staff (STOMP for actual message content)
-        messagingTemplate.convertAndSend("/topic/property/" + booking.getProperty().getId() + "/messages", dto);
+        if ("STAFF".equals(message.getTargetRole())) {
+            messagingTemplate.convertAndSend("/topic/property/" + booking.getProperty().getId() + "/messages", dto);
+        }
+        
+        if ("OWNER".equals(message.getTargetRole()) || "OWNER".equals(message.getSenderRole())) {
+            messagingTemplate.convertAndSend("/topic/property/" + booking.getProperty().getId() + "/messages/owner", dto);
+        }
         
         // Also send SSE event for global unread badge on sidebar
         if ("GUEST".equals(senderRole)) {
@@ -66,28 +74,42 @@ public class BookingMessageService {
 
         // Check for auto-replies if the message is from a GUEST
         if ("GUEST".equals(senderRole)) {
-            autoReplyService.evaluateAndReply(booking, content);
+            autoReplyService.evaluateAndReply(booking, content, targetRole);
         }
 
         return dto;
     }
 
     @Transactional(readOnly = true)
-    public List<BookingMessageDto> getMessagesForBooking(String identifier) {
+    public List<BookingMessageDto> getMessagesForBooking(String identifier, String targetRole) {
         Booking booking = findBookingByIdentifier(identifier);
+        String finalTargetRole = targetRole != null ? targetRole : "STAFF";
+        
         return bookingMessageRepository.findByBookingIdOrderByCreatedAtAsc(booking.getId())
                 .stream()
+                .filter(m -> 
+                    (m.getSenderRole().equals("GUEST") && finalTargetRole.equals(m.getTargetRole())) ||
+                    (m.getSenderRole().equals(finalTargetRole) && "GUEST".equals(m.getTargetRole()))
+                )
                 .map(this::mapToDto)
                 .collect(Collectors.toList());
     }
 
     @Transactional(readOnly = true)
-    public List<ActiveConversationDto> getConversationsForProperty(Long propertyId) {
+    public List<ActiveConversationDto> getConversationsForProperty(Long propertyId, String targetRole) {
         List<Long> bookingIds = bookingMessageRepository.findBookingIdsWithMessagesByPropertyId(propertyId);
         
         return bookingIds.stream().map(bookingId -> {
+            List<BookingMessage> messages = bookingMessageRepository.findByBookingIdOrderByCreatedAtAsc(bookingId)
+                .stream()
+                .filter(m -> targetRole.equals(m.getTargetRole()) || targetRole.equals(m.getSenderRole()))
+                .collect(Collectors.toList());
+
+            if (messages.isEmpty()) {
+                return null;
+            }
+
             Booking booking = bookingRepository.findById(bookingId).orElseThrow();
-            List<BookingMessage> messages = bookingMessageRepository.findByBookingIdOrderByCreatedAtAsc(bookingId);
             BookingMessage latestMessage = messages.get(messages.size() - 1);
             
             String role = latestMessage.getSenderRole();
@@ -99,6 +121,7 @@ public class BookingMessageService {
                     .bookingId(booking.getId())
                     .confirmationCode(booking.getConfirmationCode())
                     .guestName(booking.getGuestName())
+                    .propertyId(booking.getProperty().getId())
                     .propertyName(booking.getProperty().getName())
                     .roomName(booking.getRoomType() != null ? booking.getRoomType().getName() : null)
                     .roomNumber(booking.getRoomNumber())
@@ -108,7 +131,50 @@ public class BookingMessageService {
                     .latestMessageAt(latestMessage.getCreatedAt())
                     .latestMessageSenderRole(role)
                     .build();
-        }).collect(Collectors.toList());
+        })
+        .filter(dto -> dto != null)
+        .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public List<ActiveConversationDto> getConversationsForOwner(String ownerEmail, String targetRole) {
+        List<Long> bookingIds = bookingMessageRepository.findBookingIdsWithMessagesByOwnerEmail(ownerEmail);
+        
+        return bookingIds.stream().map(bookingId -> {
+            List<BookingMessage> messages = bookingMessageRepository.findByBookingIdOrderByCreatedAtAsc(bookingId)
+                .stream()
+                .filter(m -> targetRole.equals(m.getTargetRole()) || targetRole.equals(m.getSenderRole()))
+                .collect(Collectors.toList());
+
+            if (messages.isEmpty()) {
+                return null;
+            }
+
+            Booking booking = bookingRepository.findById(bookingId).orElseThrow();
+            BookingMessage latestMessage = messages.get(messages.size() - 1);
+            
+            String role = latestMessage.getSenderRole();
+            if ("system@b4code.com".equals(latestMessage.getSenderEmail())) {
+                role = "AUTO_REPLY";
+            }
+
+            return ActiveConversationDto.builder()
+                    .bookingId(booking.getId())
+                    .confirmationCode(booking.getConfirmationCode())
+                    .guestName(booking.getGuestName())
+                    .propertyId(booking.getProperty().getId())
+                    .propertyName(booking.getProperty().getName())
+                    .roomName(booking.getRoomType() != null ? booking.getRoomType().getName() : null)
+                    .roomNumber(booking.getRoomNumber())
+                    .checkIn(booking.getCheckIn())
+                    .checkOut(booking.getCheckOut())
+                    .latestMessageContent(latestMessage.getContent())
+                    .latestMessageAt(latestMessage.getCreatedAt())
+                    .latestMessageSenderRole(role)
+                    .build();
+        })
+        .filter(dto -> dto != null)
+        .collect(Collectors.toList());
     }
 
     private Booking findBookingByIdentifier(String identifier) {
@@ -130,6 +196,7 @@ public class BookingMessageService {
                 .bookingId(message.getBooking().getId())
                 .senderEmail(message.getSenderEmail())
                 .senderRole(message.getSenderRole())
+                .targetRole(message.getTargetRole())
                 .content(message.getContent())
                 .createdAt(message.getCreatedAt())
                 .build();

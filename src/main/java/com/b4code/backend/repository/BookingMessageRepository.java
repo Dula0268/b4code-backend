@@ -13,4 +13,7 @@ public interface BookingMessageRepository extends JpaRepository<BookingMessage, 
 
     @Query("SELECT DISTINCT m.booking.id FROM BookingMessage m WHERE m.booking.property.id = :propertyId")
     List<Long> findBookingIdsWithMessagesByPropertyId(@Param("propertyId") Long propertyId);
+
+    @Query("SELECT DISTINCT m.booking.id FROM BookingMessage m WHERE m.booking.property.ownerId = (SELECT u.id FROM User u WHERE u.email = :email)")
+    List<Long> findBookingIdsWithMessagesByOwnerEmail(@Param("email") String email);
 }

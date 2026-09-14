@@ -30,14 +30,22 @@ public class AutoReplyController {
     private final SimpMessagingTemplate messagingTemplate;
 
     private void broadcastConfigUpdate(Long propertyId) {
-        List<Map<String, Object>> activeRules = autoReplyRuleRepository.findByPropertyId(propertyId).stream()
+        List<Map<String, Object>> staffRules = autoReplyRuleRepository.findByPropertyId(propertyId).stream()
                 .filter(AutoReplyRule::getIsActive)
+                .filter(r -> "STAFF".equalsIgnoreCase(r.getTargetRole()) || r.getTargetRole() == null)
+                .map(r -> Map.<String, Object>of("id", r.getId(), "keyword", r.getKeyword()))
+                .collect(Collectors.toList());
+                
+        List<Map<String, Object>> ownerRules = autoReplyRuleRepository.findByPropertyId(propertyId).stream()
+                .filter(AutoReplyRule::getIsActive)
+                .filter(r -> "OWNER".equalsIgnoreCase(r.getTargetRole()))
                 .map(r -> Map.<String, Object>of("id", r.getId(), "keyword", r.getKeyword()))
                 .collect(Collectors.toList());
 
         Map<String, Object> payload = new java.util.HashMap<>();
         payload.put("type", "CONFIG_UPDATE");
-        payload.put("data", activeRules);
+        payload.put("staffRules", staffRules);
+        payload.put("ownerRules", ownerRules);
 
         List<Booking> bookings = bookingRepository.findByPropertyId(propertyId);
         for (Booking booking : bookings) {
@@ -52,9 +60,12 @@ public class AutoReplyController {
 
     @GetMapping
     @PreAuthorize("hasAnyRole('STAFF', 'OWNER', 'ADMIN')")
-    public ResponseEntity<List<AutoReplyRuleDto>> getRules(@PathVariable Long propertyId) {
+    public ResponseEntity<List<AutoReplyRuleDto>> getRules(
+            @PathVariable Long propertyId,
+            @RequestParam(required = false, defaultValue = "STAFF") String role) {
         List<AutoReplyRuleDto> rules = autoReplyRuleRepository.findByPropertyId(propertyId)
                 .stream()
+                .filter(r -> role.equalsIgnoreCase(r.getTargetRole()) || (r.getTargetRole() == null && "STAFF".equalsIgnoreCase(role)))
                 .map(this::mapToDto)
                 .collect(Collectors.toList());
         return ResponseEntity.ok(rules);
@@ -71,9 +82,10 @@ public class AutoReplyController {
 
         AutoReplyRule rule = AutoReplyRule.builder()
                 .property(property)
-                .keyword(request.getKeyword()) // Keep original case for display
+                .keyword(request.getKeyword())
                 .replyMessage(request.getReplyMessage())
                 .isActive(request.getIsActive())
+                .targetRole(request.getTargetRole() != null ? request.getTargetRole().toUpperCase() : "STAFF")
                 .build();
 
         rule = autoReplyRuleRepository.save(rule);
@@ -126,6 +138,7 @@ public class AutoReplyController {
                 .keyword(rule.getKeyword())
                 .replyMessage(rule.getReplyMessage())
                 .isActive(rule.getIsActive())
+                .targetRole(rule.getTargetRole())
                 .createdAt(rule.getCreatedAt())
                 .build();
     }

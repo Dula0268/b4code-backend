@@ -10,6 +10,7 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @Slf4j
@@ -24,13 +25,16 @@ public class AutoReplyService {
     }
 
     @Async
-    public void evaluateAndReply(Booking booking, String incomingMessage) {
+    public void evaluateAndReply(Booking booking, String incomingMessage, String originalTargetRole) {
         if (booking == null || booking.getProperty() == null) {
             return;
         }
 
         Long propertyId = booking.getProperty().getId();
-        List<AutoReplyRule> rules = autoReplyRuleRepository.findByPropertyIdAndIsActiveTrue(propertyId);
+        List<AutoReplyRule> rules = autoReplyRuleRepository.findByPropertyIdAndIsActiveTrue(propertyId)
+            .stream()
+            .filter(r -> originalTargetRole.equalsIgnoreCase(r.getTargetRole()) || (r.getTargetRole() == null && "STAFF".equalsIgnoreCase(originalTargetRole)))
+            .collect(Collectors.toList());
 
         String messageLower = incomingMessage.toLowerCase();
 
@@ -39,12 +43,14 @@ public class AutoReplyService {
                 log.info("Auto-reply triggered for booking {} due to keyword '{}'", booking.getId(), rule.getKeyword());
                 
                 try {
-                    // Send reply as STAFF
+                    // Send reply using the same role the guest targeted
+                    String replyRole = ("OWNER".equals(originalTargetRole)) ? "OWNER" : "STAFF";
                     bookingMessageService.sendMessage(
                         booking.getId().toString(),
                         "system@b4code.com", // System user for auto replies
-                        "STAFF",
-                        rule.getReplyMessage()
+                        replyRole,
+                        rule.getReplyMessage(),
+                        "GUEST"
                     );
                 } catch (Exception e) {
                     log.error("Failed to send auto-reply for booking {}", booking.getId(), e);

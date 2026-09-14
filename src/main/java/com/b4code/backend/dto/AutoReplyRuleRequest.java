@@ -15,4 +15,6 @@ public class AutoReplyRuleRequest {
 
     @NotNull
     private Boolean isActive = true;
+    
+    private String targetRole; // STAFF or OWNER
 }

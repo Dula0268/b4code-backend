@@ -7,4 +7,6 @@ import lombok.Data;
 public class BookingMessageRequest {
     @NotBlank
     private String content;
+
+    private String targetRole; // e.g., "STAFF" or "OWNER"
 }
