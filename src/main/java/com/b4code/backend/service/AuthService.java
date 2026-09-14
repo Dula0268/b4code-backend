@@ -81,6 +81,12 @@ public class AuthService {
             }
         }
 
+        if (request.getNationalIdUrl() != null && !request.getNationalIdUrl().isBlank()) {
+            user.setNationalIdUrl(request.getNationalIdUrl().trim());
+        } else if (request.getNationalId() != null && !request.getNationalId().isBlank()) {
+            user.setNationalIdUrl(request.getNationalId().trim());
+        }
+
         // Everyone starts as PENDING until email is verified via OTP
         user.setStatus(UserStatus.PENDING);
 
