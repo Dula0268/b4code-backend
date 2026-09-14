@@ -47,9 +47,17 @@ public class CloudinaryService {
         }
 
         try {
+            String originalFilename = file.getOriginalFilename() != null ? file.getOriginalFilename().toLowerCase() : "";
+            boolean isPdf = originalFilename.endsWith(".pdf") || "application/pdf".equalsIgnoreCase(file.getContentType());
+
             Map<String, Object> params = new HashMap<>();
             params.put("folder", folder != null ? folder : "general");
-            params.put("resource_type", "auto"); // Better than just "image" for flexibility
+            if (isPdf) {
+                params.put("resource_type", "raw");
+                params.put("use_filename", true);
+            } else {
+                params.put("resource_type", "auto");
+            }
             
             // If we have API key/secret, it will be a signed upload.
             // If we only want unsigned, we'd need to use only the preset.

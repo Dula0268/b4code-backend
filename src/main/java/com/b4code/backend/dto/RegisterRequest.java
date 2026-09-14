@@ -32,6 +32,7 @@ public class RegisterRequest {
     private String propertyName;
     private String propertyAddress;
     private String nationalId;
+    private String nationalIdUrl;
 
     // Staff fields
     private String staffRole;
