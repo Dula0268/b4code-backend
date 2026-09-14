@@ -59,8 +59,7 @@ public class User {
     @Column(nullable = false, columnDefinition = "boolean default false")
     private boolean deleted = false;
 
-    @Column(columnDefinition = "text")
-    private String notificationPreferences;
+
 
     @CreationTimestamp
     @Column(updatable = false)
