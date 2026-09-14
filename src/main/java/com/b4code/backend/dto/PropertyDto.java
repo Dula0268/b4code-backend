@@ -5,6 +5,8 @@ import com.b4code.backend.models.enums.PropertyStatus;
 import lombok.*;
 
 import java.time.LocalDateTime;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Data
 @Builder
@@ -26,6 +28,9 @@ public class PropertyDto {
     private LocalDateTime createdAt;
     private PropertyStatus status;
     private String mainImageUrl;
+    private List<String> images;
+    private List<String> amenities;
+    private String houseRules;
     private Double serviceChargeRate;
 
     public static PropertyDto fromEntity(Property p) {
@@ -40,9 +45,14 @@ public class PropertyDto {
                 .latitude(p.getLatitude())
                 .longitude(p.getLongitude())
                 .ownerId(p.getOwnerId())
+                .ownerName(p.getOwnerName())  // set during owner onboarding
                 .createdAt(p.getCreatedAt())
                 .status(p.getStatus())
                 .serviceChargeRate(p.getServiceChargeRate())
+                .mainImageUrl(p.getImages() != null && !p.getImages().isEmpty() ? p.getImages().get(0).getUrl() : null)
+                .images(p.getImages() != null ? p.getImages().stream().map(com.b4code.backend.models.Image::getUrl).collect(Collectors.toList()) : null)
+                .amenities(p.getAmenities() != null ? p.getAmenities().stream().map(com.b4code.backend.models.Amenity::getName).collect(Collectors.toList()) : null)
+                .houseRules(p.getHouseRules())
                 .build();
     }
 

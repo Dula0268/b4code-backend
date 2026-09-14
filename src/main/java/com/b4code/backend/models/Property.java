@@ -131,6 +131,15 @@ public class Property {
     @Column(nullable = true)
     private LocalDateTime submittedAt;
 
+    @Column(length = 1000, nullable = true)
+    private String rejectionReason;
+
+    @Column(nullable = true)
+    private LocalDateTime rejectedAt;
+
+    @Column(nullable = true)
+    private LocalDateTime approvedAt;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = true)
     @Builder.Default

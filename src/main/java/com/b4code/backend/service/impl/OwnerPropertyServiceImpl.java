@@ -79,6 +79,8 @@ public class OwnerPropertyServiceImpl implements OwnerPropertyService {
                 .name(request.getPropertyName())
                 .description(request.getDescription())
                 .addressLine1(request.getAddress())
+                .city(request.getCity())
+                .country(request.getCountry())
                 .latitude(request.getLatitude())
                 .longitude(request.getLongitude())
                 .checkInTime(request.getCheckInTime() != null ? request.getCheckInTime() : "14:00")
@@ -109,7 +111,30 @@ public class OwnerPropertyServiceImpl implements OwnerPropertyService {
 
         Property saved = propertyRepository.save(property);
         log.info("Owner {} created property id={}", ownerEmail, saved.getId());
-        
+
+        // Save images to the Image entity table so admin can see them
+        if (request.getCoverPhoto() != null && !request.getCoverPhoto().isBlank()) {
+            com.b4code.backend.models.Image cover = com.b4code.backend.models.Image.builder()
+                    .url(request.getCoverPhoto())
+                    .type(com.b4code.backend.models.ImageType.PROPERTY)
+                    .property(saved)
+                    .build();
+            saved.getImages().add(cover);
+        }
+        if (request.getImages() != null) {
+            for (String imgUrl : request.getImages()) {
+                if (imgUrl != null && !imgUrl.isBlank() && !imgUrl.equals(request.getCoverPhoto())) {
+                    com.b4code.backend.models.Image img = com.b4code.backend.models.Image.builder()
+                            .url(imgUrl)
+                            .type(com.b4code.backend.models.ImageType.GALLERY)
+                            .property(saved)
+                            .build();
+                    saved.getImages().add(img);
+                }
+            }
+        }
+        propertyRepository.save(saved);
+
         // Notify Admin
         adminNotificationService.createNotification(
             "New Property Registration",
@@ -126,9 +151,17 @@ public class OwnerPropertyServiceImpl implements OwnerPropertyService {
     public OwnerPropertyDto updateProperty(String ownerEmail, Long propertyId, OwnerPropertyRequest request) {
         Property property = resolveOwnedProperty(ownerEmail, propertyId);
 
+        // ── Status Transition ─────────────────────────────────────────
+        // If the property is ACTIVE or APPROVED, ANY modification by the owner
+        // will unpublish it and revert it to PENDING so the admin can re-verify.
+        boolean isPublished = property.getStatus() == PropertyStatus.ACTIVE
+                           || property.getStatus() == PropertyStatus.APPROVED;
+
         if (request.getPropertyName() != null)  property.setName(request.getPropertyName());
         if (request.getDescription() != null)   property.setDescription(request.getDescription());
         if (request.getAddress() != null)       property.setAddressLine1(request.getAddress());
+        if (request.getCity() != null)          property.setCity(request.getCity());
+        if (request.getCountry() != null)       property.setCountry(request.getCountry());
         if (request.getLatitude() != null)      property.setLatitude(request.getLatitude());
         if (request.getLongitude() != null)     property.setLongitude(request.getLongitude());
         if (request.getCheckInTime() != null)   property.setCheckInTime(request.getCheckInTime());
@@ -141,6 +174,19 @@ public class OwnerPropertyServiceImpl implements OwnerPropertyService {
         if (request.getAmenities() != null) {
             property.getAmenities().clear();
             attachAmenities(property, request.getAmenities());
+        }
+
+        if (isPublished) {
+            property.setStatus(PropertyStatus.PENDING);
+            property.setSubmittedAt(java.time.LocalDateTime.now());
+            log.info("Owner {} updated an approved/active property id={} — reverted to PENDING", ownerEmail, propertyId);
+
+            adminNotificationService.createNotification(
+                "Property Re-review Required",
+                "Property '" + property.getName() + "' has been updated by the owner and requires re-verification.",
+                com.b4code.backend.models.enums.AdminNotificationType.NEW_PROPERTY,
+                property.getId().toString()
+            );
         }
 
         Property saved = propertyRepository.save(property);
@@ -175,6 +221,31 @@ public class OwnerPropertyServiceImpl implements OwnerPropertyService {
         property.setStatus(next);
         Property saved = propertyRepository.save(property);
         log.info("Owner {} toggled property id={} → {}", ownerEmail, propertyId, next);
+        return OwnerPropertyDto.fromEntity(saved);
+    }
+
+    @Override
+    @Transactional
+    public OwnerPropertyDto resubmitProperty(String ownerEmail, Long propertyId) {
+        Property property = resolveOwnedProperty(ownerEmail, propertyId);
+
+        if (property.getStatus() != PropertyStatus.REJECTED) {
+            throw new CustomException("Only rejected properties can be resubmitted.", HttpStatus.BAD_REQUEST);
+        }
+
+        property.setStatus(PropertyStatus.PENDING);
+        property.setRejectionReason(null);
+        property.setSubmittedAt(java.time.LocalDateTime.now());
+        Property saved = propertyRepository.save(property);
+
+        adminNotificationService.createNotification(
+            "Property Resubmitted for Review",
+            "Property '" + saved.getName() + "' has been updated and resubmitted by the owner.",
+            com.b4code.backend.models.enums.AdminNotificationType.NEW_PROPERTY,
+            saved.getId().toString()
+        );
+
+        log.info("Owner {} resubmitted property id={}", ownerEmail, propertyId);
         return OwnerPropertyDto.fromEntity(saved);
     }
 
