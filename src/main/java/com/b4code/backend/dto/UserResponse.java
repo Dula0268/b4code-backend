@@ -22,7 +22,7 @@ public class UserResponse {
     private String avatarUrl;
     private String nationalIdUrl;
     private String staffRole;
-    private String notificationPreferences;
+
 
     public static UserResponse fromEntity(User user) {
         UserResponse response = new UserResponse();
@@ -38,7 +38,7 @@ public class UserResponse {
         response.setNationalIdUrl(user.getNationalIdUrl());
         response.setPropertyId(user.getPropertyId());
         response.setStaffRole(user.getStaffRole());
-        response.setNotificationPreferences(user.getNotificationPreferences());
+
         return response;
     }
 }
