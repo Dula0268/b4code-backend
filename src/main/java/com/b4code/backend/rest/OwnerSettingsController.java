@@ -58,10 +58,17 @@ public class OwnerSettingsController {
     @Operation(summary = "Owner requests a payout")
     public ResponseEntity<com.b4code.backend.dto.PayoutDto> requestPayout(
             Principal principal,
-            @RequestParam(required = false) Long propertyId) {
+            @RequestParam(required = false) Long propertyId,
+            @RequestParam Long bankAccountId) {
 
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ownerSettingsService.requestPayout(principal.getName(), propertyId));
+                .body(ownerSettingsService.requestPayout(principal.getName(), propertyId, bankAccountId));
+    }
+
+    @GetMapping("/billing/payouts")
+    @Operation(summary = "Get owner's payout history")
+    public ResponseEntity<List<com.b4code.backend.dto.PayoutDto>> getPayouts(Principal principal) {
+        return ResponseEntity.ok(ownerSettingsService.getPayoutsForOwner(principal.getName()));
     }
 
     @GetMapping("/notifications")
