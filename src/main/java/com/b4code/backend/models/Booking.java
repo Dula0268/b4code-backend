@@ -93,6 +93,10 @@ public class Booking {
     @Builder.Default
     private Boolean isPaid = false;
 
+    @Column(nullable = false, columnDefinition = "boolean default false")
+    @Builder.Default
+    private Boolean isPaidOutToOwner = false;
+
     @Column(updatable = false)
     @Builder.Default
     private LocalDateTime createdAt = LocalDateTime.now();
