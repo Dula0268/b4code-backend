@@ -52,13 +52,9 @@ public class StaffReservationService {
         // Use a simpler approach if the specific repository method doesn't exist
         List<Booking> bookings;
         if (status != null) {
-            bookings = bookingRepository.findAll().stream()
-                    .filter(b -> b.getProperty() != null && b.getProperty().getId().equals(propertyId) && b.getStatus() == status)
-                    .collect(Collectors.toList());
+            bookings = bookingRepository.findByPropertyIdAndStatus(propertyId, status);
         } else {
-            bookings = bookingRepository.findAll().stream()
-                    .filter(b -> b.getProperty() != null && b.getProperty().getId().equals(propertyId))
-                    .collect(Collectors.toList());
+            bookings = bookingRepository.findByPropertyId(propertyId);
         }
 
         if (searchTerm != null) {

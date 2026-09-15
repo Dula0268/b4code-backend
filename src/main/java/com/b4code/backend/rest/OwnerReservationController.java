@@ -94,4 +94,14 @@ public class OwnerReservationController {
 
         return ResponseEntity.ok(ownerReservationService.cancel(principal.getName(), id));
     }
+
+    @PatchMapping("/{id}/late-arrival")
+    @Operation(summary = "Toggle late arrival allowance for a reservation")
+    public ResponseEntity<OwnerReservationDto> toggleLateArrival(
+            Principal principal,
+            @PathVariable Long id,
+            @RequestParam boolean allowed) {
+
+        return ResponseEntity.ok(ownerReservationService.toggleLateArrival(principal.getName(), id, allowed));
+    }
 }
