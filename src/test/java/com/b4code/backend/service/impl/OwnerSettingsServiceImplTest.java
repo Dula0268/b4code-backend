@@ -41,6 +41,15 @@ public class OwnerSettingsServiceImplTest {
     @Mock
     private PropertyRepository propertyRepository;
 
+    @Mock
+    private com.b4code.backend.dao.BookingRepository bookingRepository;
+
+    @Mock
+    private com.b4code.backend.service.FinanceService financeService;
+
+    @Mock
+    private com.b4code.backend.service.AdminNotificationService adminNotificationService;
+
     @InjectMocks
     private OwnerSettingsServiceImpl ownerSettingsService;
 
@@ -75,6 +84,13 @@ public class OwnerSettingsServiceImplTest {
         when(bankAccountRepository.findById(100L))
                 .thenReturn(Optional.of(testBankAccount));
         when(propertyRepository.findById(testProperty.getId())).thenReturn(Optional.of(testProperty));
+
+        com.b4code.backend.models.Booking testBooking = new com.b4code.backend.models.Booking();
+        testBooking.setTotalAmount(new java.math.BigDecimal("50000.00"));
+        testBooking.setId(1L);
+        when(bookingRepository.findEligibleBookingsForPayout(anyLong())).thenReturn(List.of(testBooking));
+
+        when(financeService.getCommissionRate()).thenReturn(new java.math.BigDecimal("15.00"));
 
         Payout savedPayout = Payout.builder()
                 .id(999L)
