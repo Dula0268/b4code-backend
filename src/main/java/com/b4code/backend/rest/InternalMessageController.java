@@ -2,6 +2,7 @@ package com.b4code.backend.rest;
 
 import com.b4code.backend.dto.InternalMessageDto;
 import com.b4code.backend.dto.InternalMessageRequest;
+import com.b4code.backend.dto.StaffQuickReplyDto;
 import com.b4code.backend.service.InternalMessageService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -23,6 +24,12 @@ public class InternalMessageController {
     @GetMapping
     public ResponseEntity<List<InternalMessageDto>> getMessages(Principal principal) {
         return ResponseEntity.ok(internalMessageService.getStaffOwnerMessages(principal.getName()));
+    }
+
+    @PreAuthorize("hasAnyRole('STAFF')")
+    @GetMapping("/quick-replies")
+    public ResponseEntity<List<StaffQuickReplyDto>> getQuickReplies(Principal principal) {
+        return ResponseEntity.ok(internalMessageService.getStaffQuickReplies(principal.getName()));
     }
 
     @PreAuthorize("hasAnyRole('STAFF')")

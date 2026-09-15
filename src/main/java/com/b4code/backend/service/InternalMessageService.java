@@ -18,6 +18,9 @@ import java.util.stream.Collectors;
 import com.b4code.backend.dto.StaffConversationDto;
 import com.b4code.backend.models.enums.UserRole;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
+import com.b4code.backend.repository.StaffQuickReplyRepository;
+import com.b4code.backend.models.messaging.StaffQuickReply;
+import com.b4code.backend.dto.StaffQuickReplyDto;
 
 @Service
 @RequiredArgsConstructor
@@ -27,6 +30,7 @@ public class InternalMessageService {
     private final UserRepository userRepository;
     private final PropertyRepository propertyRepository;
     private final SimpMessagingTemplate messagingTemplate;
+    private final StaffQuickReplyRepository staffQuickReplyRepository;
 
     public List<InternalMessageDto> getStaffOwnerMessages(String email) {
         User staff = userRepository.findByEmail(email)
@@ -42,6 +46,26 @@ public class InternalMessageService {
         List<InternalMessage> messages = internalMessageRepository.findByPropertyIdOrderByCreatedAtAsc(property.getId());
 
         return messages.stream().map(msg -> mapToDto(msg)).collect(Collectors.toList());
+    }
+
+    public List<StaffQuickReplyDto> getStaffQuickReplies(String email) {
+        User staff = userRepository.findByEmail(email)
+                .orElseThrow(() -> new CustomException("Staff not found", HttpStatus.NOT_FOUND));
+
+        if (staff.getPropertyId() == null) {
+            throw new CustomException("Staff is not assigned to any property", HttpStatus.BAD_REQUEST);
+        }
+
+        List<StaffQuickReply> replies = staffQuickReplyRepository.findByPropertyIdAndIsActiveTrue(staff.getPropertyId());
+        
+        return replies.stream().map(reply -> StaffQuickReplyDto.builder()
+                .id(reply.getId())
+                .propertyId(reply.getProperty().getId())
+                .name(reply.getName())
+                .message(reply.getMessage())
+                .isActive(reply.getIsActive())
+                .createdAt(reply.getCreatedAt())
+                .build()).collect(Collectors.toList());
     }
 
     public InternalMessageDto sendStaffMessageToOwner(String email, String content) {
@@ -71,6 +95,26 @@ public class InternalMessageService {
         InternalMessageDto dto = mapToDto(savedMessage);
         messagingTemplate.convertAndSend("/topic/user/" + staff.getId() + "/internal-messages", dto);
         messagingTemplate.convertAndSend("/topic/user/" + property.getOwnerId() + "/internal-messages", dto);
+        
+        // Check for Auto-Reply Match
+        List<StaffQuickReply> replies = staffQuickReplyRepository.findByPropertyIdAndIsActiveTrue(property.getId());
+        for (StaffQuickReply reply : replies) {
+            if (reply.getName() != null && reply.getName().equalsIgnoreCase(content.trim())) {
+                InternalMessage autoReply = InternalMessage.builder()
+                        .propertyId(property.getId())
+                        .senderId(property.getOwnerId())
+                        .receiverId(staff.getId())
+                        .content(reply.getMessage())
+                        .isRead(false)
+                        .build();
+                InternalMessage savedAutoReply = internalMessageRepository.save(autoReply);
+                InternalMessageDto autoDto = mapToDto(savedAutoReply);
+                messagingTemplate.convertAndSend("/topic/user/" + staff.getId() + "/internal-messages", autoDto);
+                messagingTemplate.convertAndSend("/topic/user/" + property.getOwnerId() + "/internal-messages", autoDto);
+                break;
+            }
+        }
+        
         return dto;
     }
 
