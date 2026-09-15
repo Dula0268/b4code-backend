@@ -185,6 +185,9 @@ public class StaffReservationService {
             booking.setNicNumber(nicNumber.trim());
         }
         
+        if (booking.getStatus() == Booking.BookingStatus.PENDING) {
+            booking.setStatus(Booking.BookingStatus.CONFIRMED);
+        }
         booking.setIsPaid(true);
         
         // Create a transaction to instantly reflect this in the revenue
