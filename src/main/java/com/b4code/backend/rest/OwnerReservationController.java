@@ -2,6 +2,7 @@ package com.b4code.backend.rest;
 
 import com.b4code.backend.dto.owner.ManualBookingRequest;
 import com.b4code.backend.dto.owner.OwnerReservationDto;
+import com.b4code.backend.service.OwnerExportService;
 import com.b4code.backend.service.OwnerReservationService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -22,6 +23,20 @@ import java.util.List;
 public class OwnerReservationController {
 
     private final OwnerReservationService ownerReservationService;
+    private final OwnerExportService ownerExportService;
+
+    @GetMapping(value = "/export/pdf", produces = "application/pdf")
+    @Operation(summary = "Export reservations to PDF")
+    public ResponseEntity<byte[]> exportReservationsPdf(
+            Principal principal,
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) String status) {
+
+        byte[] data = ownerExportService.exportReservationsToPdf(principal.getName(), search, status);
+        return ResponseEntity.ok()
+                .header("Content-Disposition", "attachment; filename=\"reservations.pdf\"")
+                .body(data);
+    }
 
     @GetMapping
     @Operation(summary = "List all reservations for the authenticated owner's properties")
@@ -78,5 +93,15 @@ public class OwnerReservationController {
             @PathVariable Long id) {
 
         return ResponseEntity.ok(ownerReservationService.cancel(principal.getName(), id));
+    }
+
+    @PatchMapping("/{id}/late-arrival")
+    @Operation(summary = "Toggle late arrival allowance for a reservation")
+    public ResponseEntity<OwnerReservationDto> toggleLateArrival(
+            Principal principal,
+            @PathVariable Long id,
+            @RequestParam boolean allowed) {
+
+        return ResponseEntity.ok(ownerReservationService.toggleLateArrival(principal.getName(), id, allowed));
     }
 }

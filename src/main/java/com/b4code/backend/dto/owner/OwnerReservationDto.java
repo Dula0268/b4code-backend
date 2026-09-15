@@ -25,6 +25,7 @@ public class OwnerReservationDto {
     private String status;
     private String paymentMethod;
     private Boolean isPaid;
+    private Boolean lateArrivalAllowed;
     private String paymentMethodStr;
     private String totalAmount;
     private String taxAmount;
@@ -57,6 +58,7 @@ public class OwnerReservationDto {
                 .status(b.getStatus() != null ? b.getStatus().name() : null)
                 .paymentMethod(b.getPaymentMethod() != null ? b.getPaymentMethod().name() : null)
                 .isPaid(b.getIsPaid())
+                .lateArrivalAllowed(b.getLateArrivalAllowed())
                 .totalAmount(b.getTotalAmount() != null ? b.getTotalAmount().toPlainString() : "0")
                 .taxAmount(b.getTaxAmount() != null ? b.getTaxAmount().toPlainString() : "0")
                 .discountAmount(b.getDiscountAmount() != null ? b.getDiscountAmount().toPlainString() : "0")
