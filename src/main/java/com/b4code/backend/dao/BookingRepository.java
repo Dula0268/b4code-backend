@@ -43,9 +43,40 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
         @Param("checkOut") LocalDate checkOut
     );
 
-    List<Booking> findByGuestEmailOrderByCreatedAtDesc(String guestEmail);
-    List<Booking> findByPropertyId(Long propertyId);
-    List<Booking> findByPropertyIdAndStatus(Long propertyId, Booking.BookingStatus status);
+    @Query("SELECT b FROM Booking b WHERE b.guestEmail = :guestEmail " +
+           "AND NOT (b.status = 'PENDING' AND b.paymentMethod = 'ONLINE_CARD') " +
+           "ORDER BY b.createdAt DESC")
+    List<Booking> findByGuestEmailOrderByCreatedAtDesc(@Param("guestEmail") String guestEmail);
+
+    @Query("SELECT b FROM Booking b WHERE b.property.id = :propertyId " +
+           "AND NOT (b.status = 'PENDING' AND b.paymentMethod = 'ONLINE_CARD')")
+    List<Booking> findByPropertyId(@Param("propertyId") Long propertyId);
+    @Query("SELECT b FROM Booking b WHERE b.property.id = :propertyId AND b.status = :status " +
+           "AND NOT (b.status = 'PENDING' AND b.paymentMethod = 'ONLINE_CARD')")
+    List<Booking> findByPropertyIdAndStatus(@Param("propertyId") Long propertyId, @Param("status") Booking.BookingStatus status);
+
+    @Query("""
+        SELECT b FROM Booking b
+        WHERE b.property.id = :propertyId
+          AND b.status = 'COMPLETED'
+          AND b.isPaid = true
+          AND b.isPaidOutToOwner = false
+    """)
+    List<Booking> findEligibleBookingsForPayout(@Param("propertyId") Long propertyId);
+
+    @Query("""
+        SELECT b FROM Booking b
+        WHERE b.property.id = :propertyId
+          AND (:roomTypeId IS NULL OR b.roomType.id = :roomTypeId)
+          AND b.status <> 'CANCELLED'
+          AND NOT (b.status = 'PENDING' AND b.paymentMethod = 'ONLINE_CARD')
+          AND b.checkOut >= :cutoffDate
+        ORDER BY b.checkIn ASC
+    """)
+    List<Booking> findActiveBookingsForIcal(
+            @Param("propertyId") Long propertyId,
+            @Param("roomTypeId") Long roomTypeId,
+            @Param("cutoffDate") LocalDate cutoffDate);
     
     @Query("SELECT b FROM Booking b WHERE b.checkIn = :checkIn AND b.status = :status")
     List<Booking> findByCheckInAndStatus(@Param("checkIn") LocalDate checkIn, @Param("status") Booking.BookingStatus status);
@@ -86,6 +117,7 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
                OR LOWER(b.guestName) LIKE LOWER(CONCAT('%', :search, '%'))
                OR LOWER(b.guestEmail) LIKE LOWER(CONCAT('%', :search, '%'))
                OR LOWER(b.confirmationCode) LIKE LOWER(CONCAT('%', :search, '%')))
+          AND NOT (b.status = 'PENDING' AND b.paymentMethod = 'ONLINE_CARD')
         ORDER BY b.createdAt DESC
         """)
     List<Booking> findByOwnerWithFilters(
@@ -105,6 +137,7 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
         SELECT b FROM Booking b
         WHERE b.property.ownerId = :ownerId
           AND b.status <> 'CANCELLED'
+          AND NOT (b.status = 'PENDING' AND b.paymentMethod = 'ONLINE_CARD')
         ORDER BY b.createdAt DESC
         """)
     List<Booking> findRecentByOwner(@Param("ownerId") Long ownerId,
@@ -166,6 +199,9 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
 
     @Query("SELECT COUNT(b) FROM Booking b WHERE b.status = 'CANCELLED'")
     long countCancelledBookings();
+
+    @Query("SELECT b FROM Booking b WHERE b.status IN ('PENDING', 'CONFIRMED') AND b.checkIn < :today AND b.lateArrivalAllowed = false")
+    List<Booking> findPastDueBookings(@Param("today") LocalDate today);
 
     @Query(value = "SELECT COALESCE(AVG(b.check_in - CAST(b.created_at AS DATE)), 0) FROM guest.bookings b", nativeQuery = true)
     Double getAverageLeadTime();

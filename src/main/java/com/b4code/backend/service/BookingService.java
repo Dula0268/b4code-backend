@@ -53,6 +53,7 @@ public class BookingService {
     private final AdminNotificationService adminNotificationService;
     private final com.b4code.backend.dao.ReviewRepository reviewRepository;
     private final com.b4code.backend.dao.TransactionRepository transactionRepository;
+    private final com.b4code.backend.dao.AvailabilityRepository availabilityRepository;
 
     // ──────────────────────────────────────────
     // Price Preview (called before confirming)
@@ -148,7 +149,9 @@ public class BookingService {
         if (saved.getPaymentMethod() != Booking.PaymentMethod.ONLINE_CARD) {
             try {
                 String propertyName = saved.getProperty().getName();
-                String roomName = saved.getRoomType().getRoomCategory().name();
+                String roomName = saved.getRoomType().getName() != null && !saved.getRoomType().getName().isBlank() 
+                        ? saved.getRoomType().getName() 
+                        : saved.getRoomType().getRoomCategory().name();
                 emailService.sendBookingConfirmationEmail(
                         saved.getGuestEmail(),
                         saved.getGuestName(),
@@ -213,7 +216,9 @@ public class BookingService {
         }
 
         String propertyName = booking.getRoomType().getProperty().getName();
-        String roomName     = booking.getRoomType().getRoomCategory().name();
+        String roomName     = booking.getRoomType().getName() != null && !booking.getRoomType().getName().isBlank()
+                ? booking.getRoomType().getName()
+                : booking.getRoomType().getRoomCategory().name();
 
         log.info("[EMAIL] Sending receipt email to {} for booking {}", booking.getGuestEmail(), confirmationCode);
         emailService.sendBookingConfirmationEmail(
@@ -641,14 +646,31 @@ public class BookingService {
 
     private PriceBreakdown calculatePrice(RoomType roomType, LocalDate checkIn, LocalDate checkOut, Integer roomQuantity, List<String> promoCodes,
             boolean isPreview) {
-        BigDecimal pricePerNight = roomType.getPricePerNight();
-
         long nights = ChronoUnit.DAYS.between(checkIn, checkOut);
         if (nights <= 0) {
             throw new IllegalArgumentException("Stay must be at least 1 night");
         }
 
-        BigDecimal subtotal = pricePerNight.multiply(BigDecimal.valueOf(nights)).multiply(BigDecimal.valueOf(roomQuantity));
+        BigDecimal totalNightRates = BigDecimal.ZERO;
+        LocalDate current = checkIn;
+        while (current.isBefore(checkOut)) {
+            com.b4code.backend.models.Availability avail = availabilityRepository
+                    .findByRoomTypeIdAndDate(roomType.getId(), current).orElse(null);
+
+            if (avail != null && "BLOCKED".equalsIgnoreCase(avail.getStatus())) {
+                throw new RoomNotAvailableException("Room is blocked / unavailable on " + current);
+            }
+
+            BigDecimal nightRate = (avail != null && avail.getCustomPrice() != null)
+                    ? avail.getCustomPrice()
+                    : roomType.getPricePerNight();
+
+            totalNightRates = totalNightRates.add(nightRate);
+            current = current.plusDays(1);
+        }
+
+        BigDecimal pricePerNight = totalNightRates.divide(BigDecimal.valueOf(nights), 2, RoundingMode.HALF_UP);
+        BigDecimal subtotal = totalNightRates.multiply(BigDecimal.valueOf(roomQuantity));
 
         BigDecimal discountAmount = BigDecimal.ZERO;
         List<String> validPromos = new ArrayList<>();
@@ -701,7 +723,9 @@ public class BookingService {
         BookingResponse response = BookingResponse.builder()
                 .id(booking.getId())
                 .roomId(booking.getRoomType().getId())
-                .roomName(booking.getRoomType().getRoomCategory().name())
+                .roomName(booking.getRoomType().getName() != null && !booking.getRoomType().getName().isBlank()
+                        ? booking.getRoomType().getName()
+                        : booking.getRoomType().getRoomCategory().name())
                 .roomQuantity(booking.getRoomQuantity())
                 .propertyId(booking.getProperty().getId())
                 .propertyName(booking.getProperty().getName())

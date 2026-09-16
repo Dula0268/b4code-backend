@@ -22,5 +22,7 @@ public interface OwnerSettingsService {
     ReservationRestrictionDto createRestriction(String ownerEmail, RestrictionRequest request);
     ReservationRestrictionDto updateRestriction(String ownerEmail, Long id, RestrictionRequest request);
     void deleteRestriction(String ownerEmail, Long id);
-    com.b4code.backend.dto.PayoutDto requestPayout(String ownerEmail, Long propertyId);
+    com.b4code.backend.dto.PayoutDto requestPayout(String ownerEmail, Long propertyId, Long bankAccountId);
+    List<com.b4code.backend.dto.PayoutDto> getPayoutsForOwner(String ownerEmail);
+    List<com.b4code.backend.dto.owner.RoomInventoryLockDto> getInventoryLocks(String ownerEmail, Long propertyId);
 }

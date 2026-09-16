@@ -37,6 +37,12 @@ public class OwnerPropertyDto {
     private String propertyType;
     private List<String> amenities;
     private Integer roomCount;
+    private String rejectionReason;
+    private String submittedAt;
+    
+    private BigDecimal grossRevenue;
+    private BigDecimal platformCommission;
+    private BigDecimal availableBalance;
 
     public static OwnerPropertyDto fromEntity(Property p) {
         BigDecimal minPrice = p.getRoomTypes().stream()
@@ -82,19 +88,22 @@ public class OwnerPropertyDto {
                 .propertyType(p.getPropertyType())
                 .amenities(amenityNames)
                 .roomCount(p.getRoomTypes() != null ? p.getRoomTypes().size() : 0)
+                .rejectionReason(p.getRejectionReason())
+                .submittedAt(p.getSubmittedAt() != null ? p.getSubmittedAt().toString() : null)
+                .cancellationPolicy(p.getCancellationPolicy())
                 .build();
     }
 
     private static String toStatusString(PropertyStatus s) {
-        if (s == null) return "pending";
+        if (s == null) return "PENDING";
         return switch (s) {
-            case ACTIVE       -> "active";
-            case INACTIVE     -> "inactive";
-            case MAINTENANCE  -> "maintenance";
-            case APPROVED     -> "active";
-            case PENDING      -> "pending";
-            case UNDER_REVIEW -> "under_review";
-            case REJECTED     -> "rejected";
+            case ACTIVE       -> "ACTIVE";
+            case INACTIVE     -> "INACTIVE";
+            case MAINTENANCE  -> "MAINTENANCE";
+            case APPROVED     -> "APPROVED";
+            case PENDING      -> "PENDING";
+            case UNDER_REVIEW -> "UNDER_REVIEW";
+            case REJECTED     -> "REJECTED";
         };
     }
 }

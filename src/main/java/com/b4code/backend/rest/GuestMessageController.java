@@ -28,15 +28,17 @@ public class GuestMessageController {
     private final AutoReplyRuleRepository autoReplyRuleRepository;
 
     @GetMapping
-    public ResponseEntity<List<BookingMessageDto>> getMessages(@PathVariable String bookingId) {
+    public ResponseEntity<List<BookingMessageDto>> getMessages(
+            @PathVariable String bookingId,
+            @RequestParam(required = false, defaultValue = "STAFF") String target) {
         Booking booking = resolveBooking(bookingId);
         if (booking == null) return ResponseEntity.notFound().build();
         
-        if (booking.getStatus() != Booking.BookingStatus.CHECKED_IN) {
+        if ("STAFF".equalsIgnoreCase(target) && booking.getStatus() != Booking.BookingStatus.CHECKED_IN) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
         
-        return ResponseEntity.ok(bookingMessageService.getMessagesForBooking(bookingId));
+        return ResponseEntity.ok(bookingMessageService.getMessagesForBooking(bookingId, target));
     }
 
     @GetMapping("/quick-requests")
@@ -56,6 +58,7 @@ public class GuestMessageController {
                 .map(rule -> AutoReplyRuleDto.builder()
                         .id(rule.getId())
                         .keyword(rule.getKeyword())
+                        .targetRole(rule.getTargetRole())
                         .build())
                 .collect(Collectors.toList());
 
@@ -70,7 +73,8 @@ public class GuestMessageController {
         Booking booking = resolveBooking(bookingId);
         if (booking == null) return ResponseEntity.notFound().build();
         
-        if (booking.getStatus() != Booking.BookingStatus.CHECKED_IN) {
+        String target = request.getTargetRole() != null ? request.getTargetRole() : "STAFF";
+        if ("STAFF".equalsIgnoreCase(target) && booking.getStatus() != Booking.BookingStatus.CHECKED_IN) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
         
@@ -78,7 +82,8 @@ public class GuestMessageController {
                 bookingId,
                 null, // senderEmail will be handled by service
                 "GUEST",
-                request.getContent()
+                request.getContent(),
+                request.getTargetRole() != null ? request.getTargetRole() : "STAFF"
         );
         return ResponseEntity.ok(message);
     }

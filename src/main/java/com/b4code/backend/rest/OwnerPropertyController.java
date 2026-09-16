@@ -83,4 +83,13 @@ public class OwnerPropertyController {
 
         return ResponseEntity.ok(ownerPropertyService.toggleStatus(principal.getName(), id));
     }
+
+    @PatchMapping("/{id}/resubmit")
+    @Operation(summary = "Resubmit a rejected property for admin review")
+    public ResponseEntity<OwnerPropertyDto> resubmitProperty(
+            Principal principal,
+            @PathVariable Long id) {
+
+        return ResponseEntity.ok(ownerPropertyService.resubmitProperty(principal.getName(), id));
+    }
 }

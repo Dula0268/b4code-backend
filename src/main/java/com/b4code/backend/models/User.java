@@ -59,6 +59,8 @@ public class User {
     @Column(nullable = false, columnDefinition = "boolean default false")
     private boolean deleted = false;
 
+
+
     @CreationTimestamp
     @Column(updatable = false)
     private LocalDateTime createdAt;

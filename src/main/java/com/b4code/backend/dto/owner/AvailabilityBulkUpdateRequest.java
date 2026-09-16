@@ -7,8 +7,10 @@ import java.util.List;
 @Data
 public class AvailabilityBulkUpdateRequest {
     private Long propertyId;
+    private Long roomId;
     private List<String> dates;
     private String newStatus;
     private BigDecimal customPrice;
     private String notes;
+    private Integer availableRoomsOverride;
 }

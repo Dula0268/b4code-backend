@@ -17,4 +17,6 @@ public interface OwnerPropertyService {
     void deleteProperty(String ownerEmail, Long propertyId);
 
     OwnerPropertyDto toggleStatus(String ownerEmail, Long propertyId);
+
+    OwnerPropertyDto resubmitProperty(String ownerEmail, Long propertyId);
 }

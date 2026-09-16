@@ -9,6 +9,8 @@ import lombok.Data;
 public class DiscountDto {
     private Long id;
     private Long propertyId;
+    private Long roomTypeId;
+    private String roomTypeName;
     private String name;
     private String type;
     private String percentage;
@@ -22,6 +24,8 @@ public class DiscountDto {
         return DiscountDto.builder()
                 .id(d.getId())
                 .propertyId(d.getProperty() != null ? d.getProperty().getId() : null)
+                .roomTypeId(d.getRoomType() != null ? d.getRoomType().getId() : null)
+                .roomTypeName(d.getRoomType() != null ? d.getRoomType().getName() : null)
                 .name(d.getName())
                 .type(d.getType())
                 .percentage(d.getPercentage() != null ? d.getPercentage().toPlainString() : "0")

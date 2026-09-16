@@ -8,6 +8,10 @@ import com.b4code.backend.dto.AuthResponse;
 import com.b4code.backend.dto.LoginRequest;
 import com.b4code.backend.dto.RegisterRequest;
 import com.b4code.backend.dto.UserProfileDto;
+import com.b4code.backend.dto.AcceptInviteRequest;
+import com.b4code.backend.dto.RoomLoginRequest;
+import com.b4code.backend.models.Booking;
+import com.b4code.backend.dao.BookingRepository;
 import com.b4code.backend.models.PasswordResetToken;
 import com.b4code.backend.models.User;
 import com.b4code.backend.models.enums.UserRole;
@@ -37,7 +41,7 @@ public class AuthService {
     private final PasswordResetTokenRepository passwordResetTokenRepository;
     private final EmailService emailService;
     private final VerificationOTPRepository verificationOTPRepository;
-    private final com.b4code.backend.dao.BookingRepository bookingRepository;
+    private final BookingRepository bookingRepository;
 
     @Value("${app.frontend-url:http://localhost:3000}")
     private String frontendUrl;
@@ -79,6 +83,12 @@ public class AuthService {
             if (request.getStaffRole() != null) {
                 user.setStaffRole(request.getStaffRole());
             }
+        }
+
+        if (request.getNationalIdUrl() != null && !request.getNationalIdUrl().isBlank()) {
+            user.setNationalIdUrl(request.getNationalIdUrl().trim());
+        } else if (request.getNationalId() != null && !request.getNationalId().isBlank()) {
+            user.setNationalIdUrl(request.getNationalId().trim());
         }
 
         // Everyone starts as PENDING until email is verified via OTP
@@ -253,6 +263,68 @@ public class AuthService {
         auditLogRepository.save(log);
     }
 
+    // ───────────────────────── ACCEPT INVITE ─────────────────────────
+    @Transactional
+    public AuthResponse acceptInvite(AcceptInviteRequest request) {
+        PasswordResetToken resetToken = passwordResetTokenRepository.findByToken(request.getToken())
+                .orElseThrow(
+                        () -> new CustomException("This invite link is invalid or has expired. Please contact support.", HttpStatus.BAD_REQUEST));
+
+        if (resetToken.isExpired()) {
+            passwordResetTokenRepository.delete(resetToken);
+            throw new CustomException("This invite link has expired. Please contact support.", HttpStatus.BAD_REQUEST);
+        }
+
+        User user = resetToken.getUser();
+        
+        user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
+        user.setFirstName(request.getFirstName());
+        user.setLastName(request.getLastName() != null ? request.getLastName() : "");
+        user.setPhone(request.getPhone());
+        
+        if (request.getNationalId() != null && !request.getNationalId().isBlank()) {
+            user.setNationalIdUrl(request.getNationalId().trim());
+        }
+
+        // Mark user as active since they accepted the invite
+        user.setStatus(UserStatus.ACTIVE);
+        userRepository.save(user);
+
+        // Clear the token
+        passwordResetTokenRepository.delete(resetToken);
+
+        // Log the action
+        AuditLog log = new AuditLog();
+        log.setUser(user);
+        log.setAction("INVITE_ACCEPTED");
+        log.setEntity("AUTH");
+        log.setEntityDetail(user.getEmail());
+        log.setTimestamp(LocalDateTime.now());
+        auditLogRepository.save(log);
+
+        // Generate tokens to log them in immediately
+        String token = jwtUtil.generateToken(user.getEmail(), user.getRole().name());
+        String refreshToken = jwtUtil.generateRefreshToken(user.getEmail());
+
+        UserProfileDto profile = new UserProfileDto(
+                user.getFirstName(),
+                user.getLastName(),
+                user.getPhone(),
+                user.getAvatarUrl(),
+                user.getNationalIdUrl(),
+                user.getStaffRole());
+
+        return new AuthResponse(
+                token,
+                refreshToken,
+                user.getEmail(),
+                user.getRole().name(),
+                user.getId(),
+                user.getStatus().name(),
+                user.getPropertyId(),
+                profile);
+    }
+
     // ───────────────────────── VERIFY EMAIL (OTP) ─────────────────────────
     @Transactional
     public void verifyEmail(String email, String code) {
@@ -298,9 +370,9 @@ public class AuthService {
     }
 
     // ───────────────────────── ROOM LOGIN ─────────────────────────
-    public AuthResponse roomLogin(com.b4code.backend.dto.RoomLoginRequest request) {
+    public AuthResponse roomLogin(RoomLoginRequest request) {
         Long roomId = Long.parseLong(request.getRoomNumber());
-        com.b4code.backend.models.Booking booking = bookingRepository.findActiveBookingByRoom(request.getPropertyId(), roomId)
+        Booking booking = bookingRepository.findActiveBookingByRoom(request.getPropertyId(), roomId)
                 .orElseThrow(() -> new CustomException("We couldn't find an active reservation for this roomType number. Please check the number and try again.", HttpStatus.NOT_FOUND));
 
         // Strict name verification removed to allow family members to order.

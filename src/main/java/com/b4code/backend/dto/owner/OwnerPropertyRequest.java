@@ -9,16 +9,32 @@ import java.util.List;
 @Builder
 public class OwnerPropertyRequest {
 
-    private String name;
+    private String propertyName;
+    private String propertyType;
     private String description;
     private String address;
     private String city;
     private String country;
-    private String contactPhone;
-    private String contactEmail;
-    private String checkIn;
-    private String checkOut;
-    private String houseRules;
-    private String propertyType;
+    private Double latitude;
+    private Double longitude;
+
+    private List<RoomRequest> rooms;
     private List<String> amenities;
+    private String checkInTime;
+    private String checkOutTime;
+    private String customRules;
+
+    private String coverPhoto;
+    private List<String> images;
+
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Builder
+    public static class RoomRequest {
+        private String name;
+        private Integer baseCapacity;
+        private Integer maxCapacity;
+        private String bedConfiguration;
+    }
 }

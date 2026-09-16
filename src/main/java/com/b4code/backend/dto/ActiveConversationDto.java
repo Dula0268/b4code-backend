@@ -16,6 +16,7 @@ public class ActiveConversationDto {
     private Long bookingId;
     private String confirmationCode;
     private String guestName;
+    private Long propertyId;
     private String propertyName;
     private String roomName;
     private String roomNumber;

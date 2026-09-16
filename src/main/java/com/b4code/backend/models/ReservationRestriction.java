@@ -21,11 +21,29 @@ public class ReservationRestriction {
     @JoinColumn(name = "property_id", nullable = false)
     private Property property;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "room_type_id")
+    private RoomType roomType;
+
     @Column(nullable = false, length = 120)
     private String name;
 
     @Column(length = 30)
     private String type;
+
+    @Column(name = "min_stay")
+    private Integer minStay;
+
+    @Column(name = "max_stay")
+    private Integer maxStay;
+
+    @Column(name = "closed_to_arrival", columnDefinition = "boolean default false")
+    @Builder.Default
+    private Boolean closedToArrival = false;
+
+    @Column(name = "closed_to_departure", columnDefinition = "boolean default false")
+    @Builder.Default
+    private Boolean closedToDeparture = false;
 
     @Column(nullable = false)
     private LocalDate startDate;

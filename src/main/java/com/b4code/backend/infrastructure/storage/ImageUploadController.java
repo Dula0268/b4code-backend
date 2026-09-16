@@ -36,17 +36,31 @@ public class ImageUploadController {
         log.info("POST /api/images/upload - file={}, folder={}", file.getOriginalFilename(), folder);
 
         if (file.isEmpty()) {
+            log.warn("POST /api/images/upload - File is empty");
             return ResponseEntity.badRequest().body(Map.of("error", "File is empty"));
         }
 
-        // Validate file type
+        // Validate file type (allow images and PDF documents for identity / business certificates)
         String contentType = file.getContentType();
-        if (contentType == null || !contentType.startsWith("image/")) {
-            return ResponseEntity.badRequest().body(Map.of("error", "Only image files are accepted"));
+        String originalFilename = file.getOriginalFilename() != null ? file.getOriginalFilename().toLowerCase() : "";
+        boolean isImage = contentType != null && contentType.startsWith("image/");
+        boolean isPdf = (contentType != null && (contentType.equalsIgnoreCase("application/pdf") || contentType.equalsIgnoreCase("application/x-pdf")))
+                || originalFilename.endsWith(".pdf");
+        boolean hasImageExt = originalFilename.endsWith(".jpg")
+                || originalFilename.endsWith(".jpeg")
+                || originalFilename.endsWith(".png")
+                || originalFilename.endsWith(".webp")
+                || originalFilename.endsWith(".jfif")
+                || originalFilename.endsWith(".svg");
+
+        if (!isImage && !isPdf && !hasImageExt) {
+            log.warn("POST /api/images/upload - Rejected content type: {}, filename: {}", contentType, originalFilename);
+            return ResponseEntity.badRequest().body(Map.of("error", "Only image and PDF files are accepted"));
         }
 
         // Max 10MB
         if (file.getSize() > 10 * 1024 * 1024) {
+            log.warn("POST /api/images/upload - File size exceeds 10MB: {} bytes", file.getSize());
             return ResponseEntity.badRequest().body(Map.of("error", "File size exceeds 10MB limit"));
         }
 

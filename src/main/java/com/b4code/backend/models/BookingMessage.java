@@ -26,7 +26,10 @@ public class BookingMessage {
     private String senderEmail;
 
     @Column(nullable = false)
-    private String senderRole; // "GUEST" or "STAFF"
+    private String senderRole; // "GUEST" or "STAFF" or "OWNER"
+
+    @Column(nullable = false, columnDefinition = "varchar(255) default 'STAFF'")
+    private String targetRole; // "STAFF" or "OWNER" or "GUEST"
 
     @Column(nullable = false, columnDefinition = "TEXT")
     private String content;

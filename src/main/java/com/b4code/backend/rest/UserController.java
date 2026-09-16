@@ -78,6 +78,7 @@ public class UserController {
         userService.changePassword(currentUser.getId(), request);
         return ResponseEntity.noContent().build();
     }
+
 }
 
 

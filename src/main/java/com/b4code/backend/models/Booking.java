@@ -93,6 +93,13 @@ public class Booking {
     @Builder.Default
     private Boolean isPaid = false;
 
+    @Column(nullable = false, columnDefinition = "boolean default false")
+    @Builder.Default
+    private Boolean lateArrivalAllowed = false;
+
+    @Builder.Default
+    private Boolean isPaidOutToOwner = false;
+
     @Column(updatable = false)
     @Builder.Default
     private LocalDateTime createdAt = LocalDateTime.now();
@@ -102,6 +109,6 @@ public class Booking {
     }
 
     public enum BookingStatus {
-        PENDING, CONFIRMED, CANCELLED, COMPLETED, CHECKED_IN
+        PENDING, CONFIRMED, CANCELLED, COMPLETED, CHECKED_IN, NO_SHOW
     }
 }

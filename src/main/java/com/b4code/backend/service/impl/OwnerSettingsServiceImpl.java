@@ -6,6 +6,9 @@ import com.b4code.backend.dao.PropertyRepository;
 import com.b4code.backend.dao.PropertySettingRepository;
 import com.b4code.backend.dao.ReservationRestrictionRepository;
 import com.b4code.backend.dao.UserRepository;
+import com.b4code.backend.dao.RoomTypeRepository;
+import com.b4code.backend.dao.PhysicalRoomRepository;
+import com.b4code.backend.dao.BookingRepository;
 import com.b4code.backend.dto.owner.BankAccountDto;
 import com.b4code.backend.dto.owner.BankAccountRequest;
 import com.b4code.backend.dto.owner.NotificationPrefDto;
@@ -19,6 +22,8 @@ import com.b4code.backend.models.Property;
 import com.b4code.backend.models.PropertySetting;
 import com.b4code.backend.models.ReservationRestriction;
 import com.b4code.backend.models.User;
+import com.b4code.backend.models.RoomType;
+import com.b4code.backend.models.PhysicalRoom;
 import com.b4code.backend.service.OwnerSettingsService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -26,6 +31,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -41,6 +47,11 @@ public class OwnerSettingsServiceImpl implements OwnerSettingsService {
     private final PropertyRepository propertyRepository;
     private final UserRepository userRepository;
     private final com.b4code.backend.dao.PayoutRepository payoutRepository;
+    private final RoomTypeRepository roomTypeRepository;
+    private final PhysicalRoomRepository physicalRoomRepository;
+    private final BookingRepository bookingRepository;
+    private final com.b4code.backend.service.FinanceService financeService;
+    private final com.b4code.backend.service.AdminNotificationService adminNotificationService;
 
     @Override
     @Transactional(readOnly = true)
@@ -143,10 +154,22 @@ public class OwnerSettingsServiceImpl implements OwnerSettingsService {
     @Transactional
     public ReservationRestrictionDto createRestriction(String ownerEmail, RestrictionRequest request) {
         Property property = resolveOwnedProperty(ownerEmail, request.getPropertyId());
+
+        RoomType roomType = null;
+        if (request.getRoomTypeId() != null) {
+            roomType = roomTypeRepository.findById(request.getRoomTypeId())
+                    .orElseThrow(() -> new CustomException("Room type not found", HttpStatus.NOT_FOUND));
+        }
+
         ReservationRestriction r = ReservationRestriction.builder()
                 .property(property)
+                .roomType(roomType)
                 .name(request.getName())
                 .type(request.getType())
+                .minStay(request.getMinStay())
+                .maxStay(request.getMaxStay())
+                .closedToArrival(Boolean.TRUE.equals(request.getClosedToArrival()))
+                .closedToDeparture(Boolean.TRUE.equals(request.getClosedToDeparture()))
                 .startDate(request.getStartDate())
                 .endDate(request.getEndDate())
                 .reason(request.getReason())
@@ -164,12 +187,22 @@ public class OwnerSettingsServiceImpl implements OwnerSettingsService {
         if (!owner.getId().equals(r.getProperty().getOwnerId())) {
             throw new CustomException("Access denied", HttpStatus.FORBIDDEN);
         }
-        if (request.getName() != null)      r.setName(request.getName());
-        if (request.getType() != null)      r.setType(request.getType());
-        if (request.getStartDate() != null) r.setStartDate(request.getStartDate());
-        if (request.getEndDate() != null)   r.setEndDate(request.getEndDate());
-        if (request.getReason() != null)    r.setReason(request.getReason());
-        if (request.getIsActive() != null)  r.setIsActive(request.getIsActive());
+
+        if (request.getRoomTypeId() != null) {
+            RoomType roomType = roomTypeRepository.findById(request.getRoomTypeId())
+                    .orElseThrow(() -> new CustomException("Room type not found", HttpStatus.NOT_FOUND));
+            r.setRoomType(roomType);
+        }
+        if (request.getName() != null)              r.setName(request.getName());
+        if (request.getType() != null)              r.setType(request.getType());
+        if (request.getMinStay() != null)          r.setMinStay(request.getMinStay());
+        if (request.getMaxStay() != null)          r.setMaxStay(request.getMaxStay());
+        if (request.getClosedToArrival() != null)   r.setClosedToArrival(request.getClosedToArrival());
+        if (request.getClosedToDeparture() != null) r.setClosedToDeparture(request.getClosedToDeparture());
+        if (request.getStartDate() != null)         r.setStartDate(request.getStartDate());
+        if (request.getEndDate() != null)           r.setEndDate(request.getEndDate());
+        if (request.getReason() != null)            r.setReason(request.getReason());
+        if (request.getIsActive() != null)          r.setIsActive(request.getIsActive());
         return ReservationRestrictionDto.fromEntity(restrictionRepository.save(r));
     }
 
@@ -186,8 +219,42 @@ public class OwnerSettingsServiceImpl implements OwnerSettingsService {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public List<com.b4code.backend.dto.owner.RoomInventoryLockDto> getInventoryLocks(String ownerEmail, Long propertyId) {
+        verifyOwnsProperty(ownerEmail, propertyId);
+        List<RoomType> rooms = roomTypeRepository.findByPropertyId(propertyId);
+        List<PhysicalRoom> allPhysical = physicalRoomRepository.findByPropertyId(propertyId);
+        LocalDate today = LocalDate.now();
+
+        return rooms.stream().map(rt -> {
+            List<PhysicalRoom> physicalRooms = allPhysical.stream()
+                    .filter(p -> p.getRoomType() != null && p.getRoomType().getId().equals(rt.getId()))
+                    .toList();
+
+            List<String> doors = physicalRooms.stream()
+                    .map(PhysicalRoom::getDoorNumber)
+                    .toList();
+
+            int booked = bookingRepository.getBookedQuantityForDates(rt.getId(), today, today.plusDays(1));
+            int available = Math.max(0, (rt.getInventory() != null ? rt.getInventory() : 0) - booked);
+            boolean locked = !physicalRooms.isEmpty() && physicalRooms.size() >= (rt.getInventory() != null ? rt.getInventory() : 0);
+
+            return com.b4code.backend.dto.owner.RoomInventoryLockDto.builder()
+                    .roomTypeId(rt.getId())
+                    .roomTypeName(rt.getName())
+                    .configuredInventory(rt.getInventory())
+                    .physicalRoomCount(physicalRooms.size())
+                    .doorNumbers(doors)
+                    .activeBookingsCount(booked)
+                    .availableCount(available)
+                    .isOverbookingLocked(locked)
+                    .build();
+        }).toList();
+    }
+
+    @Override
     @Transactional
-    public com.b4code.backend.dto.PayoutDto requestPayout(String ownerEmail, Long propertyId) {
+    public com.b4code.backend.dto.PayoutDto requestPayout(String ownerEmail, Long propertyId, Long bankAccountId) {
         User owner = resolveOwner(ownerEmail);
 
         java.time.LocalDateTime cutoff = LocalDateTime.now().minusDays(30);
@@ -249,9 +316,11 @@ public class OwnerSettingsServiceImpl implements OwnerSettingsService {
             throw new CustomException(message, HttpStatus.BAD_REQUEST);
         }
         
-        List<BankAccount> bankAccounts = bankAccountRepository.findByOwnerIdOrderByIsPrimaryDescCreatedAtDesc(owner.getId());
-        if (bankAccounts == null || bankAccounts.isEmpty()) {
-            throw new CustomException("Please add a primary bank account before requesting a payout.", HttpStatus.BAD_REQUEST);
+        BankAccount selectedAccount = bankAccountRepository.findById(bankAccountId)
+                .orElseThrow(() -> new CustomException("Bank account not found", HttpStatus.NOT_FOUND));
+                
+        if (!selectedAccount.getOwnerId().equals(owner.getId())) {
+            throw new CustomException("Bank account does not belong to the requesting owner.", HttpStatus.FORBIDDEN);
         }
         
         Property property = null;
@@ -268,38 +337,75 @@ public class OwnerSettingsServiceImpl implements OwnerSettingsService {
         String propName = property != null ? property.getName() : "Owner Property";
         Long propId = property != null ? property.getId() : null;
 
-        java.math.BigDecimal defaultHotelAmt = new java.math.BigDecimal("50000.00");
-        java.math.BigDecimal defaultFoodAmt = new java.math.BigDecimal("10000.00");
-        java.math.BigDecimal commissionRate = new java.math.BigDecimal("20.00");
-        java.math.BigDecimal commissionAmt = defaultHotelAmt.multiply(commissionRate)
+        if (propId == null) {
+            throw new CustomException("No active property found for owner.", HttpStatus.BAD_REQUEST);
+        }
+
+        List<com.b4code.backend.models.Booking> eligibleBookings = bookingRepository.findEligibleBookingsForPayout(propId);
+        if (eligibleBookings.isEmpty()) {
+            throw new CustomException("No completed and unpaid bookings available for payout.", HttpStatus.BAD_REQUEST);
+        }
+
+        java.math.BigDecimal totalBookingRevenue = eligibleBookings.stream()
+                .map(com.b4code.backend.models.Booking::getTotalAmount)
+                .filter(java.util.Objects::nonNull)
+                .reduce(java.math.BigDecimal.ZERO, java.math.BigDecimal::add);
+
+        java.math.BigDecimal defaultFoodAmt = java.math.BigDecimal.ZERO; // No food amount in bookings yet
+        java.math.BigDecimal commissionRate = financeService.getCommissionRate();
+        java.math.BigDecimal commissionAmt = totalBookingRevenue.multiply(commissionRate)
                 .divide(new java.math.BigDecimal("100"), 2, java.math.RoundingMode.HALF_UP);
-        java.math.BigDecimal netAmount = defaultHotelAmt.subtract(commissionAmt).add(defaultFoodAmt);
+        java.math.BigDecimal netAmount = totalBookingRevenue.subtract(commissionAmt).add(defaultFoodAmt);
 
         com.b4code.backend.models.Payout payout = com.b4code.backend.models.Payout.builder()
                 .ownerId(owner.getId())
                 .ownerName(owner.getFirstName() + " " + owner.getLastName())
                 .propertyId(propId)
                 .propertyName(propName)
-                .hotelAmount(defaultHotelAmt)
+                .hotelAmount(totalBookingRevenue)
                 .foodAmount(defaultFoodAmt)
                 .commissionRate(commissionRate)
                 .commissionAmount(commissionAmt)
                 .amount(netAmount)
                 .currency("LKR")
                 .status(com.b4code.backend.models.enums.PayoutStatus.PENDING)
+                .bankName(selectedAccount.getBankName())
+                .accountNumber(selectedAccount.getAccountNumber())
+                .accountHolderName(selectedAccount.getAccountHolder())
                 .requestedAt(LocalDateTime.now())
                 .build();
 
         com.b4code.backend.models.Payout saved = payoutRepository.save(payout);
 
+        // Notify Admin
+        adminNotificationService.createNotification(
+                "New Payout Request",
+                "Owner " + owner.getFirstName() + " requested a payout of LKR " + netAmount.toPlainString() + " for " + propName,
+                com.b4code.backend.models.enums.AdminNotificationType.PAYOUT_REQUEST,
+                saved.getId().toString()
+        );
+
+        // Mark bookings as paid out
+        for (com.b4code.backend.models.Booking b : eligibleBookings) {
+            b.setIsPaidOutToOwner(true);
+        }
+        bookingRepository.saveAll(eligibleBookings);
+
         com.b4code.backend.dto.PayoutDto dto = com.b4code.backend.dto.PayoutDto.fromEntity(saved);
-        BankAccount primaryBank = bankAccounts.get(0);
-        dto.setBankName(primaryBank.getBankName());
-        dto.setAccountHolder(primaryBank.getAccountHolder());
-        dto.setAccountNumber(primaryBank.getAccountNumber());
-        dto.setBranchCode(primaryBank.getBranchCode());
-        dto.setBankDetails(primaryBank.getBankName() + " — Acc: " + primaryBank.getAccountNumber() + " (Holder: " + primaryBank.getAccountHolder() + ")");
+        dto.setBranchCode(selectedAccount.getBranchCode());
+        dto.setBankDetails(selectedAccount.getBankName() + " — Acc: " + selectedAccount.getAccountNumber() + " (Holder: " + selectedAccount.getAccountHolder() + ")");
+
         return dto;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<com.b4code.backend.dto.PayoutDto> getPayoutsForOwner(String ownerEmail) {
+        User owner = resolveOwner(ownerEmail);
+        return payoutRepository.findByOwnerIdOrderByRequestedAtDesc(owner.getId())
+                .stream()
+                .map(com.b4code.backend.dto.PayoutDto::fromEntity)
+                .toList();
     }
 
     private User resolveOwner(String email) {

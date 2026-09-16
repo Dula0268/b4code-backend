@@ -22,6 +22,10 @@ public class RatePlan {
     @JoinColumn(name = "property_id", nullable = false)
     private Property property;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "room_type_id")
+    private RoomType roomType;
+
     @Column(nullable = false, length = 120)
     private String name;
 

@@ -10,4 +10,5 @@ public class RateOverviewDto {
     private Long propertyId;
     private List<RatePlanDto> ratePlans;
     private List<DiscountDto> discounts;
+    private List<OwnerRoomTypeDto> rooms;
 }

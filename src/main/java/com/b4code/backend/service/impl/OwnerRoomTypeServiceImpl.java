@@ -12,6 +12,9 @@ import com.b4code.backend.models.Property;
 import com.b4code.backend.models.RoomType;
 import com.b4code.backend.models.RoomCategory;
 import com.b4code.backend.models.User;
+import com.b4code.backend.models.Image;
+import com.b4code.backend.models.ImageType;
+import com.b4code.backend.dao.ImageRepository;
 import com.b4code.backend.models.enums.RoomStatus;
 import com.b4code.backend.service.OwnerRoomTypeService;
 import lombok.RequiredArgsConstructor;
@@ -31,10 +34,11 @@ public class OwnerRoomTypeServiceImpl implements OwnerRoomTypeService {
     private final RoomTypeRepository roomTypeRepository;
     private final PropertyRepository propertyRepository;
     private final UserRepository userRepository;
+    private final ImageRepository imageRepository;
 
     @Override
     @Transactional(readOnly = true)
-    public OwnerRoomTypeListDto listRoomTypes(String ownerEmail, String statusParam, String search) {
+    public OwnerRoomTypeListDto listRoomTypes(String ownerEmail, Long propertyId, String statusParam, String search) {
         User owner = resolveOwner(ownerEmail);
 
         RoomStatus statusFilter = null;
@@ -44,7 +48,7 @@ public class OwnerRoomTypeServiceImpl implements OwnerRoomTypeService {
         }
 
         String searchTerm = (search == null || search.isBlank()) ? null : search.trim();
-        List<RoomType> roomTypes = roomTypeRepository.findByOwnerWithFilters(owner.getId(), statusFilter, searchTerm);
+        List<RoomType> roomTypes = roomTypeRepository.findByOwnerWithFilters(owner.getId(), propertyId, statusFilter, searchTerm);
 
         long total = roomTypeRepository.countByOwner(owner.getId());
         long occupied = roomTypeRepository.countByOwnerAndStatus(owner.getId(), RoomStatus.OCCUPIED);
@@ -95,6 +99,16 @@ public class OwnerRoomTypeServiceImpl implements OwnerRoomTypeService {
                 .status(parseRoomStatus(request.getStatus()))
                 .build();
 
+        if (request.getImageUrl() != null && !request.getImageUrl().isBlank()) {
+            Image image = Image.builder()
+                    .url(request.getImageUrl())
+                    .type(ImageType.ROOM)
+                    .property(property)
+                    .build();
+            imageRepository.save(image);
+            roomType.setImage(image);
+        }
+
         RoomType saved = roomTypeRepository.save(roomType);
         log.info("Owner {} created roomType id={} for property id={}", ownerEmail, saved.getId(), property.getId());
         return OwnerRoomTypeDto.fromEntity(saved);
@@ -114,6 +128,18 @@ public class OwnerRoomTypeServiceImpl implements OwnerRoomTypeService {
         if (request.getPricePerNight() != null) roomType.setPricePerNight(request.getPricePerNight());
         if (request.getInventory() != null)     roomType.setInventory(request.getInventory());
         if (request.getStatus() != null)        roomType.setStatus(parseRoomStatus(request.getStatus()));
+
+        if (request.getImageUrl() != null && !request.getImageUrl().isBlank()) {
+            if (roomType.getImage() == null || !request.getImageUrl().equals(roomType.getImage().getUrl())) {
+                Image image = Image.builder()
+                        .url(request.getImageUrl())
+                        .type(ImageType.ROOM)
+                        .property(roomType.getProperty())
+                        .build();
+                imageRepository.save(image);
+                roomType.setImage(image);
+            }
+        }
 
         RoomType saved = roomTypeRepository.save(roomType);
         log.info("Owner {} updated roomType id={}", ownerEmail, roomId);

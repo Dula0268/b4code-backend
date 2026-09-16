@@ -33,6 +33,8 @@ public class OwnerPropertyServiceImpl implements OwnerPropertyService {
     private final UserRepository userRepository;
     private final CloudinaryService cloudinaryService;
     private final AdminNotificationService adminNotificationService;
+    private final com.b4code.backend.dao.BookingRepository bookingRepository;
+    private final com.b4code.backend.service.FinanceService financeService;
 
     @Override
     @Transactional(readOnly = true)
@@ -50,7 +52,22 @@ public class OwnerPropertyServiceImpl implements OwnerPropertyService {
                 owner.getId(), searchTerm, statusEnum, PageRequest.of(zeroPage, size));
 
         List<OwnerPropertyDto> dtos = pageResult.getContent().stream()
-                .map(OwnerPropertyDto::fromEntity)
+                .map(p -> {
+                    OwnerPropertyDto dto = OwnerPropertyDto.fromEntity(p);
+                    java.math.BigDecimal totalRevenue = bookingRepository.findEligibleBookingsForPayout(p.getId()).stream()
+                            .map(com.b4code.backend.models.Booking::getTotalAmount)
+                            .filter(java.util.Objects::nonNull)
+                            .reduce(java.math.BigDecimal.ZERO, java.math.BigDecimal::add);
+                    
+                    java.math.BigDecimal commissionRate = financeService.getCommissionRate();
+                    java.math.BigDecimal commission = totalRevenue.multiply(commissionRate)
+                            .divide(new java.math.BigDecimal("100"), 2, java.math.RoundingMode.HALF_UP);
+                    
+                    dto.setGrossRevenue(totalRevenue);
+                    dto.setPlatformCommission(commission);
+                    dto.setAvailableBalance(totalRevenue.subtract(commission));
+                    return dto;
+                })
                 .toList();
 
         return OwnerPropertyPageDto.builder()
@@ -76,24 +93,65 @@ public class OwnerPropertyServiceImpl implements OwnerPropertyService {
         Property property = Property.builder()
                 .ownerId(owner.getId())
                 .ownerName(owner.getFullName())
-                .name(request.getName())
+                .name(request.getPropertyName())
                 .description(request.getDescription())
                 .addressLine1(request.getAddress())
                 .city(request.getCity())
                 .country(request.getCountry())
-                .contactPhone(request.getContactPhone())
-                .contactEmail(request.getContactEmail())
-                .checkInTime(request.getCheckIn() != null ? request.getCheckIn() : "14:00")
-                .checkOutTime(request.getCheckOut() != null ? request.getCheckOut() : "11:00")
-                .houseRules(request.getHouseRules())
+                .latitude(request.getLatitude())
+                .longitude(request.getLongitude())
+                .checkInTime(request.getCheckInTime() != null ? request.getCheckInTime() : "14:00")
+                .checkOutTime(request.getCheckOutTime() != null ? request.getCheckOutTime() : "11:00")
+                .houseRules(request.getCustomRules())
                 .propertyType(request.getPropertyType())
+                .imageUrl(request.getCoverPhoto())
+                .galleryImages(request.getImages() != null ? String.join(",", request.getImages()) : null)
                 .status(PropertyStatus.PENDING)
                 .build();
 
         attachAmenities(property, request.getAmenities());
+        
+        if (request.getRooms() != null && !request.getRooms().isEmpty()) {
+            for (OwnerPropertyRequest.RoomRequest rm : request.getRooms()) {
+                com.b4code.backend.models.RoomType roomType = com.b4code.backend.models.RoomType.builder()
+                        .property(property)
+                        .name(rm.getName())
+                        .maxOccupancy(rm.getMaxCapacity() != null ? rm.getMaxCapacity() : 2)
+                        .pricePerNight(java.math.BigDecimal.ZERO)
+                        .inventory(1)
+                        .roomCategory(com.b4code.backend.models.RoomCategory.STANDARD_ROOM)
+                        .status(com.b4code.backend.models.enums.RoomStatus.AVAILABLE)
+                        .build();
+                property.getRoomTypes().add(roomType);
+            }
+        }
+
         Property saved = propertyRepository.save(property);
         log.info("Owner {} created property id={}", ownerEmail, saved.getId());
-        
+
+        // Save images to the Image entity table so admin can see them
+        if (request.getCoverPhoto() != null && !request.getCoverPhoto().isBlank()) {
+            com.b4code.backend.models.Image cover = com.b4code.backend.models.Image.builder()
+                    .url(request.getCoverPhoto())
+                    .type(com.b4code.backend.models.ImageType.PROPERTY)
+                    .property(saved)
+                    .build();
+            saved.getImages().add(cover);
+        }
+        if (request.getImages() != null) {
+            for (String imgUrl : request.getImages()) {
+                if (imgUrl != null && !imgUrl.isBlank() && !imgUrl.equals(request.getCoverPhoto())) {
+                    com.b4code.backend.models.Image img = com.b4code.backend.models.Image.builder()
+                            .url(imgUrl)
+                            .type(com.b4code.backend.models.ImageType.GALLERY)
+                            .property(saved)
+                            .build();
+                    saved.getImages().add(img);
+                }
+            }
+        }
+        propertyRepository.save(saved);
+
         // Notify Admin
         adminNotificationService.createNotification(
             "New Property Registration",
@@ -110,21 +168,57 @@ public class OwnerPropertyServiceImpl implements OwnerPropertyService {
     public OwnerPropertyDto updateProperty(String ownerEmail, Long propertyId, OwnerPropertyRequest request) {
         Property property = resolveOwnedProperty(ownerEmail, propertyId);
 
-        if (request.getName() != null)          property.setName(request.getName());
+        // ── Status Transition ─────────────────────────────────────────
+        // If the property is ACTIVE or APPROVED, ANY modification by the owner
+        // will unpublish it and revert it to PENDING so the admin can re-verify.
+        boolean isPublished = property.getStatus() == PropertyStatus.ACTIVE
+                           || property.getStatus() == PropertyStatus.APPROVED;
+
+        if (request.getPropertyName() != null)  property.setName(request.getPropertyName());
         if (request.getDescription() != null)   property.setDescription(request.getDescription());
         if (request.getAddress() != null)       property.setAddressLine1(request.getAddress());
         if (request.getCity() != null)          property.setCity(request.getCity());
         if (request.getCountry() != null)       property.setCountry(request.getCountry());
-        if (request.getContactPhone() != null)  property.setContactPhone(request.getContactPhone());
-        if (request.getContactEmail() != null)  property.setContactEmail(request.getContactEmail());
-        if (request.getCheckIn() != null)       property.setCheckInTime(request.getCheckIn());
-        if (request.getCheckOut() != null)      property.setCheckOutTime(request.getCheckOut());
-        if (request.getHouseRules() != null)    property.setHouseRules(request.getHouseRules());
+        if (request.getLatitude() != null)      property.setLatitude(request.getLatitude());
+        if (request.getLongitude() != null)     property.setLongitude(request.getLongitude());
+        if (request.getCheckInTime() != null)   property.setCheckInTime(request.getCheckInTime());
+        if (request.getCheckOutTime() != null)  property.setCheckOutTime(request.getCheckOutTime());
+        if (request.getCustomRules() != null)   property.setHouseRules(request.getCustomRules());
         if (request.getPropertyType() != null)  property.setPropertyType(request.getPropertyType());
+        if (request.getCoverPhoto() != null)    property.setImageUrl(request.getCoverPhoto());
+        if (request.getImages() != null)        property.setGalleryImages(String.join(",", request.getImages()));
 
         if (request.getAmenities() != null) {
             property.getAmenities().clear();
             attachAmenities(property, request.getAmenities());
+        }
+
+        if (request.getRooms() != null && !request.getRooms().isEmpty()) {
+            for (OwnerPropertyRequest.RoomRequest rm : request.getRooms()) {
+                com.b4code.backend.models.RoomType roomType = com.b4code.backend.models.RoomType.builder()
+                        .property(property)
+                        .name(rm.getName())
+                        .maxOccupancy(rm.getMaxCapacity() != null ? rm.getMaxCapacity() : 2)
+                        .pricePerNight(java.math.BigDecimal.ZERO)
+                        .inventory(1)
+                        .roomCategory(com.b4code.backend.models.RoomCategory.STANDARD_ROOM)
+                        .status(com.b4code.backend.models.enums.RoomStatus.AVAILABLE)
+                        .build();
+                property.getRoomTypes().add(roomType);
+            }
+        }
+
+        if (isPublished) {
+            property.setStatus(PropertyStatus.PENDING);
+            property.setSubmittedAt(java.time.LocalDateTime.now());
+            log.info("Owner {} updated an approved/active property id={} — reverted to PENDING", ownerEmail, propertyId);
+
+            adminNotificationService.createNotification(
+                "Property Re-review Required",
+                "Property '" + property.getName() + "' has been updated by the owner and requires re-verification.",
+                com.b4code.backend.models.enums.AdminNotificationType.NEW_PROPERTY,
+                property.getId().toString()
+            );
         }
 
         Property saved = propertyRepository.save(property);
@@ -159,6 +253,31 @@ public class OwnerPropertyServiceImpl implements OwnerPropertyService {
         property.setStatus(next);
         Property saved = propertyRepository.save(property);
         log.info("Owner {} toggled property id={} → {}", ownerEmail, propertyId, next);
+        return OwnerPropertyDto.fromEntity(saved);
+    }
+
+    @Override
+    @Transactional
+    public OwnerPropertyDto resubmitProperty(String ownerEmail, Long propertyId) {
+        Property property = resolveOwnedProperty(ownerEmail, propertyId);
+
+        if (property.getStatus() != PropertyStatus.REJECTED) {
+            throw new CustomException("Only rejected properties can be resubmitted.", HttpStatus.BAD_REQUEST);
+        }
+
+        property.setStatus(PropertyStatus.PENDING);
+        property.setRejectionReason(null);
+        property.setSubmittedAt(java.time.LocalDateTime.now());
+        Property saved = propertyRepository.save(property);
+
+        adminNotificationService.createNotification(
+            "Property Resubmitted for Review",
+            "Property '" + saved.getName() + "' has been updated and resubmitted by the owner.",
+            com.b4code.backend.models.enums.AdminNotificationType.NEW_PROPERTY,
+            saved.getId().toString()
+        );
+
+        log.info("Owner {} resubmitted property id={}", ownerEmail, propertyId);
         return OwnerPropertyDto.fromEntity(saved);
     }
 

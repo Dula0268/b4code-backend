@@ -23,6 +23,7 @@ public class UserResponse {
     private String nationalIdUrl;
     private String staffRole;
 
+
     public static UserResponse fromEntity(User user) {
         UserResponse response = new UserResponse();
         response.setId(user.getId());
@@ -37,6 +38,7 @@ public class UserResponse {
         response.setNationalIdUrl(user.getNationalIdUrl());
         response.setPropertyId(user.getPropertyId());
         response.setStaffRole(user.getStaffRole());
+
         return response;
     }
 }
