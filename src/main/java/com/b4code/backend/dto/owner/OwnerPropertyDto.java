@@ -39,6 +39,10 @@ public class OwnerPropertyDto {
     private Integer roomCount;
     private String rejectionReason;
     private String submittedAt;
+    
+    private BigDecimal grossRevenue;
+    private BigDecimal platformCommission;
+    private BigDecimal availableBalance;
 
     public static OwnerPropertyDto fromEntity(Property p) {
         BigDecimal minPrice = p.getRoomTypes().stream()

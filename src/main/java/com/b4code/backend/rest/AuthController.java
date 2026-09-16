@@ -40,6 +40,11 @@ public class AuthController {
         }
     }
 
+    @PostMapping("/accept-invite")
+    public ResponseEntity<AuthResponse> acceptInvite(@RequestBody AcceptInviteRequest request) {
+        return ResponseEntity.ok(authService.acceptInvite(request));
+    }
+
     @PostMapping("/verify-email")
     public ResponseEntity<String> verifyEmail(@RequestBody VerifyEmailRequest request) {
         authService.verifyEmail(request.getEmail(), request.getOtp());

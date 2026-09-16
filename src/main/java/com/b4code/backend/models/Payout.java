@@ -58,6 +58,10 @@ public class Payout {
 
     private String bankReference;
     
+    private String bankName;
+    private String accountNumber;
+    private String accountHolderName;
+    
     @Column(length = 1000)
     private String adminNote;
 

@@ -50,6 +50,8 @@ public class OwnerSettingsServiceImpl implements OwnerSettingsService {
     private final RoomTypeRepository roomTypeRepository;
     private final PhysicalRoomRepository physicalRoomRepository;
     private final BookingRepository bookingRepository;
+    private final com.b4code.backend.service.FinanceService financeService;
+    private final com.b4code.backend.service.AdminNotificationService adminNotificationService;
 
     @Override
     @Transactional(readOnly = true)
@@ -252,7 +254,7 @@ public class OwnerSettingsServiceImpl implements OwnerSettingsService {
 
     @Override
     @Transactional
-    public com.b4code.backend.dto.PayoutDto requestPayout(String ownerEmail, Long propertyId) {
+    public com.b4code.backend.dto.PayoutDto requestPayout(String ownerEmail, Long propertyId, Long bankAccountId) {
         User owner = resolveOwner(ownerEmail);
 
         java.time.LocalDateTime cutoff = LocalDateTime.now().minusDays(30);
@@ -314,9 +316,11 @@ public class OwnerSettingsServiceImpl implements OwnerSettingsService {
             throw new CustomException(message, HttpStatus.BAD_REQUEST);
         }
         
-        List<BankAccount> bankAccounts = bankAccountRepository.findByOwnerIdOrderByIsPrimaryDescCreatedAtDesc(owner.getId());
-        if (bankAccounts == null || bankAccounts.isEmpty()) {
-            throw new CustomException("Please add a primary bank account before requesting a payout.", HttpStatus.BAD_REQUEST);
+        BankAccount selectedAccount = bankAccountRepository.findById(bankAccountId)
+                .orElseThrow(() -> new CustomException("Bank account not found", HttpStatus.NOT_FOUND));
+                
+        if (!selectedAccount.getOwnerId().equals(owner.getId())) {
+            throw new CustomException("Bank account does not belong to the requesting owner.", HttpStatus.FORBIDDEN);
         }
         
         Property property = null;
@@ -333,38 +337,75 @@ public class OwnerSettingsServiceImpl implements OwnerSettingsService {
         String propName = property != null ? property.getName() : "Owner Property";
         Long propId = property != null ? property.getId() : null;
 
-        java.math.BigDecimal defaultHotelAmt = new java.math.BigDecimal("50000.00");
-        java.math.BigDecimal defaultFoodAmt = new java.math.BigDecimal("10000.00");
-        java.math.BigDecimal commissionRate = new java.math.BigDecimal("20.00");
-        java.math.BigDecimal commissionAmt = defaultHotelAmt.multiply(commissionRate)
+        if (propId == null) {
+            throw new CustomException("No active property found for owner.", HttpStatus.BAD_REQUEST);
+        }
+
+        List<com.b4code.backend.models.Booking> eligibleBookings = bookingRepository.findEligibleBookingsForPayout(propId);
+        if (eligibleBookings.isEmpty()) {
+            throw new CustomException("No completed and unpaid bookings available for payout.", HttpStatus.BAD_REQUEST);
+        }
+
+        java.math.BigDecimal totalBookingRevenue = eligibleBookings.stream()
+                .map(com.b4code.backend.models.Booking::getTotalAmount)
+                .filter(java.util.Objects::nonNull)
+                .reduce(java.math.BigDecimal.ZERO, java.math.BigDecimal::add);
+
+        java.math.BigDecimal defaultFoodAmt = java.math.BigDecimal.ZERO; // No food amount in bookings yet
+        java.math.BigDecimal commissionRate = financeService.getCommissionRate();
+        java.math.BigDecimal commissionAmt = totalBookingRevenue.multiply(commissionRate)
                 .divide(new java.math.BigDecimal("100"), 2, java.math.RoundingMode.HALF_UP);
-        java.math.BigDecimal netAmount = defaultHotelAmt.subtract(commissionAmt).add(defaultFoodAmt);
+        java.math.BigDecimal netAmount = totalBookingRevenue.subtract(commissionAmt).add(defaultFoodAmt);
 
         com.b4code.backend.models.Payout payout = com.b4code.backend.models.Payout.builder()
                 .ownerId(owner.getId())
                 .ownerName(owner.getFirstName() + " " + owner.getLastName())
                 .propertyId(propId)
                 .propertyName(propName)
-                .hotelAmount(defaultHotelAmt)
+                .hotelAmount(totalBookingRevenue)
                 .foodAmount(defaultFoodAmt)
                 .commissionRate(commissionRate)
                 .commissionAmount(commissionAmt)
                 .amount(netAmount)
                 .currency("LKR")
                 .status(com.b4code.backend.models.enums.PayoutStatus.PENDING)
+                .bankName(selectedAccount.getBankName())
+                .accountNumber(selectedAccount.getAccountNumber())
+                .accountHolderName(selectedAccount.getAccountHolder())
                 .requestedAt(LocalDateTime.now())
                 .build();
 
         com.b4code.backend.models.Payout saved = payoutRepository.save(payout);
 
+        // Notify Admin
+        adminNotificationService.createNotification(
+                "New Payout Request",
+                "Owner " + owner.getFirstName() + " requested a payout of LKR " + netAmount.toPlainString() + " for " + propName,
+                com.b4code.backend.models.enums.AdminNotificationType.PAYOUT_REQUEST,
+                saved.getId().toString()
+        );
+
+        // Mark bookings as paid out
+        for (com.b4code.backend.models.Booking b : eligibleBookings) {
+            b.setIsPaidOutToOwner(true);
+        }
+        bookingRepository.saveAll(eligibleBookings);
+
         com.b4code.backend.dto.PayoutDto dto = com.b4code.backend.dto.PayoutDto.fromEntity(saved);
-        BankAccount primaryBank = bankAccounts.get(0);
-        dto.setBankName(primaryBank.getBankName());
-        dto.setAccountHolder(primaryBank.getAccountHolder());
-        dto.setAccountNumber(primaryBank.getAccountNumber());
-        dto.setBranchCode(primaryBank.getBranchCode());
-        dto.setBankDetails(primaryBank.getBankName() + " — Acc: " + primaryBank.getAccountNumber() + " (Holder: " + primaryBank.getAccountHolder() + ")");
+        dto.setBranchCode(selectedAccount.getBranchCode());
+        dto.setBankDetails(selectedAccount.getBankName() + " — Acc: " + selectedAccount.getAccountNumber() + " (Holder: " + selectedAccount.getAccountHolder() + ")");
+
         return dto;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<com.b4code.backend.dto.PayoutDto> getPayoutsForOwner(String ownerEmail) {
+        User owner = resolveOwner(ownerEmail);
+        return payoutRepository.findByOwnerIdOrderByRequestedAtDesc(owner.getId())
+                .stream()
+                .map(com.b4code.backend.dto.PayoutDto::fromEntity)
+                .toList();
     }
 
     private User resolveOwner(String email) {

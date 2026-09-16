@@ -58,6 +58,15 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
     @Query("""
         SELECT b FROM Booking b
         WHERE b.property.id = :propertyId
+          AND b.status = 'COMPLETED'
+          AND b.isPaid = true
+          AND b.isPaidOutToOwner = false
+    """)
+    List<Booking> findEligibleBookingsForPayout(@Param("propertyId") Long propertyId);
+
+    @Query("""
+        SELECT b FROM Booking b
+        WHERE b.property.id = :propertyId
           AND (:roomTypeId IS NULL OR b.roomType.id = :roomTypeId)
           AND b.status <> 'CANCELLED'
           AND NOT (b.status = 'PENDING' AND b.paymentMethod = 'ONLINE_CARD')

@@ -21,6 +21,7 @@ public interface RoomTypeRepository extends JpaRepository<RoomType, Long> {
     @Query("""
             SELECT r FROM RoomType r
             WHERE r.property.ownerId = :ownerId
+              AND (:propertyId IS NULL OR r.property.id = :propertyId)
               AND (:status IS NULL OR r.status = :status)
               AND (:search IS NULL OR :search = ''
                    OR LOWER(r.name) LIKE LOWER(CONCAT('%', :search, '%'))
@@ -29,6 +30,7 @@ public interface RoomTypeRepository extends JpaRepository<RoomType, Long> {
             """)
     List<RoomType> findByOwnerWithFilters(
             @Param("ownerId") Long ownerId,
+            @Param("propertyId") Long propertyId,
             @Param("status") RoomStatus status,
             @Param("search") String search);
 

@@ -259,6 +259,68 @@ public class AuthService {
         auditLogRepository.save(log);
     }
 
+    // ───────────────────────── ACCEPT INVITE ─────────────────────────
+    @Transactional
+    public AuthResponse acceptInvite(com.b4code.backend.dto.AcceptInviteRequest request) {
+        PasswordResetToken resetToken = passwordResetTokenRepository.findByToken(request.getToken())
+                .orElseThrow(
+                        () -> new CustomException("This invite link is invalid or has expired. Please contact support.", HttpStatus.BAD_REQUEST));
+
+        if (resetToken.isExpired()) {
+            passwordResetTokenRepository.delete(resetToken);
+            throw new CustomException("This invite link has expired. Please contact support.", HttpStatus.BAD_REQUEST);
+        }
+
+        User user = resetToken.getUser();
+        
+        user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
+        user.setFirstName(request.getFirstName());
+        user.setLastName(request.getLastName() != null ? request.getLastName() : "");
+        user.setPhone(request.getPhone());
+        
+        if (request.getNationalId() != null && !request.getNationalId().isBlank()) {
+            user.setNationalIdUrl(request.getNationalId().trim());
+        }
+
+        // Mark user as active since they accepted the invite
+        user.setStatus(UserStatus.ACTIVE);
+        userRepository.save(user);
+
+        // Clear the token
+        passwordResetTokenRepository.delete(resetToken);
+
+        // Log the action
+        AuditLog log = new AuditLog();
+        log.setUser(user);
+        log.setAction("INVITE_ACCEPTED");
+        log.setEntity("AUTH");
+        log.setEntityDetail(user.getEmail());
+        log.setTimestamp(LocalDateTime.now());
+        auditLogRepository.save(log);
+
+        // Generate tokens to log them in immediately
+        String token = jwtUtil.generateToken(user.getEmail(), user.getRole().name());
+        String refreshToken = jwtUtil.generateRefreshToken(user.getEmail());
+
+        UserProfileDto profile = new UserProfileDto(
+                user.getFirstName(),
+                user.getLastName(),
+                user.getPhone(),
+                user.getAvatarUrl(),
+                user.getNationalIdUrl(),
+                user.getStaffRole());
+
+        return new AuthResponse(
+                token,
+                refreshToken,
+                user.getEmail(),
+                user.getRole().name(),
+                user.getId(),
+                user.getStatus().name(),
+                user.getPropertyId(),
+                profile);
+    }
+
     // ───────────────────────── VERIFY EMAIL (OTP) ─────────────────────────
     @Transactional
     public void verifyEmail(String email, String code) {

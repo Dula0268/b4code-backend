@@ -236,8 +236,12 @@ public class AdminUserServiceImpl implements AdminUserService {
     public void inviteUser(String email, UserRole role) {
         log.info("Inviting new user with email='{}' and role='{}'", email, role);
 
+        if (role != UserRole.OWNER) {
+            throw new CustomException("Admins are only permitted to invite Property Owners.", HttpStatus.BAD_REQUEST);
+        }
+
         if (userRepository.existsByEmail(email)) {
-            throw new CustomException("Email already in use", HttpStatus.CONFLICT);
+            throw new CustomException("A user with this email is already registered in the platform.", HttpStatus.CONFLICT);
         }
 
         User user = new User();
@@ -260,7 +264,7 @@ public class AdminUserServiceImpl implements AdminUserService {
         );
         passwordResetTokenRepository.save(token);
 
-        String inviteLink = frontendUrl + "/auth/reset-password?token=" + inviteToken + "&invite=true";
+        String inviteLink = frontendUrl + "/auth/accept-invite?token=" + inviteToken;
         
         // Use EmailService to send the actual invitation email
         emailService.sendInvitationEmail(saved.getEmail(), saved.getRole().name(), inviteLink);
