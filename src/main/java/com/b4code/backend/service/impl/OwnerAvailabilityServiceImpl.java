@@ -81,6 +81,9 @@ public class OwnerAvailabilityServiceImpl implements OwnerAvailabilityService {
                 if (request.getNotes() != null) {
                     avail.setNotes(request.getNotes());
                 }
+                if (request.getAvailableRoomsOverride() != null) {
+                    avail.setAvailableRoomsOverride(request.getAvailableRoomsOverride());
+                }
                 availabilityRepository.save(avail);
             }
         }
@@ -110,6 +113,8 @@ public class OwnerAvailabilityServiceImpl implements OwnerAvailabilityService {
                         .customPrice(a != null && a.getCustomPrice() != null ? a.getCustomPrice().toPlainString() : null)
                         .notes(a != null ? a.getNotes() : null)
                         .availabilityId(a != null ? a.getId() : null)
+                        .availableRoomsOverride(a != null ? a.getAvailableRoomsOverride() : null)
+                        .baseInventory(roomType.getInventory())
                         .build());
                 d = d.plusDays(1);
             }

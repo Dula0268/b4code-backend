@@ -12,4 +12,5 @@ public class AvailabilityBulkUpdateRequest {
     private String newStatus;
     private BigDecimal customPrice;
     private String notes;
+    private Integer availableRoomsOverride;
 }

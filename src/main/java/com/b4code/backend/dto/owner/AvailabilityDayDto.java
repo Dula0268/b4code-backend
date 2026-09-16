@@ -14,4 +14,6 @@ public class AvailabilityDayDto {
     private String customPrice;
     private String notes;
     private Long availabilityId;
+    private Integer availableRoomsOverride;
+    private Integer baseInventory;
 }
