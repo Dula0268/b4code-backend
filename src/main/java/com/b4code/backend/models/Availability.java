@@ -36,6 +36,9 @@ public class Availability {
     @Column(length = 500)
     private String notes;
 
+    @Column(name = "available_rooms_override")
+    private Integer availableRoomsOverride;
+
     @Column(nullable = false, updatable = false)
     @Builder.Default
     private LocalDateTime createdAt = LocalDateTime.now();
