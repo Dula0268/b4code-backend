@@ -8,6 +8,10 @@ import com.b4code.backend.dto.AuthResponse;
 import com.b4code.backend.dto.LoginRequest;
 import com.b4code.backend.dto.RegisterRequest;
 import com.b4code.backend.dto.UserProfileDto;
+import com.b4code.backend.dto.AcceptInviteRequest;
+import com.b4code.backend.dto.RoomLoginRequest;
+import com.b4code.backend.models.Booking;
+import com.b4code.backend.dao.BookingRepository;
 import com.b4code.backend.models.PasswordResetToken;
 import com.b4code.backend.models.User;
 import com.b4code.backend.models.enums.UserRole;
@@ -37,7 +41,7 @@ public class AuthService {
     private final PasswordResetTokenRepository passwordResetTokenRepository;
     private final EmailService emailService;
     private final VerificationOTPRepository verificationOTPRepository;
-    private final com.b4code.backend.dao.BookingRepository bookingRepository;
+    private final BookingRepository bookingRepository;
 
     @Value("${app.frontend-url:http://localhost:3000}")
     private String frontendUrl;
@@ -261,7 +265,7 @@ public class AuthService {
 
     // ───────────────────────── ACCEPT INVITE ─────────────────────────
     @Transactional
-    public AuthResponse acceptInvite(com.b4code.backend.dto.AcceptInviteRequest request) {
+    public AuthResponse acceptInvite(AcceptInviteRequest request) {
         PasswordResetToken resetToken = passwordResetTokenRepository.findByToken(request.getToken())
                 .orElseThrow(
                         () -> new CustomException("This invite link is invalid or has expired. Please contact support.", HttpStatus.BAD_REQUEST));
@@ -366,9 +370,9 @@ public class AuthService {
     }
 
     // ───────────────────────── ROOM LOGIN ─────────────────────────
-    public AuthResponse roomLogin(com.b4code.backend.dto.RoomLoginRequest request) {
+    public AuthResponse roomLogin(RoomLoginRequest request) {
         Long roomId = Long.parseLong(request.getRoomNumber());
-        com.b4code.backend.models.Booking booking = bookingRepository.findActiveBookingByRoom(request.getPropertyId(), roomId)
+        Booking booking = bookingRepository.findActiveBookingByRoom(request.getPropertyId(), roomId)
                 .orElseThrow(() -> new CustomException("We couldn't find an active reservation for this roomType number. Please check the number and try again.", HttpStatus.NOT_FOUND));
 
         // Strict name verification removed to allow family members to order.
