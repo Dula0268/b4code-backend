@@ -76,6 +76,9 @@ jobs:
     steps:
       - name: Roll out backend
         run: |
+          # Patch the deployment with rollout tuning and probe adjustments
+          kubectl patch deployment primestay-backend -p '{"spec":{"strategy":{"type":"RollingUpdate","rollingUpdate":{"maxUnavailable":1,"maxSurge":1}},"template":{"spec":{"terminationGracePeriodSeconds":30,"containers":[{"name":"backend","lifecycle":{"preStop":{"exec":{"command":["sh","-c","sleep 10"]}}},"livenessProbe":{"initialDelaySeconds":60},"readinessProbe":{"initialDelaySeconds":45}}]}}}}'
+          
           kubectl set image deployment/primestay-backend \
             backend=502869771838.dkr.ecr.ap-southeast-2.amazonaws.com/primestay-backend:${{ github.sha }}
           # Generous timeout: Spring Boot takes ~35s to start, plus image pull
