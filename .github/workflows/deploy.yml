@@ -28,7 +28,10 @@ jobs:
           cache: maven
       # Self-contained: application-test.yml uses in-memory H2, so no DB or
       # secrets are needed on the runner.
-      - run: mvn test -B
+      - name: Run tests
+        env:
+          SPRING_PROFILES_ACTIVE: test
+        run: mvn test -B
 
   build-and-push:
     runs-on: ubuntu-latest

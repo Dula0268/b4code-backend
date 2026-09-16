@@ -25,7 +25,9 @@ jobs:
         run: mvn clean package -DskipTests
 
       - name: Run Tests
-        run: mvn test
+        env:
+          SPRING_PROFILES_ACTIVE: test
+        run: mvn test -B
 
   code-quality:
     runs-on: ubuntu-latest

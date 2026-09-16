@@ -15,7 +15,15 @@ spring:
   flyway:
     enabled: false
   mail:
+    host: localhost
+    port: 25
     username: test@example.com
+    password: test
+
+management:
+  health:
+    mail:
+      enabled: false
 
 b4code:
   security:
@@ -24,7 +32,21 @@ b4code:
       expirationMs: 86400000
       refreshExpirationMs: 172800000
 
+app:
+  cors:
+    allowed-origins: http://localhost:3000
+  frontend-url: http://localhost:3000
+
+cloudinary:
+  cloud-name: demo
+  api-key: test
+  api-secret: test
+
 payhere:
   merchant-id: dummy
   merchant-secret: dummy
   checkout-url: http://dummy
+  notify-url: http://localhost
+  return-url: http://localhost:3000/guest/booking
+  cancel-url: http://localhost:3000/payment
+  sandbox: true
