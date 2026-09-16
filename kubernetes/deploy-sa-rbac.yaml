@@ -1,0 +1,39 @@
+# Grant the deploy service account read-only access to the resources needed
+# for rollout diagnostics in deploy.yml.
+#
+# Apply once (or re-apply idempotently) with the cluster admin identity:
+#   kubectl apply -f kubernetes/deploy-sa-rbac.yaml
+#
+# The service account name (deploy-sa) must match the one referenced in
+# the self-hosted runner's KUBECONFIG (/home/ubuntu/.kube/deploy-config).
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: deploy-read-diagnostics
+  namespace: default
+rules:
+  - apiGroups: [""]
+    resources:
+      - pods
+      - pods/log
+      - events
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["apps"]
+    resources:
+      - deployments
+      - replicasets
+    verbs: ["get", "list", "watch", "patch", "update"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: deploy-read-diagnostics
+  namespace: default
+subjects:
+  - kind: ServiceAccount
+    name: deploy-sa
+    namespace: default
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: deploy-read-diagnostics

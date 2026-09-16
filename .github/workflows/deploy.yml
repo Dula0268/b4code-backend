@@ -85,6 +85,8 @@ jobs:
           # Probes are already set correctly in the Helm manifest (deployment.yaml)
           # and must NOT be re-specified here: Kubernetes rejects a strategic-merge
           # patch that adds a second handler type (e.g. httpGet alongside tcpSocket).
+          # Non-fatal (|| true): if the live deployment already has identical settings
+          # the patch is a no-op and we still want the rollout to proceed.
           kubectl patch deployment primestay-backend --type=strategic -p '{
             "spec": {
               "strategy": {
@@ -103,39 +105,50 @@ jobs:
                 }
               }
             }
-          }'
+          }' || true
 
           kubectl set image deployment/primestay-backend \
             backend=${{ env.ECR_REGISTRY }}/${{ env.IMAGE }}:${{ github.sha }}
 
+          # Wait for the rollout; on timeout dump diagnostics then fail.
+          # Every diagnostic command is non-fatal (|| true) so that an RBAC
+          # restriction on one command does not swallow the original error.
           if ! kubectl rollout status deployment/primestay-backend --timeout=300s; then
             echo "=== Deployment ==="
-            kubectl describe deployment primestay-backend
-            
+            kubectl describe deployment primestay-backend || true
+
             echo "=== ReplicaSets ==="
-            kubectl get replicasets -o wide
-            
+            kubectl get replicasets -o wide || true
+
             echo "=== Pods ==="
-            kubectl get pods -o wide
-            
+            kubectl get pods -o wide || true
+
             echo "=== Pod descriptions ==="
-            kubectl describe pods -l app.kubernetes.io/name=b4code-backend
-            
-            echo "=== Recent events ==="
-            kubectl get events --sort-by=.lastTimestamp
-            
-            echo "=== Container logs ==="
-            kubectl logs -l app.kubernetes.io/name=b4code-backend \
+            kubectl describe deployment primestay-backend || true
+
+            echo "=== Recent events (Pod-scoped) ==="
+            kubectl get events \
+              --sort-by=.lastTimestamp \
+              --field-selector involvedObject.kind=Pod \
+              || true
+
+            # Use the deployment reference — the label selector app.kubernetes.io/name
+            # may not match all pods managed by this deployment.
+            echo "=== Current container logs ==="
+            kubectl logs deployment/primestay-backend \
               --all-containers \
               --tail=200 \
-              --prefix || true
-              
+              --prefix \
+              || true
+
             echo "=== Previous container logs ==="
-            kubectl logs -l app.kubernetes.io/name=b4code-backend \
+            kubectl logs deployment/primestay-backend \
               --all-containers \
               --previous \
               --tail=200 \
-              --prefix || true
-              
+              --prefix \
+              || true
+
             exit 1
           fi
+
