@@ -28,6 +28,16 @@ app:
   # in password-reset mail, staff invites, and printed QR codes.
   frontend-url: ${APP_FRONTEND_URL:http://localhost:3000}
 
+management:
+  endpoint:
+    health:
+      probes:
+        enabled: true
+  endpoints:
+    web:
+      exposure:
+        include: health
+
   # Browser origins allowed to call this API (see SecurityConfig#corsConfigurationSource).
   # These are the local dev defaults; application-prod.yml overrides them, and
   # APP_CORS_ALLOWED_ORIGINS can override them again at runtime without a rebuild.

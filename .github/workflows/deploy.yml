@@ -76,11 +76,42 @@ jobs:
     steps:
       - name: Roll out backend
         run: |
+          set -euo pipefail
+          
           # Patch the deployment with rollout tuning and probe adjustments
-          kubectl patch deployment primestay-backend -p '{"spec":{"strategy":{"type":"RollingUpdate","rollingUpdate":{"maxUnavailable":1,"maxSurge":1}},"template":{"spec":{"terminationGracePeriodSeconds":30,"containers":[{"name":"backend","lifecycle":{"preStop":{"exec":{"command":["sh","-c","sleep 10"]}}},"livenessProbe":{"initialDelaySeconds":60},"readinessProbe":{"initialDelaySeconds":45}}]}}}}'
+          kubectl patch deployment primestay-backend -p '{"spec":{"strategy":{"type":"RollingUpdate","rollingUpdate":{"maxUnavailable":0,"maxSurge":1}},"template":{"spec":{"terminationGracePeriodSeconds":30,"containers":[{"name":"backend","lifecycle":{"preStop":{"exec":{"command":["sh","-c","sleep 10"]}}},"readinessProbe":{"httpGet":{"path":"/actuator/health/readiness","port":8080},"periodSeconds":10,"timeoutSeconds":5,"failureThreshold":12},"livenessProbe":{"httpGet":{"path":"/actuator/health/liveness","port":8080},"periodSeconds":20,"timeoutSeconds":5,"failureThreshold":6},"startupProbe":{"httpGet":{"path":"/actuator/health","port":8080},"periodSeconds":10,"failureThreshold":30}}]}}}}'
           
           kubectl set image deployment/primestay-backend \
-            backend=502869771838.dkr.ecr.ap-southeast-2.amazonaws.com/primestay-backend:${{ github.sha }}
-          # Generous timeout: Spring Boot takes ~35s to start, plus image pull
-          # on a 2 vCPU box.
-          kubectl rollout status deployment/primestay-backend --timeout=300s
+            backend=${{ env.ECR_REGISTRY }}/${{ env.IMAGE }}:${{ github.sha }}
+            
+          if ! kubectl rollout status deployment/primestay-backend --timeout=300s; then
+            echo "=== Deployment ==="
+            kubectl describe deployment primestay-backend
+            
+            echo "=== ReplicaSets ==="
+            kubectl get replicasets -o wide
+            
+            echo "=== Pods ==="
+            kubectl get pods -o wide
+            
+            echo "=== Pod descriptions ==="
+            kubectl describe pods -l app.kubernetes.io/name=b4code-backend
+            
+            echo "=== Recent events ==="
+            kubectl get events --sort-by=.lastTimestamp
+            
+            echo "=== Container logs ==="
+            kubectl logs -l app.kubernetes.io/name=b4code-backend \
+              --all-containers \
+              --tail=200 \
+              --prefix || true
+              
+            echo "=== Previous container logs ==="
+            kubectl logs -l app.kubernetes.io/name=b4code-backend \
+              --all-containers \
+              --previous \
+              --tail=200 \
+              --prefix || true
+              
+            exit 1
+          fi
