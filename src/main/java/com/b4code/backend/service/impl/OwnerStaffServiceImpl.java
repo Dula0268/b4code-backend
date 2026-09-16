@@ -27,58 +27,64 @@ public class OwnerStaffServiceImpl implements OwnerStaffService {
 
     @Override
     public List<StaffPendingResponse> getPendingStaff(String ownerEmail) {
-        if (ownerEmail == null || ownerEmail.isBlank()) {
-            return List.of();
+        try {
+            if (ownerEmail == null || ownerEmail.isBlank()) {
+                return List.of();
+            }
+
+            User owner = userRepository.findByEmail(ownerEmail.toLowerCase())
+                    .orElseThrow(() -> new CustomException("Owner account not found", HttpStatus.NOT_FOUND));
+
+            List<Property> ownerProperties = propertyRepository.findByOwnerId(owner.getId());
+
+            if (ownerProperties == null || ownerProperties.isEmpty()) {
+                return List.of();
+            }
+
+            // Build a lookup map safely: propertyId -> propertyName (merging duplicates if any)
+            Map<Long, String> propertyNameMap = ownerProperties.stream()
+                    .filter(p -> p != null && p.getId() != null)
+                    .collect(Collectors.toMap(
+                            Property::getId,
+                            p -> p.getName() != null ? p.getName() : "Unnamed Property",
+                            (existing, replacement) -> existing
+                    ));
+
+            List<Long> propertyIds = new ArrayList<>(propertyNameMap.keySet());
+            if (propertyIds.isEmpty()) {
+                return List.of();
+            }
+
+            List<User> pendingStaff = userRepository.findByPropertyIdInAndRoleAndStatusAndDeletedFalse(
+                    propertyIds,
+                    UserRole.STAFF,
+                    UserStatus.PENDING
+            );
+
+            if (pendingStaff == null || pendingStaff.isEmpty()) {
+                return List.of();
+            }
+
+            return pendingStaff.stream()
+                    .map(staff -> StaffPendingResponse.builder()
+                            .id(staff.getId())
+                            .email(staff.getEmail() != null ? staff.getEmail() : "")
+                            .firstName(staff.getFirstName() != null ? staff.getFirstName() : "")
+                            .lastName(staff.getLastName() != null ? staff.getLastName() : "")
+                            .phone(staff.getPhone() != null ? staff.getPhone() : "")
+                            .propertyName(staff.getPropertyId() != null
+                                    ? propertyNameMap.getOrDefault(staff.getPropertyId(), "Assigned Property")
+                                    : "No Property Assigned")
+                            .status(staff.getStatus() != null ? staff.getStatus().name() : "PENDING")
+                            .role(staff.getStaffRole() != null && !staff.getStaffRole().isBlank() ? staff.getStaffRole() : "Staff Member")
+                            .registeredAt(staff.getCreatedAt() != null ? staff.getCreatedAt().toString() : java.time.LocalDateTime.now().toString())
+                            .build())
+                    .collect(Collectors.toList());
+        } catch (Exception e) {
+            System.err.println("ERROR IN getPendingStaff:");
+            e.printStackTrace();
+            throw e;
         }
-
-        User owner = userRepository.findByEmail(ownerEmail.toLowerCase())
-                .orElseThrow(() -> new CustomException("Owner account not found", HttpStatus.NOT_FOUND));
-
-        List<Property> ownerProperties = propertyRepository.findByOwnerId(owner.getId());
-
-        if (ownerProperties == null || ownerProperties.isEmpty()) {
-            return List.of();
-        }
-
-        // Build a lookup map safely: propertyId -> propertyName (merging duplicates if any)
-        Map<Long, String> propertyNameMap = ownerProperties.stream()
-                .filter(p -> p != null && p.getId() != null)
-                .collect(Collectors.toMap(
-                        Property::getId,
-                        p -> p.getName() != null ? p.getName() : "Unnamed Property",
-                        (existing, replacement) -> existing
-                ));
-
-        List<Long> propertyIds = new ArrayList<>(propertyNameMap.keySet());
-        if (propertyIds.isEmpty()) {
-            return List.of();
-        }
-
-        List<User> pendingStaff = userRepository.findByPropertyIdInAndRoleAndStatusAndDeletedFalse(
-                propertyIds,
-                UserRole.STAFF,
-                UserStatus.PENDING
-        );
-
-        if (pendingStaff == null || pendingStaff.isEmpty()) {
-            return List.of();
-        }
-
-        return pendingStaff.stream()
-                .map(staff -> StaffPendingResponse.builder()
-                        .id(staff.getId())
-                        .email(staff.getEmail() != null ? staff.getEmail() : "")
-                        .firstName(staff.getFirstName() != null ? staff.getFirstName() : "")
-                        .lastName(staff.getLastName() != null ? staff.getLastName() : "")
-                        .phone(staff.getPhone() != null ? staff.getPhone() : "")
-                        .propertyName(staff.getPropertyId() != null
-                                ? propertyNameMap.getOrDefault(staff.getPropertyId(), "Assigned Property")
-                                : "No Property Assigned")
-                        .status(staff.getStatus() != null ? staff.getStatus().name() : "PENDING")
-                        .role(staff.getStaffRole() != null && !staff.getStaffRole().isBlank() ? staff.getStaffRole() : "Staff Member")
-                        .registeredAt(staff.getCreatedAt() != null ? staff.getCreatedAt().toString() : java.time.LocalDateTime.now().toString())
-                        .build())
-                .collect(Collectors.toList());
     }
 
     @Override

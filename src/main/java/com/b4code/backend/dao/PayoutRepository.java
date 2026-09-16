@@ -49,4 +49,6 @@ public interface PayoutRepository extends JpaRepository<Payout, Long> {
             @Param("statuses") java.util.Collection<com.b4code.backend.models.enums.PayoutStatus> statuses,
             @Param("cutoff") java.time.LocalDateTime cutoff
     );
+
+    List<Payout> findByOwnerIdOrderByRequestedAtDesc(Long ownerId);
 }

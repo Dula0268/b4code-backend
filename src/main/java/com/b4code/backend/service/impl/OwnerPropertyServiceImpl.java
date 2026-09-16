@@ -33,6 +33,8 @@ public class OwnerPropertyServiceImpl implements OwnerPropertyService {
     private final UserRepository userRepository;
     private final CloudinaryService cloudinaryService;
     private final AdminNotificationService adminNotificationService;
+    private final com.b4code.backend.dao.BookingRepository bookingRepository;
+    private final com.b4code.backend.service.FinanceService financeService;
 
     @Override
     @Transactional(readOnly = true)
@@ -50,7 +52,22 @@ public class OwnerPropertyServiceImpl implements OwnerPropertyService {
                 owner.getId(), searchTerm, statusEnum, PageRequest.of(zeroPage, size));
 
         List<OwnerPropertyDto> dtos = pageResult.getContent().stream()
-                .map(OwnerPropertyDto::fromEntity)
+                .map(p -> {
+                    OwnerPropertyDto dto = OwnerPropertyDto.fromEntity(p);
+                    java.math.BigDecimal totalRevenue = bookingRepository.findEligibleBookingsForPayout(p.getId()).stream()
+                            .map(com.b4code.backend.models.Booking::getTotalAmount)
+                            .filter(java.util.Objects::nonNull)
+                            .reduce(java.math.BigDecimal.ZERO, java.math.BigDecimal::add);
+                    
+                    java.math.BigDecimal commissionRate = financeService.getCommissionRate();
+                    java.math.BigDecimal commission = totalRevenue.multiply(commissionRate)
+                            .divide(new java.math.BigDecimal("100"), 2, java.math.RoundingMode.HALF_UP);
+                    
+                    dto.setGrossRevenue(totalRevenue);
+                    dto.setPlatformCommission(commission);
+                    dto.setAvailableBalance(totalRevenue.subtract(commission));
+                    return dto;
+                })
                 .toList();
 
         return OwnerPropertyPageDto.builder()
@@ -174,6 +191,21 @@ public class OwnerPropertyServiceImpl implements OwnerPropertyService {
         if (request.getAmenities() != null) {
             property.getAmenities().clear();
             attachAmenities(property, request.getAmenities());
+        }
+
+        if (request.getRooms() != null && !request.getRooms().isEmpty()) {
+            for (OwnerPropertyRequest.RoomRequest rm : request.getRooms()) {
+                com.b4code.backend.models.RoomType roomType = com.b4code.backend.models.RoomType.builder()
+                        .property(property)
+                        .name(rm.getName())
+                        .maxOccupancy(rm.getMaxCapacity() != null ? rm.getMaxCapacity() : 2)
+                        .pricePerNight(java.math.BigDecimal.ZERO)
+                        .inventory(1)
+                        .roomCategory(com.b4code.backend.models.RoomCategory.STANDARD_ROOM)
+                        .status(com.b4code.backend.models.enums.RoomStatus.AVAILABLE)
+                        .build();
+                property.getRoomTypes().add(roomType);
+            }
         }
 
         if (isPublished) {

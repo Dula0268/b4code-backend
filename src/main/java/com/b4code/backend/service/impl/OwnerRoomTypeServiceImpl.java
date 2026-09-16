@@ -34,7 +34,7 @@ public class OwnerRoomTypeServiceImpl implements OwnerRoomTypeService {
 
     @Override
     @Transactional(readOnly = true)
-    public OwnerRoomTypeListDto listRoomTypes(String ownerEmail, String statusParam, String search) {
+    public OwnerRoomTypeListDto listRoomTypes(String ownerEmail, Long propertyId, String statusParam, String search) {
         User owner = resolveOwner(ownerEmail);
 
         RoomStatus statusFilter = null;
@@ -44,7 +44,7 @@ public class OwnerRoomTypeServiceImpl implements OwnerRoomTypeService {
         }
 
         String searchTerm = (search == null || search.isBlank()) ? null : search.trim();
-        List<RoomType> roomTypes = roomTypeRepository.findByOwnerWithFilters(owner.getId(), statusFilter, searchTerm);
+        List<RoomType> roomTypes = roomTypeRepository.findByOwnerWithFilters(owner.getId(), propertyId, statusFilter, searchTerm);
 
         long total = roomTypeRepository.countByOwner(owner.getId());
         long occupied = roomTypeRepository.countByOwnerAndStatus(owner.getId(), RoomStatus.OCCUPIED);

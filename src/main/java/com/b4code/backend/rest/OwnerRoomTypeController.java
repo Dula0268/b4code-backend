@@ -27,11 +27,12 @@ public class OwnerRoomTypeController {
     @Operation(summary = "List all roomTypes for the authenticated owner")
     public ResponseEntity<OwnerRoomTypeListDto> listRoomTypes(
             Principal principal,
+            @RequestParam(required = false) Long propertyId,
             @RequestParam(required = false) String status,
             @RequestParam(required = false) String search) {
 
         return ResponseEntity.ok(
-                ownerRoomTypeService.listRoomTypes(principal.getName(), status, search));
+                ownerRoomTypeService.listRoomTypes(principal.getName(), propertyId, status, search));
     }
 
     @GetMapping("/{id}")
