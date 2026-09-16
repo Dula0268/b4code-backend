@@ -132,6 +132,18 @@ public class OwnerReservationServiceImpl implements OwnerReservationService {
         return OwnerReservationDto.fromEntity(bookingRepository.save(booking));
     }
 
+    @Override
+    @Transactional
+    public OwnerReservationDto toggleLateArrival(String ownerEmail, Long id, boolean allowed) {
+        Booking booking = resolveOwnedBooking(ownerEmail, id);
+        if (booking.getStatus() == Booking.BookingStatus.COMPLETED ||
+            booking.getStatus() == Booking.BookingStatus.CANCELLED) {
+            throw new CustomException("Cannot modify late arrival setting for a completed or cancelled booking", HttpStatus.BAD_REQUEST);
+        }
+        booking.setLateArrivalAllowed(allowed);
+        return OwnerReservationDto.fromEntity(bookingRepository.save(booking));
+    }
+
     private User resolveOwner(String email) {
         return userRepository.findByEmail(email)
                 .orElseThrow(() -> new CustomException("Owner not found", HttpStatus.NOT_FOUND));

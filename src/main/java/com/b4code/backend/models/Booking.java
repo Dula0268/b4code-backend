@@ -95,6 +95,9 @@ public class Booking {
 
     @Column(nullable = false, columnDefinition = "boolean default false")
     @Builder.Default
+    private Boolean lateArrivalAllowed = false;
+
+    @Builder.Default
     private Boolean isPaidOutToOwner = false;
 
     @Column(updatable = false)
@@ -106,6 +109,6 @@ public class Booking {
     }
 
     public enum BookingStatus {
-        PENDING, CONFIRMED, CANCELLED, COMPLETED, CHECKED_IN
+        PENDING, CONFIRMED, CANCELLED, COMPLETED, CHECKED_IN, NO_SHOW
     }
 }

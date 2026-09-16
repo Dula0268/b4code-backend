@@ -9,7 +9,8 @@ public interface OwnerReservationService {
     List<OwnerReservationDto> listReservations(String ownerEmail, String search, String status);
     OwnerReservationDto getReservation(String ownerEmail, Long id);
     OwnerReservationDto createManualBooking(String ownerEmail, ManualBookingRequest request);
-    OwnerReservationDto checkIn(String ownerEmail, Long id);
-    OwnerReservationDto checkOut(String ownerEmail, Long id);
-    OwnerReservationDto cancel(String ownerEmail, Long id);
+    OwnerReservationDto checkIn(String ownerEmail, Long bookingId);
+    OwnerReservationDto checkOut(String ownerEmail, Long bookingId);
+    OwnerReservationDto cancel(String ownerEmail, Long bookingId);
+    OwnerReservationDto toggleLateArrival(String ownerEmail, Long bookingId, boolean allowed);
 }
