@@ -80,13 +80,34 @@ jobs:
       - name: Roll out backend
         run: |
           set -euo pipefail
-          
-          # Patch the deployment with rollout tuning and probe adjustments
-          kubectl patch deployment primestay-backend -p '{"spec":{"strategy":{"type":"RollingUpdate","rollingUpdate":{"maxUnavailable":0,"maxSurge":1}},"template":{"spec":{"terminationGracePeriodSeconds":30,"containers":[{"name":"backend","lifecycle":{"preStop":{"exec":{"command":["sh","-c","sleep 10"]}}},"readinessProbe":{"httpGet":{"path":"/actuator/health/readiness","port":8080},"periodSeconds":10,"timeoutSeconds":5,"failureThreshold":12},"livenessProbe":{"httpGet":{"path":"/actuator/health/liveness","port":8080},"periodSeconds":20,"timeoutSeconds":5,"failureThreshold":6},"startupProbe":{"httpGet":{"path":"/actuator/health","port":8080},"periodSeconds":10,"failureThreshold":30}}]}}}}'
-          
+
+          # Apply only strategy + lifecycle tuning.
+          # Probes are already set correctly in the Helm manifest (deployment.yaml)
+          # and must NOT be re-specified here: Kubernetes rejects a strategic-merge
+          # patch that adds a second handler type (e.g. httpGet alongside tcpSocket).
+          kubectl patch deployment primestay-backend --type=strategic -p '{
+            "spec": {
+              "strategy": {
+                "type": "RollingUpdate",
+                "rollingUpdate": { "maxUnavailable": 0, "maxSurge": 1 }
+              },
+              "template": {
+                "spec": {
+                  "terminationGracePeriodSeconds": 30,
+                  "containers": [{
+                    "name": "backend",
+                    "lifecycle": {
+                      "preStop": { "exec": { "command": ["sh", "-c", "sleep 10"] } }
+                    }
+                  }]
+                }
+              }
+            }
+          }'
+
           kubectl set image deployment/primestay-backend \
             backend=${{ env.ECR_REGISTRY }}/${{ env.IMAGE }}:${{ github.sha }}
-            
+
           if ! kubectl rollout status deployment/primestay-backend --timeout=300s; then
             echo "=== Deployment ==="
             kubectl describe deployment primestay-backend
