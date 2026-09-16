@@ -97,6 +97,9 @@ public class Booking {
     @Builder.Default
     private Boolean lateArrivalAllowed = false;
 
+    @Builder.Default
+    private Boolean isPaidOutToOwner = false;
+
     @Column(updatable = false)
     @Builder.Default
     private LocalDateTime createdAt = LocalDateTime.now();
