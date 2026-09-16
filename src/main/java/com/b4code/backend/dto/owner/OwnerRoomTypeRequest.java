@@ -15,4 +15,5 @@ public class OwnerRoomTypeRequest {
     private BigDecimal pricePerNight;
     private Integer inventory;
     private String status;
+    private String imageUrl;
 }
